@@ -1,50 +1,80 @@
-# Catalyst Studio
+# Catalyst Studio - AI Chat Application
 
-A modern Next.js application with shadcn/ui components, API routes, and full-stack capabilities.
+A streamlined AI chat application built with Next.js and the Vercel AI SDK, powered by OpenRouter.
 
 ## Features
 
-- ✨ **Next.js 15** with App Router
-- 🎨 **shadcn/ui** components with Tailwind CSS
-- 🔧 **TypeScript** for type safety
-- 🚀 **API Routes** for backend functionality
-- 💾 **Prisma ORM** with SQLite database
-- 🎯 **User Management** CRUD operations
-- 📊 **Dashboard** with real-time metrics
-- 🔥 **Turbopack** for fast development
+- 🤖 AI-powered chat interface
+- 💬 Real-time streaming responses
+- 🎨 Beautiful UI with shadcn/ui components
+- ⚡ Built with Next.js 15 and React 19
+- 🔄 OpenRouter integration for multiple AI models
 
-## Quick Start
+## Getting Started
 
-```bash
-npm run dev
-```
+### Prerequisites
 
-Open [http://localhost:3000](http://localhost:3000) to view the application.
+- Node.js 18+ 
+- An OpenRouter API key
 
-## API Endpoints
+### Installation
 
-- `GET /api/health` - Health check
-- `GET /api/users` - Get all users
-- `POST /api/users` - Create user
-- `GET /api/users/[id]` - Get user by ID
-- `PUT /api/users/[id]` - Update user
-- `DELETE /api/users/[id]` - Delete user
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-## Project Structure
+3. Set up environment variables:
+   - Copy `.env.example` to `.env.local`:
+     ```bash
+     cp .env.example .env.local
+     ```
+   - Update the following required variables in `.env.local`:
+     ```env
+     # OpenRouter Configuration (Required)
+     OPENROUTER_API_KEY=sk-or-v1-your-actual-api-key-here
+     
+     # Optional: Specify a different AI model (defaults to Claude 3.5 Sonnet)
+     OPENROUTER_MODEL=anthropic/claude-3.5-sonnet
+     ```
 
-```
-app/
-├── api/        # Backend API routes
-├── dashboard/  # Dashboard page
-├── users/      # User management
-└── page.tsx    # Home page
-```
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
 
-## Technologies
+5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
-- Frontend: Next.js, React, TypeScript, Tailwind CSS, shadcn/ui
-- Backend: Next.js API Routes
-- Database: SQLite with Prisma ORM
+## Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `OPENROUTER_API_KEY` | ✅ Yes | - | Your OpenRouter API key. Get one at [OpenRouter](https://openrouter.ai/keys) |
+| `OPENROUTER_MODEL` | No | `anthropic/claude-3.5-sonnet` | AI model to use. See [available models](https://openrouter.ai/models) |
+
+### Available Models
+
+You can use any model available on OpenRouter. Popular options include:
+- `anthropic/claude-3.5-sonnet` - Claude 3.5 Sonnet (default)
+- `openai/gpt-4-turbo` - GPT-4 Turbo
+- `google/gemini-pro` - Google Gemini Pro
+- `meta-llama/llama-3-70b-instruct` - Llama 3 70B
+
+## Tech Stack
+
+- **Framework**: Next.js 15 with App Router
+- **UI**: shadcn/ui components
+- **Styling**: Tailwind CSS
+- **AI**: Vercel AI SDK with OpenRouter
+- **Language**: TypeScript
+
+## Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm start` - Start production server
+- `npm run lint` - Run ESLint
 
 ## License
 
