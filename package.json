@@ -1,7 +1,8 @@
 {
-  "name": "catalyst-app",
+  "name": "catalyst-studio",
   "version": "0.1.0",
-  "private": true,
+  "license": "CC-BY-NC-4.0",
+  "private": false,
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
