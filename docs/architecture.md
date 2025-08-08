@@ -544,6 +544,206 @@ npm install
 npm run dev
 ```
 
+## Development Workflow & Git Strategy
+
+### Story-Based Branch Workflow
+
+Each story follows a strict branch-PR-review-merge cycle to ensure quality and maintainability.
+
+#### 1. Branch Creation (Story Start)
+```bash
+# Developer creates feature branch for each story
+git checkout main
+git pull origin main
+git checkout -b feature/story-{epicNum}.{storyNum}-{brief-description}
+# Example: feature/story-1.2-enhanced-chat
+
+# Push branch and create draft PR immediately
+git push -u origin feature/story-{epicNum}.{storyNum}-{brief-description}
+```
+
+#### 2. Development Process
+```typescript
+// Developer workflow on feature branch
+1. Implement story requirements
+2. Write/update tests
+3. Regular commits with clear messages
+4. Push changes frequently to backup work
+```
+
+#### 3. PR Creation & Initial Review
+```yaml
+PR Title: "Story {epicNum}.{storyNum}: {Story Title}"
+PR Description:
+  - Link to story document
+  - Checklist of acceptance criteria
+  - Testing performed
+  - Screenshots/recordings if UI changes
+  
+Labels:
+  - story-{epicNum}.{storyNum}
+  - needs-review
+  - draft (initially)
+```
+
+#### 4. Quality Gates & Review Cycle
+
+##### Pre-Review Checklist (Developer Completes)
+```bash
+# Run all quality checks locally (MANUAL - No CI/CD)
+npm test                    # All tests pass
+npm run typecheck          # No TypeScript errors
+npm run lint               # No linting issues
+npm run build              # Build succeeds
+
+# Update PR status
+# Mark PR as ready for review (remove draft status)
+# Comment: "Ready for review - all checks passed locally"
+```
+
+##### Review Process (Fix-Forward Approach)
+```mermaid
+graph LR
+    A[PR Created] --> B{Manual Tests Pass?}
+    B -->|No| C[Fix on Same Branch]
+    C --> B
+    B -->|Yes| D{Code Review}
+    D -->|Changes Requested| E[Fix on Same Branch]
+    E --> F[Push Fixes]
+    F --> G[Re-run Manual Tests]
+    G --> D
+    D -->|Approved| H{QA Review}
+    H -->|Issues Found| I[Fix on Same Branch]
+    I --> J[Push Fixes]
+    J --> K[Re-test]
+    K --> H
+    H -->|Passed| L[Ready to Merge]
+```
+
+**IMPORTANT**: All fixes happen on the SAME feature branch - never revert, always fix forward!
+
+##### Review Iterations
+```typescript
+// Continue until all checks pass:
+while (hasIssues) {
+  1. Reviewer adds comments/requests changes
+  2. Developer addresses ALL feedback
+  3. Developer re-requests review
+  4. Repeat until approved
+}
+```
+
+#### 5. QA Validation
+```yaml
+QA Checklist:
+  - [ ] All acceptance criteria met
+  - [ ] Feature flags work correctly
+  - [ ] No regression in existing features
+  - [ ] Performance metrics within budget
+  - [ ] UI matches design specifications
+  - [ ] Error handling works properly
+  - [ ] Accessibility requirements met
+```
+
+#### 6. Merge Criteria
+
+##### Required Before Merge (Manual Verification)
+- ✅ All manual checks passing (developer confirms)
+- ✅ Code review approved (at least 1 approval)
+- ✅ QA validation complete
+- ✅ No merge conflicts with main
+- ✅ PR description updated with final test results
+- ✅ Story document updated if needed
+- ✅ Final manual test run documented in PR
+
+##### Merge Process
+```bash
+# Final merge (use squash merge for clean history)
+# GitHub/GitLab UI or command line:
+git checkout main
+git pull origin main
+git merge --squash feature/story-{epicNum}.{storyNum}
+git commit -m "Story {epicNum}.{storyNum}: {Story Title} (#PR-number)"
+git push origin main
+
+# Clean up
+git branch -d feature/story-{epicNum}.{storyNum}
+git push origin --delete feature/story-{epicNum}.{storyNum}
+```
+
+### Workflow Enforcement (Manual Process)
+
+#### Branch Protection Rules (if using GitHub/GitLab)
+```yaml
+Protection Settings:
+  - Require pull request before merging
+  - Require approvals: 1
+  - Dismiss stale reviews on new commits
+  - Require conversation resolution
+  - Require branches up to date
+  - No direct commits to main
+```
+
+#### Manual Review Checklist
+Since we don't have CI/CD, reviewers must manually verify:
+```markdown
+## PR Review Checklist
+- [ ] Pulled branch locally and tested
+- [ ] Ran `npm test` - all pass
+- [ ] Ran `npm run typecheck` - no errors
+- [ ] Ran `npm run lint` - no issues
+- [ ] Ran `npm run build` - builds successfully
+- [ ] Tested feature flags (on/off)
+- [ ] Verified no regression in existing features
+- [ ] UI matches requirements (if applicable)
+```
+
+### Story Completion Definition
+
+A story is considered COMPLETE only when:
+
+1. **Code Complete**: All tasks in story marked done
+2. **Tests Pass**: All automated tests passing
+3. **Review Approved**: Code review approved
+4. **QA Verified**: QA has validated all ACs
+5. **Merged**: PR merged to main branch
+6. **Documented**: Story status updated to "Done"
+7. **Cleaned Up**: Feature branch deleted
+
+### Post-Merge Issue Resolution (Fix-Forward Only)
+
+If issues discovered after merging to main:
+
+```bash
+# ALWAYS FIX FORWARD - No reverts!
+
+# Option 1: Feature flag disable (immediate mitigation)
+# Disable feature to stop impact while fixing
+features.{featureName} = false
+
+# Option 2: Hotfix branch (permanent fix)
+git checkout main
+git pull origin main
+git checkout -b hotfix/story-{epicNum}.{storyNum}-issue
+# Fix the issue
+# Create PR with expedited review
+# Merge fix to main
+
+# Option 3: Next story addresses it
+# If non-critical, add fix to next story's tasks
+# Document issue in story notes for tracking
+```
+
+**Philosophy**: We don't revert code - we fix it and move forward!
+
+### Parallel Story Development
+
+Multiple stories can be developed simultaneously:
+- Each on separate feature branch
+- Avoid working on interdependent stories in parallel
+- Regularly sync with main to avoid conflicts
+- Coordinate merges to prevent conflicts
+
 ## Migration Path Architecture
 
 ### From Current to Target State
