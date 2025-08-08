@@ -65,6 +65,22 @@ This enhancement is essential to move from proof-of-concept to a functional MVP 
 | Change | Date | Version | Description | Author |
 |--------|------|---------|-------------|--------|
 | Initial PRD | 2025-01-08 | 1.0 | Brownfield PRD for MVP implementation | PM |
+| PO Validation Updates | 2025-01-08 | 2.0 | Revised after PO Master Checklist validation - decomposed Story 1.1, added protection requirements, moved persistence earlier, deferred analytics | Sarah (PO) |
+
+## Critical Pre-Development Requirements (v2.0)
+
+### Protection Layer (MUST COMPLETE BEFORE STORY 1.1a)
+1. **Snapshot Testing**: Create Playwright tests capturing current chat behavior
+2. **Error Boundaries**: Wrap existing chat in error handling
+3. **Feature Flags**: Implement toggle system for new features
+4. **Performance Baseline**: Document current load/response times
+5. **Git Protection Branch**: Create checkpoint for rollback
+
+### Testing Infrastructure
+- **Platform**: Windows local development
+- **Framework**: Playwright for E2E testing
+- **Approach**: Run tests locally before/after each story
+- **Coverage Goal**: 100% for existing features, 80% for new
 
 ## Requirements
 
@@ -169,23 +185,88 @@ The new React/Next.js implementation will faithfully reproduce the approved HTML
 
 **Integration Requirements**: Maintain compatibility with existing OpenRouter integration, preserve exact UI/UX from customer-approved mockup, establish foundation for future CMS deployments
 
-### Story 1.1: Convert HTML Mockup to Next.js Application Structure
+### Story 1.1a: Basic Three-Column Layout Structure (v2.0 - Decomposed)
+**Priority**: P0 - Critical Foundation | **Effort**: 2-4 hours | **Risk**: Low
 
 As a developer,
-I want to establish the Next.js application structure with the exact layout from the mockup,
-so that we have a solid foundation maintaining the approved UI/UX.
+I want to implement the basic three-column layout structure,
+so that we have a foundation without breaking existing functionality.
 
 #### Acceptance Criteria
-1. Next.js 14+ application created with TypeScript configuration
-2. Three-column layout implemented with exact dimensions (chat: 360px, sidebar: 260px)
-3. Catalyst X visual identity tokens defined (colors, fonts, spacing)
-4. Glass morphism effects and animations implemented with Tailwind CSS
-5. Base component structure established for all major UI sections
+1. Three-column grid implemented (360px + 260px + flex)
+2. Existing chat remains in left panel unchanged
+3. Empty shells for navigation and main content
+4. No visual styling - structure only
+5. Feature flag: `threeColumnLayout` controls activation
 
-#### Integration Verification
-- IV1: Existing OpenRouter integration remains functional in new structure
-- IV2: Visual comparison with HTML mockup shows pixel-perfect accuracy
-- IV3: Performance metrics meet or exceed mockup (smooth animations, quick transitions)
+#### Protection Requirements
+- [ ] Run chat tests before starting
+- [ ] Verify chat still works with new layout
+- [ ] Performance remains within baseline
+- [ ] Can toggle layout on/off via feature flag
+
+---
+
+### Story 1.1b: Catalyst X Visual Identity (v2.0 - Decomposed)
+**Priority**: P0 - Brand Critical | **Effort**: 3-4 hours | **Risk**: Low
+
+As a designer,
+I want to apply the Catalyst X visual identity incrementally,
+so that we match the approved mockup without disrupting functionality.
+
+#### Acceptance Criteria
+1. Color tokens defined (#FF5500, #212121, #0077CC, #00AA55)
+2. Inter font family applied (weights: 200, 400, 500, 700)
+3. Geometric patterns added as CSS
+4. Existing components retain functionality
+5. Feature flag: `catalystBranding` controls activation
+
+#### Protection Requirements
+- [ ] Visual changes don't affect chat logic
+- [ ] Colors meet WCAG AA contrast requirements
+- [ ] No performance degradation from fonts/patterns
+
+---
+
+### Story 1.1c: Glass Morphism & Animations (v2.0 - Decomposed)
+**Priority**: P1 - Enhancement | **Effort**: 2-3 hours | **Risk**: Medium
+
+As a user,
+I want smooth animations and glass morphism effects,
+so that the interface feels modern and responsive.
+
+#### Acceptance Criteria
+1. Backdrop-blur effects on panels
+2. Hover animations (scale, opacity)
+3. Transition timing (200-300ms)
+4. Feature flag: `glassMorphism` and `animations`
+5. Fallback for browsers without backdrop-filter support
+
+#### Protection Requirements
+- [ ] Animations maintain 60fps
+- [ ] Reduced motion respects user preferences
+- [ ] Performance impact < 10% on load time
+
+---
+
+### Story 1.1d: Base Component Structure (v2.0 - Decomposed)
+**Priority**: P0 - Foundation | **Effort**: 3-4 hours | **Risk**: Low
+
+As a developer,
+I want to establish the component structure for all UI sections,
+so that subsequent stories have containers ready.
+
+#### Acceptance Criteria
+1. Component shells created for all major sections
+2. Folder structure matches architecture doc
+3. Navigation routing prepared (not functional)
+4. Props interfaces defined
+5. Storybook stories for components
+
+#### Protection Requirements
+- [ ] No impact on existing chat component
+- [ ] All components have error boundaries
+- [ ] TypeScript strict mode compliance
 
 ### Story 1.2: Enhance AI Chat with Structured Workflows
 
@@ -277,41 +358,33 @@ so that I can populate my website with real data.
 - IV2: Form generation works with all field types
 - IV3: Content changes reflect immediately in preview
 
-### Story 1.7: Implement Project Persistence
+### Story 1.7: Basic Chat Persistence (v2.0 - Moved Earlier in Sequence)
+**Priority**: P0 - Data Protection | **Effort**: 4-5 hours | **Risk**: Medium
+**Note**: Moved from original position to Sprint 1 to protect user data early
 
 As a user,
-I want my projects to be saved automatically,
-so that I can continue work across sessions.
+I want my chat conversations to persist across sessions,
+so that I don't lose my work on refresh.
 
 #### Acceptance Criteria
-1. Automatic project saving to localStorage/IndexedDB
-2. Project recovery on application reload
-3. Version snapshots at key milestones
-4. Export/import functionality for project backup
-5. Clear indication of save status
+1. Chat messages saved to localStorage
+2. Automatic save on each message
+3. Recovery on page reload
+4. Clear storage option in settings
+5. Feature flag: `projectPersistence`
 
-#### Integration Verification
-- IV1: Existing chat conversations are preserved
-- IV2: All UI state is properly restored
-- IV3: No data loss during save/restore cycles
+#### Protection Requirements
+- [ ] Existing chat continues working without persistence
+- [ ] Storage errors don't crash chat
+- [ ] Performance impact < 100ms per save
+- [ ] Storage quota handling (5MB limit)
 
-### Story 1.8: Create Analytics Dashboard (Mock)
+### Story 1.8: DEFERRED - Analytics Dashboard (v2.0)
+**Status**: Moved to Post-MVP
+**Reason**: Not critical for MVP validation, adds complexity without core value
 
-As a user,
-I want to see analytics for my website,
-so that I can understand visitor behavior and engagement.
-
-#### Acceptance Criteria
-1. Analytics dashboard with visitor tracking visualization
-2. Engagement metrics display (as shown in mockup)
-3. Mock data generation for demonstration
-4. Responsive charts and graphs
-5. Time period selection for data viewing
-
-#### Integration Verification
-- IV1: Dashboard matches mockup's visual design
-- IV2: Mock data updates simulate real-time behavior
-- IV3: Performance remains smooth with data visualizations
+Original Story: Create analytics dashboard with visitor tracking visualization
+Decision: Defer to focus on core journey (Chat → Content → Preview → Export)
 
 ### Story 1.9: Add Source Code View
 
