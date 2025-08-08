@@ -1,23 +1,52 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { features, enableFeature, disableFeature } from '@/config/features';
+import { features, enableFeature, disableFeature, isFeatureEnabled } from '@/config/features';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 
 export default function FeatureFlagsPage() {
-  const [featureStates, setFeatureStates] = useState(features);
+  const [mounted, setMounted] = useState(false);
+  const [featureStates, setFeatureStates] = useState<typeof features | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    // Load current feature states from localStorage after mount
+    const loadedStates = { ...features };
+    Object.keys(loadedStates).forEach((key) => {
+      const featureName = key as keyof typeof features;
+      loadedStates[featureName] = isFeatureEnabled(featureName);
+    });
+    setFeatureStates(loadedStates);
+  }, []);
 
   const toggleFeature = (featureName: keyof typeof features) => {
-    if (features[featureName]) {
+    if (!featureStates) return;
+    
+    if (featureStates[featureName]) {
       disableFeature(featureName);
     } else {
       enableFeature(featureName);
     }
-    // Force re-render
-    setFeatureStates({ ...features });
+    
+    // Update local state
+    setFeatureStates(prev => prev ? { ...prev, [featureName]: !prev[featureName] } : null);
   };
+
+  // Don't render switches until client-side to avoid hydration mismatch
+  if (!mounted || !featureStates) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle>Feature Flags</CardTitle>
+            <CardDescription>Loading feature flags...</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">

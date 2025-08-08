@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { isFeatureEnabled } from '@/config/features';
 
 /**
@@ -8,7 +8,15 @@ import { isFeatureEnabled } from '@/config/features';
  * Story 1.1b - Applies visual identity when feature flag is enabled
  */
 export function CatalystBranding() {
+  const [mounted, setMounted] = useState(false);
+
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    
     if (isFeatureEnabled('catalystBranding')) {
       // Add branding classes to body
       document.body.classList.add('catalyst-branding', 'catalyst-dark');
@@ -21,13 +29,16 @@ export function CatalystBranding() {
         link.href = '/styles/catalyst-theme.css';
         document.head.appendChild(link);
       }
-      
-      return () => {
-        // Cleanup on unmount or when feature is disabled
-        document.body.classList.remove('catalyst-branding', 'catalyst-dark');
-      };
+    } else {
+      // Remove branding if disabled
+      document.body.classList.remove('catalyst-branding', 'catalyst-dark');
     }
-  }, []);
+    
+    return () => {
+      // Cleanup on unmount
+      document.body.classList.remove('catalyst-branding', 'catalyst-dark');
+    };
+  }, [mounted]);
 
   // This component doesn't render anything visible
   return null;

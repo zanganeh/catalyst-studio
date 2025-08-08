@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { isFeatureEnabled } from '@/config/features';
 
 interface LayoutContainerProps {
@@ -14,11 +14,18 @@ interface LayoutContainerProps {
  * Protected by feature flags: threeColumnLayout, catalystBranding
  */
 export function LayoutContainer({ children }: LayoutContainerProps) {
-  const isLayoutEnabled = isFeatureEnabled('threeColumnLayout');
-  const isBrandingEnabled = isFeatureEnabled('catalystBranding');
+  const [mounted, setMounted] = useState(false);
+  const [isLayoutEnabled, setIsLayoutEnabled] = useState(false);
+  const [isBrandingEnabled, setIsBrandingEnabled] = useState(false);
 
-  // Feature disabled: return children as-is (preserve existing layout)
-  if (!isLayoutEnabled) {
+  useEffect(() => {
+    setMounted(true);
+    setIsLayoutEnabled(isFeatureEnabled('threeColumnLayout'));
+    setIsBrandingEnabled(isFeatureEnabled('catalystBranding'));
+  }, []);
+
+  // Feature disabled or not mounted: return children as-is (preserve existing layout)
+  if (!mounted || !isLayoutEnabled) {
     return <>{children}</>;
   }
 
@@ -37,10 +44,17 @@ export function LayoutContainer({ children }: LayoutContainerProps) {
  * Individual panel components for the three-column layout
  */
 export function ChatPanel({ children }: { children: React.ReactNode }) {
-  const isLayoutEnabled = isFeatureEnabled('threeColumnLayout');
-  const isBrandingEnabled = isFeatureEnabled('catalystBranding');
+  const [mounted, setMounted] = useState(false);
+  const [isLayoutEnabled, setIsLayoutEnabled] = useState(false);
+  const [isBrandingEnabled, setIsBrandingEnabled] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setIsLayoutEnabled(isFeatureEnabled('threeColumnLayout'));
+    setIsBrandingEnabled(isFeatureEnabled('catalystBranding'));
+  }, []);
   
-  if (!isLayoutEnabled) {
+  if (!mounted || !isLayoutEnabled) {
     return <>{children}</>;
   }
 
@@ -54,10 +68,17 @@ export function ChatPanel({ children }: { children: React.ReactNode }) {
 }
 
 export function NavigationPanel({ children }: { children: React.ReactNode }) {
-  const isLayoutEnabled = isFeatureEnabled('threeColumnLayout');
-  const isBrandingEnabled = isFeatureEnabled('catalystBranding');
+  const [mounted, setMounted] = useState(false);
+  const [isLayoutEnabled, setIsLayoutEnabled] = useState(false);
+  const [isBrandingEnabled, setIsBrandingEnabled] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setIsLayoutEnabled(isFeatureEnabled('threeColumnLayout'));
+    setIsBrandingEnabled(isFeatureEnabled('catalystBranding'));
+  }, []);
   
-  if (!isLayoutEnabled) {
+  if (!mounted || !isLayoutEnabled) {
     return null; // Don't render navigation if layout not enabled
   }
 
@@ -83,10 +104,17 @@ export function NavigationPanel({ children }: { children: React.ReactNode }) {
 }
 
 export function MainContentPanel({ children }: { children: React.ReactNode }) {
-  const isLayoutEnabled = isFeatureEnabled('threeColumnLayout');
-  const isBrandingEnabled = isFeatureEnabled('catalystBranding');
+  const [mounted, setMounted] = useState(false);
+  const [isLayoutEnabled, setIsLayoutEnabled] = useState(false);
+  const [isBrandingEnabled, setIsBrandingEnabled] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    setIsLayoutEnabled(isFeatureEnabled('threeColumnLayout'));
+    setIsBrandingEnabled(isFeatureEnabled('catalystBranding'));
+  }, []);
   
-  if (!isLayoutEnabled) {
+  if (!mounted || !isLayoutEnabled) {
     return null; // Don't render main content if layout not enabled
   }
 
