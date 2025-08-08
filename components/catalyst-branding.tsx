@@ -17,8 +17,8 @@ export function CatalystBranding() {
   useEffect(() => {
     if (!mounted) return;
     
+    // Handle Catalyst branding
     if (isFeatureEnabled('catalystBranding')) {
-      // Add branding classes to body
       document.body.classList.add('catalyst-branding', 'catalyst-dark');
       
       // Add theme CSS if not already loaded
@@ -30,13 +30,35 @@ export function CatalystBranding() {
         document.head.appendChild(link);
       }
     } else {
-      // Remove branding if disabled
       document.body.classList.remove('catalyst-branding', 'catalyst-dark');
+    }
+    
+    // Handle Glass Morphism
+    if (isFeatureEnabled('glassMorphism')) {
+      document.body.classList.add('glass-morphism');
+      
+      // Add glass morphism CSS if not already loaded
+      if (!document.getElementById('glass-morphism-styles')) {
+        const link = document.createElement('link');
+        link.id = 'glass-morphism-styles';
+        link.rel = 'stylesheet';
+        link.href = '/styles/glass-morphism.css';
+        document.head.appendChild(link);
+      }
+    } else {
+      document.body.classList.remove('glass-morphism');
+    }
+    
+    // Handle Animations
+    if (isFeatureEnabled('animations')) {
+      document.body.classList.add('animations-enabled');
+    } else {
+      document.body.classList.remove('animations-enabled');
     }
     
     return () => {
       // Cleanup on unmount
-      document.body.classList.remove('catalyst-branding', 'catalyst-dark');
+      document.body.classList.remove('catalyst-branding', 'catalyst-dark', 'glass-morphism', 'animations-enabled');
     };
   }, [mounted]);
 
