@@ -7,9 +7,9 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { FeatureFlagProvider } from '@/contexts/feature-flag-context';
-import { LayoutContainer, ChatPanel, NavigationPanel, MainContentPanel } from '@/components/layout/layout-container-v2';
-import { CatalystBranding } from '@/components/catalyst-branding-v2';
-import { ErrorBoundary, IsolatedErrorBoundary } from '@/components/error-boundary-enhanced';
+import { LayoutContainer, ChatPanel, NavigationPanel, MainContentPanel } from '@/components/layout/layout-container';
+import { CatalystBranding } from '@/components/catalyst-branding';
+import { ErrorBoundary, IsolatedErrorBoundary } from '@/components/error-boundary';
 
 // Mock the feature config
 jest.mock('@/config/features', () => ({
