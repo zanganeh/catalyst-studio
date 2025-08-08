@@ -1,3 +1,5 @@
+'use client';
+
 import { ErrorBoundary } from '@/components/error-boundary';
 import { ChatLayoutWrapper } from './layout-wrapper';
 

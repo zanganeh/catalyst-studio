@@ -3,7 +3,8 @@
  * Allows safe introduction of new features without breaking existing functionality
  */
 
-export const features = {
+// Default feature states
+const defaultFeatures = {
   // Core feature flags
   enhancedChat: false,        // Enhanced chat with structured prompts
   contentBuilder: false,       // Content type builder UI
@@ -27,10 +28,43 @@ export const features = {
   errorReporting: true,
 };
 
+// Load features from localStorage if available
+function loadFeatures() {
+  if (typeof window === 'undefined') {
+    return { ...defaultFeatures };
+  }
+  
+  try {
+    const stored = localStorage.getItem('featureFlags');
+    if (stored) {
+      return { ...defaultFeatures, ...JSON.parse(stored) };
+    }
+  } catch (e) {
+    console.warn('Failed to load feature flags from localStorage:', e);
+  }
+  
+  return { ...defaultFeatures };
+}
+
+// Initialize features
+export const features = loadFeatures();
+
 /**
  * Check if a feature is enabled
  */
 export function isFeatureEnabled(featureName: keyof typeof features): boolean {
+  // Reload from localStorage to get latest state
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem('featureFlags');
+      if (stored) {
+        const flags = JSON.parse(stored);
+        return flags[featureName] === true;
+      }
+    } catch (e) {
+      // Fall back to in-memory state
+    }
+  }
   return features[featureName] === true;
 }
 
@@ -40,6 +74,16 @@ export function isFeatureEnabled(featureName: keyof typeof features): boolean {
 export function enableFeature(featureName: keyof typeof features) {
   if (process.env.NODE_ENV === 'development') {
     features[featureName] = true;
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('featureFlags', JSON.stringify(features));
+      } catch (e) {
+        console.warn('Failed to save feature flags:', e);
+      }
+    }
+    
     console.log(`Feature enabled: ${featureName}`);
   }
 }
@@ -50,6 +94,16 @@ export function enableFeature(featureName: keyof typeof features) {
 export function disableFeature(featureName: keyof typeof features) {
   if (process.env.NODE_ENV === 'development') {
     features[featureName] = false;
+    
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('featureFlags', JSON.stringify(features));
+      } catch (e) {
+        console.warn('Failed to save feature flags:', e);
+      }
+    }
+    
     console.log(`Feature disabled: ${featureName}`);
   }
 }
