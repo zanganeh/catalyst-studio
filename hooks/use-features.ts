@@ -4,19 +4,19 @@
  */
 
 import { useState, useEffect } from 'react';
-import { isFeatureEnabled, enableFeature, disableFeature } from '@/config/features';
+import { isFeatureEnabled, enableFeature, disableFeature, type FeatureName } from '@/config/features';
 
 /**
  * Hook to check if a feature is enabled
  * Handles client-side hydration properly
  */
-export function useFeature(featureName: string) {
+export function useFeature(featureName: FeatureName) {
   const [mounted, setMounted] = useState(false);
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    setEnabled(isFeatureEnabled(featureName as any));
+    setEnabled(isFeatureEnabled(featureName));
   }, [featureName]);
 
   return { mounted, enabled };
@@ -26,7 +26,7 @@ export function useFeature(featureName: string) {
  * Hook to manage multiple features
  * Returns state for all specified features
  */
-export function useFeatures(featureNames: string[]) {
+export function useFeatures(featureNames: FeatureName[]) {
   const [mounted, setMounted] = useState(false);
   const [features, setFeatures] = useState<Record<string, boolean>>({});
 
@@ -34,7 +34,7 @@ export function useFeatures(featureNames: string[]) {
     setMounted(true);
     const featureStates: Record<string, boolean> = {};
     featureNames.forEach(name => {
-      featureStates[name] = isFeatureEnabled(name as any);
+      featureStates[name] = isFeatureEnabled(name);
     });
     setFeatures(featureStates);
   }, [featureNames.join(',')]);
@@ -46,21 +46,21 @@ export function useFeatures(featureNames: string[]) {
  * Hook to toggle a feature
  * Returns current state and toggle function
  */
-export function useFeatureToggle(featureName: string) {
+export function useFeatureToggle(featureName: FeatureName) {
   const [mounted, setMounted] = useState(false);
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    setEnabled(isFeatureEnabled(featureName as any));
+    setEnabled(isFeatureEnabled(featureName));
   }, [featureName]);
 
   const toggle = () => {
     if (enabled) {
-      disableFeature(featureName as any);
+      disableFeature(featureName);
       setEnabled(false);
     } else {
-      enableFeature(featureName as any);
+      enableFeature(featureName);
       setEnabled(true);
     }
   };
