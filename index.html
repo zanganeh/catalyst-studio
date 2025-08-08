@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catalyst Studio - AI-Powered CMS Platform</title>
+    <title>Catalyst X Studio - Adaptive Systems for a Changing World</title>
     <style>
         * {
             margin: 0;
@@ -12,29 +12,70 @@
         }
 
         :root {
-            --primary: #6366f1;
-            --primary-dark: #4f46e5;
-            --secondary: #8b5cf6;
-            --success: #10b981;
+            /* Catalyst X Brand Colors */
+            --catalyst-orange: #FF5500;
+            --carbon-black: #212121;
+            --adaptive-blue: #0077CC;
+            --human-green: #00AA55;
+            
+            /* Supporting Grays */
+            --light-gray: #F5F5F5;
+            --medium-light-gray: #E0E0E0;
+            --medium-gray: #9E9E9E;
+            --dark-gray: #616161;
+            
+            /* Legacy mappings for compatibility */
+            --primary: var(--catalyst-orange);
+            --primary-dark: #E64A00;
+            --secondary: var(--adaptive-blue);
+            --success: var(--human-green);
             --warning: #f59e0b;
             --danger: #ef4444;
-            --dark: #1f2937;
-            --gray-800: #374151;
+            --dark: var(--carbon-black);
+            --gray-800: var(--dark-gray);
             --gray-700: #4b5563;
-            --gray-600: #6b7280;
+            --gray-600: var(--medium-gray);
             --gray-500: #9ca3af;
-            --gray-400: #d1d5db;
+            --gray-400: var(--medium-light-gray);
             --gray-300: #e5e7eb;
-            --gray-200: #f3f4f6;
+            --gray-200: var(--light-gray);
             --gray-100: #f9fafb;
             --white: #ffffff;
+            
+            /* Geometric Framework */
+            --angle-primary: 45deg;
+            --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-duration: 0.3s;
         }
 
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;400;500;700&family=Merriweather:wght@400;700&display=swap');
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, var(--catalyst-orange) 0%, var(--adaptive-blue) 100%);
             min-height: 100vh;
-            color: var(--dark);
+            color: var(--carbon-black);
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 100px,
+                    rgba(255, 85, 0, 0.03) 100px,
+                    rgba(255, 85, 0, 0.03) 200px
+                );
+            pointer-events: none;
+            z-index: 1;
         }
 
         .app-container {
@@ -63,12 +104,30 @@
 
         .chat-header {
             padding: 20px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background: linear-gradient(135deg, var(--catalyst-orange) 0%, var(--adaptive-blue) 100%);
             color: var(--white);
             font-weight: 600;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .chat-header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: -50px;
+            width: 100px;
+            height: 100%;
+            background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100px); }
+            100% { transform: translateX(400px); }
         }
 
         .chat-status {
@@ -257,11 +316,23 @@
         /* Sidebar */
         .sidebar {
             width: 260px;
-            background: var(--dark);
+            background: var(--carbon-black);
             color: var(--white);
             padding: 24px;
             overflow-y: auto;
-            transition: all 0.3s ease;
+            transition: all var(--transition-duration) var(--transition-smooth);
+            position: relative;
+        }
+        
+        .sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 200px;
+            background: linear-gradient(180deg, rgba(255, 85, 0, 0.1), transparent);
+            pointer-events: none;
         }
 
         .logo {
@@ -276,18 +347,36 @@
         .logo-icon {
             width: 40px;
             height: 40px;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            border-radius: 10px;
+            background: var(--catalyst-orange);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
-            font-size: 20px;
+            font-size: 24px;
+            position: relative;
+            transform: rotate(45deg);
+            border-radius: 4px;
+            transition: all var(--transition-duration) var(--transition-smooth);
+        }
+        
+        .logo-icon::before {
+            content: 'X';
+            transform: rotate(-45deg);
+            color: var(--white);
+        }
+        
+        .logo-icon:hover {
+            transform: rotate(45deg) scale(1.1);
+            box-shadow: 0 8px 24px rgba(255, 85, 0, 0.3);
         }
 
         .logo-text {
             font-size: 18px;
             font-weight: 700;
+            background: linear-gradient(45deg, var(--catalyst-orange), var(--adaptive-blue));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
 
         .nav-section {
@@ -315,11 +404,15 @@
         }
 
         .nav-item:hover {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid var(--catalyst-orange);
+            padding-left: 13px;
         }
 
         .nav-item.active {
-            background: var(--primary);
+            background: linear-gradient(90deg, rgba(255, 85, 0, 0.2), transparent);
+            border-left: 3px solid var(--catalyst-orange);
+            padding-left: 13px;
         }
 
         .nav-icon {
@@ -445,34 +538,54 @@
 
         .btn {
             padding: 10px 20px;
-            border-radius: 8px;
+            border-radius: 4px;
             border: none;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all var(--transition-duration) var(--transition-smooth);
             font-size: 14px;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .btn:hover::before {
+            left: 100%;
         }
 
         .btn-primary {
-            background: var(--primary);
+            background: var(--catalyst-orange);
             color: var(--white);
+            position: relative;
         }
 
         .btn-primary:hover {
             background: var(--primary-dark);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 24px rgba(255, 85, 0, 0.3);
         }
 
         .btn-success {
-            background: var(--success);
+            background: var(--human-green);
             color: var(--white);
         }
 
         .btn-success:hover {
-            background: #059669;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            background: #009944;
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 24px rgba(0, 170, 85, 0.3);
         }
 
         .btn-secondary {
@@ -820,10 +933,10 @@
         }
 
         .field-type-card:hover {
-            border-color: var(--primary);
+            border-color: var(--catalyst-orange);
             background: var(--white);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+            transform: translateY(-2px) rotate(0.5deg);
+            box-shadow: 0 8px 24px rgba(255, 85, 0, 0.15);
         }
 
         .field-type-icon {
@@ -1795,6 +1908,98 @@
             justify-content: flex-end;
             gap: 12px;
         }
+        /* Adaptive UI Elements */
+        .adaptive-element {
+            position: relative;
+            transition: all var(--transition-duration) var(--transition-smooth);
+        }
+        
+        .adaptive-element::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--catalyst-orange), var(--adaptive-blue));
+            border-radius: inherit;
+            opacity: 0;
+            transition: opacity var(--transition-duration);
+            z-index: -1;
+        }
+        
+        .adaptive-element:hover::before {
+            opacity: 0.1;
+        }
+        
+        /* Adaptive Signifiers */
+        .adaptive-signifier {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 6px;
+            height: 6px;
+            background: var(--catalyst-orange);
+            border-radius: 50%;
+            opacity: 0.5;
+            animation: pulse-subtle 3s infinite;
+        }
+        
+        @keyframes pulse-subtle {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+        }
+        
+        /* Geometric Patterns */
+        .geometric-accent {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: linear-gradient(45deg, transparent 48%, var(--catalyst-orange) 48%, var(--catalyst-orange) 52%, transparent 52%);
+            opacity: 0.1;
+            pointer-events: none;
+        }
+        
+        /* Typography Enhancements */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+        }
+        
+        .body-text {
+            font-family: 'Merriweather', serif;
+            line-height: 1.6;
+            letter-spacing: 0.01em;
+        }
+        
+        /* Adaptive Transitions */
+        .transition-adaptive {
+            transition: all var(--transition-duration) var(--transition-smooth);
+        }
+        
+        .transform-on-hover:hover {
+            transform: translateY(-2px) scale(1.02);
+        }
+        
+        /* Split-Screen Pattern */
+        .split-screen {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            position: relative;
+        }
+        
+        .split-screen::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, transparent, var(--catalyst-orange), transparent);
+            transform: translateX(-50%);
+        }
     </style>
 </head>
 <body>
@@ -1803,7 +2008,12 @@
         <div class="chat-panel">
             <div class="chat-container">
                 <div class="chat-header">
-                    <span>🤖 Catalyst AI Assistant</span>
+                    <span style="display: flex; align-items: center; gap: 8px;">
+                        <span style="width: 24px; height: 24px; background: white; color: var(--catalyst-orange); display: flex; align-items: center; justify-content: center; font-weight: bold; transform: rotate(45deg); border-radius: 2px;">
+                            <span style="transform: rotate(-45deg);">X</span>
+                        </span>
+                        Catalyst X Assistant
+                    </span>
                     <div class="chat-status">
                         <span class="status-indicator"></span>
                         <span>Online</span>
@@ -1889,8 +2099,8 @@
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="logo">
-                <div class="logo-icon">CS</div>
-                <div class="logo-text">Catalyst Studio</div>
+                <div class="logo-icon"></div>
+                <div class="logo-text">Catalyst X Studio</div>
             </div>
 
             <div class="nav-section">
