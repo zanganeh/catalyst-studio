@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Existing Chat Functionality Protection Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Start with fresh page for each test
-    await page.goto('http://localhost:3000/chat');
+    await page.goto('http://localhost:3001/chat');
   });
 
   test('chat page loads successfully', async ({ page }) => {
@@ -118,7 +118,7 @@ test.describe('Existing Chat Functionality Protection Tests', () => {
 test.describe('Performance Baselines', () => {
   test('page load performance', async ({ page }) => {
     const startTime = Date.now();
-    await page.goto('http://localhost:3000/chat');
+    await page.goto('http://localhost:3001/chat');
     await page.waitForLoadState('networkidle');
     const loadTime = Date.now() - startTime;
     
@@ -128,7 +128,7 @@ test.describe('Performance Baselines', () => {
   });
 
   test('chat interaction performance', async ({ page }) => {
-    await page.goto('http://localhost:3000/chat');
+    await page.goto('http://localhost:3001/chat');
     
     const input = page.locator('input[type="text"]');
     const sendButton = page.locator('button[type="submit"]');

@@ -1,4 +1,5 @@
 import { ErrorBoundary } from '@/components/error-boundary';
+import { ChatLayoutWrapper } from './layout-wrapper';
 
 export default function ChatLayout({
   children,
@@ -12,7 +13,9 @@ export default function ChatLayout({
         console.error('Chat Error:', error, errorInfo);
       }}
     >
-      {children}
+      <ChatLayoutWrapper>
+        {children}
+      </ChatLayoutWrapper>
     </ErrorBoundary>
   );
 }
