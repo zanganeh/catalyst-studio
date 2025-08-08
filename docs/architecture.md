@@ -33,6 +33,29 @@ This document supplements the existing Next.js application architecture by defin
 | Change | Date | Version | Description | Author |
 |--------|------|---------|-------------|--------|
 | Initial Architecture | 2025-01-08 | 1.0 | Brownfield architecture for MVP enhancement | Winston (Architect) |
+| Protection Layer Added | 2025-01-08 | 2.0 | Added protection strategies after PO validation | Sarah (PO) |
+
+## Critical Architecture Decisions (NEW)
+
+### Protection-First Approach
+All architectural decisions prioritize protecting existing functionality:
+1. **Isolation**: New features isolated via feature flags
+2. **Fallback**: Every enhancement has fallback to existing behavior  
+3. **Monitoring**: Performance tracked at component level
+4. **Testing**: Every change validated against baseline
+
+### Incremental Enhancement Strategy
+```
+Existing Chat (Protected) 
+    ↓
+Layout Structure (Feature Flagged)
+    ↓
+Visual Identity (Progressive)
+    ↓
+Enhanced Features (Isolated)
+    ↓
+New Capabilities (Modular)
+```
 
 ## Enhancement Scope and Integration Strategy
 
@@ -148,6 +171,84 @@ This document supplements the existing Next.js application architecture by defin
 - Progressive enhancement approach for new features
 
 ## Component Architecture
+
+### Protection Architecture
+
+#### Error Boundary Hierarchy
+```typescript
+<App>
+  <GlobalErrorBoundary>
+    <LayoutErrorBoundary>
+      <ChatErrorBoundary>
+        <ExistingChat /> // Protected Core
+      </ChatErrorBoundary>
+      <NavigationErrorBoundary>
+        <Navigation /> // New Feature
+      </NavigationErrorBoundary>
+      <MainContentErrorBoundary>
+        <MainContent /> // New Feature
+      </MainContentErrorBoundary>
+    </LayoutErrorBoundary>
+  </GlobalErrorBoundary>
+</App>
+```
+
+#### Feature Flag Architecture
+```typescript
+// config/features.ts
+interface FeatureFlags {
+  // Layout Features
+  threeColumnLayout: boolean;      // Story 1.1a
+  catalystBranding: boolean;        // Story 1.1b
+  glassMorphism: boolean;          // Story 1.1c
+  animations: boolean;             // Story 1.1c
+  
+  // Functional Features  
+  enhancedChat: boolean;           // Story 1.2
+  contentBuilder: boolean;         // Story 1.3
+  previewSystem: boolean;          // Story 1.4
+  projectPersistence: boolean;     // Story 1.7
+  
+  // Deferred Features
+  analytics: boolean;              // Post-MVP
+  cmsIntegration: boolean;        // Post-MVP
+}
+
+// Feature Flag HOC
+function withFeature<P>(
+  Component: React.ComponentType<P>,
+  featureName: keyof FeatureFlags,
+  Fallback?: React.ComponentType<P>
+) {
+  return (props: P) => {
+    if (isFeatureEnabled(featureName)) {
+      return <Component {...props} />;
+    }
+    return Fallback ? <Fallback {...props} /> : null;
+  };
+}
+```
+
+#### Performance Monitoring Architecture
+```typescript
+// lib/monitoring.ts
+class PerformanceMonitor {
+  private baselines = {
+    pageLoad: 3000,      // 3s max
+    apiResponse: 2000,   // 2s max
+    uiResponse: 100,     // 100ms max
+    animationFPS: 60     // 60fps min
+  };
+
+  trackMetric(metric: string, value: number) {
+    const baseline = this.baselines[metric];
+    if (baseline && value > baseline) {
+      console.warn(`Performance degradation: ${metric} = ${value}ms (baseline: ${baseline}ms)`);
+      // Could trigger rollback
+    }
+  }
+}
+```
 
 ### New Components
 
@@ -370,6 +471,110 @@ catalyst-studio/
 - **Folder Organization:** Feature-based grouping within components
 - **Import/Export Patterns:** Named exports for components, default for pages
 
+## State Management Architecture
+
+### Incremental State Addition
+```typescript
+// Start: React Context (existing)
+const ChatContext = React.createContext<ChatState>();
+
+// Add: Zustand for UI State (when needed)
+const useUIStore = create<UIState>((set) => ({
+  sidebarOpen: true,
+  activeView: 'overview',
+  // Added incrementally
+}));
+
+// Future: Complex state management
+// Added only when complexity demands it
+```
+
+## Performance Budget
+
+### Metrics & Limits
+| Metric | Current | Budget | Action if Exceeded |
+|--------|---------|--------|-------------------|
+| First Paint | Unknown | <1.5s | Optimize |
+| Chat Response | ~2s | <2s | Add loading state |
+| Bundle Size | Unknown | <500KB | Code split |
+| Memory Usage | Unknown | <100MB | Profile & fix |
+
+### Monitoring Implementation
+```typescript
+// components/performance-observer.tsx
+useEffect(() => {
+  const observer = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      monitoring.logPerformance(entry.name, entry.duration);
+    }
+  });
+  
+  observer.observe({ entryTypes: ['navigation', 'resource'] });
+  
+  return () => observer.disconnect();
+}, []);
+```
+
+## Rollback Strategy
+
+### Level 1: Feature Flag (Immediate)
+```typescript
+// Instant rollback via config
+features.enhancedChat = false;
+```
+
+### Level 2: Component Fallback (< 1 min)
+```typescript
+// Error boundary triggers fallback
+<ErrorBoundary fallback={<SimpleChatFallback />}>
+  <EnhancedChat />
+</ErrorBoundary>
+```
+
+### Level 3: Git Revert (< 5 min)
+```bash
+git revert HEAD
+git push
+```
+
+### Level 4: Full Rollback (< 10 min)
+```bash
+git checkout chat-protection-checkpoint
+npm install
+npm run dev
+```
+
+## Migration Path Architecture
+
+### From Current to Target State
+```
+Current State:
+- Simple chat page
+- No persistence  
+- Default theme
+- Single column
+
+Phase 1 (Sprint 1):
++ Three-column layout (flagged)
++ Basic persistence
++ Brand colors
+
+Phase 2 (Sprint 2):
++ Enhanced chat (flagged)
++ Navigation structure
++ Glass morphism
+
+Phase 3 (Sprint 3):
++ Content builder
++ Preview system
++ Full journey
+
+Phase 4 (Post-MVP):
++ Analytics
++ Real CMS
++ Multi-user
+```
+
 ## Infrastructure and Deployment Integration
 
 ### Existing Infrastructure
@@ -407,7 +612,79 @@ catalyst-studio/
 - **Error Handling:** Consistent error boundaries with user-friendly messages
 - **Logging Consistency:** Console in dev, prepare for production logging service
 
+## Persistence Layer Architecture
+
+### Storage Strategy
+```typescript
+// Progressive Enhancement Storage
+class StorageService {
+  private strategies = [
+    new IndexedDBStorage(),  // Primary: 50MB+
+    new LocalStorage(),      // Fallback: 5-10MB
+    new SessionStorage(),    // Emergency: Session only
+    new MemoryStorage()      // Last resort: No persistence
+  ];
+
+  async save(key: string, data: any) {
+    for (const strategy of this.strategies) {
+      try {
+        await strategy.save(key, data);
+        return;
+      } catch (e) {
+        console.warn(`Storage failed for ${strategy.name}, trying next...`);
+      }
+    }
+  }
+}
+```
+
+### Chat Persistence Model
+```typescript
+interface PersistedChat {
+  messages: Message[];
+  timestamp: Date;
+  version: string;      // For migration
+  projectState?: {      // Future enhancement
+    contentTypes: any[];
+    settings: any;
+  };
+}
+```
+
 ## Testing Strategy
+
+### Test Hierarchy
+```
+tests/
+├── protection/           # Baseline tests (never change)
+│   ├── chat.spec.ts     # Existing chat functionality
+│   └── performance.spec.ts
+├── features/            # New feature tests
+│   ├── layout.spec.ts
+│   ├── theme.spec.ts
+│   └── persistence.spec.ts
+└── integration/         # Cross-feature tests
+    └── journey.spec.ts  # Full user journey
+```
+
+### Test Execution Strategy
+```typescript
+// playwright.config.ts
+export default defineConfig({
+  projects: [
+    {
+      name: 'protection',
+      testMatch: /protection\/.*.spec.ts/,
+      // These MUST always pass
+    },
+    {
+      name: 'features',
+      testMatch: /features\/.*.spec.ts/,
+      // Can fail during development
+    }
+  ]
+});
+```
 
 ### Integration with Existing Tests
 **Existing Test Framework:** Playwright for E2E testing  
@@ -432,6 +709,32 @@ catalyst-studio/
 - **Automated Regression Suite:** GitHub Actions on PR
 - **Manual Testing Requirements:** Visual regression for UI fidelity
 
+## Technical Debt Management
+
+### Debt Tracking
+```typescript
+interface TechnicalDebt {
+  id: string;
+  description: string;
+  impact: 'low' | 'medium' | 'high';
+  effort: 'small' | 'medium' | 'large';
+  addedIn: string; // Story that created it
+  plannedResolution?: string;
+}
+
+const debtRegistry: TechnicalDebt[] = [
+  {
+    id: 'TD001',
+    description: 'No tests for existing chat',
+    impact: 'high',
+    effort: 'medium',
+    addedIn: 'pre-existing',
+    plannedResolution: 'Story 0.1 - Protection Layer'
+  }
+  // Track all debt
+];
+```
+
 ## Security Integration
 
 ### Existing Security Measures
@@ -441,6 +744,32 @@ catalyst-studio/
 **Security Tools:** Dependabot for dependency scanning
 
 ### Enhancement Security Requirements
+
+#### Input Sanitization
+```typescript
+// All AI-generated content must be sanitized
+import DOMPurify from 'isomorphic-dompurify';
+
+const sanitizeAIContent = (content: string): string => {
+  return DOMPurify.sanitize(content, {
+    ALLOWED_TAGS: ['p', 'h1', 'h2', 'h3', 'ul', 'li', 'strong', 'em'],
+    ALLOWED_ATTR: ['class']
+  });
+};
+```
+
+#### API Key Protection
+```typescript
+// Never expose API keys to client
+// server-only/api-keys.ts
+export const getAPIKey = () => {
+  if (typeof window !== 'undefined') {
+    throw new Error('API keys cannot be accessed from client');
+  }
+  return process.env.OPENROUTER_API_KEY;
+};
+```
+
 **New Security Measures:** Input sanitization for content generation, XSS prevention in preview  
 **Integration Points:** Validate all AI-generated content before rendering  
 **Compliance Requirements:** Prepare for SOC 2 future requirements
@@ -450,25 +779,44 @@ catalyst-studio/
 **New Security Test Requirements:** Content sanitization tests, iframe sandbox verification  
 **Penetration Testing:** Future requirement for production
 
+## Success Criteria
+
+### Architecture Success Metrics
+- ✅ Zero regressions in existing functionality
+- ✅ All new features behind feature flags
+- ✅ Performance within 10% of baseline
+- ✅ 100% error boundary coverage
+- ✅ Rollback possible at any point
+
 ## Checklist Results Report
 
 ✅ **Architecture Completeness:** All major components defined  
 ✅ **Integration Strategy:** Clear preservation of existing chat logic  
+✅ **Protection Architecture:** Error boundaries and feature flags defined  
 ✅ **Tech Stack Alignment:** shadcn/ui integration planned  
 ✅ **Data Models:** Comprehensive schema for content management  
+✅ **Performance Budget:** Baselines and monitoring established  
 ✅ **Security Considerations:** Input sanitization addressed  
-✅ **Testing Strategy:** Multi-layer testing approach defined  
+✅ **Testing Strategy:** Multi-layer testing approach with protection tests  
+✅ **Rollback Strategy:** Four-level rollback procedures defined  
 ✅ **Deployment Plan:** Progressive enhancement with feature flags
 
 ## Next Steps
+
+### Immediate Actions
+1. Implement protection layer components
+2. Set up performance monitoring
+3. Create baseline tests
+4. Begin Story 1.1a with full protection
 
 ### Story Manager Handoff
 
 For Story Manager to implement this brownfield enhancement:
 - Reference this architecture document for all technical decisions
 - Key integration requirement: Preserve `/app/chat` core functionality
+- Protection requirement: All features must have error boundaries and feature flags
 - Existing constraint: Maintain exact visual fidelity to HTML mockup
-- First story: Implement LayoutContainer with three-column structure
+- First story: Implement protection layer, then LayoutContainer
 - Critical: Test existing chat functionality after each story completion
 
 ### Developer Handoff
@@ -476,6 +824,11 @@ For Story Manager to implement this brownfield enhancement:
 For developers starting implementation:
 - Reference this architecture and existing Next.js patterns
 - Integration requirement: Never modify core chat logic directly
+- Protection requirement: Every component needs error boundary
 - Key decision: Use shadcn/ui CLI to add components incrementally
 - Existing compatibility: All new code must work with Vercel AI SDK v4
-- Implementation sequence: Layout → Chat enhancements → Content builder → Preview
+- Implementation sequence: Protection → Layout → Chat enhancements → Content builder → Preview
+
+---
+
+_This architecture prioritizes protection and incremental enhancement over rapid feature delivery, ensuring zero regression in existing functionality._

@@ -10,6 +10,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Catalyst X Brand Colors
+        catalyst: {
+          orange: "#FF5500",
+          "orange-hover": "#E64A00",
+          black: "#212121",
+          blue: "#0077CC",
+          green: "#00AA55",
+        },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
