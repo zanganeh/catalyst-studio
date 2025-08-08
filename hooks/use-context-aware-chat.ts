@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect } from 'react';
 import { useProjectContext, useContextInjection, analyzeIntent } from '@/lib/context/project-context';
-import type { Message } from '@/components/chat/message-list';
+import type { Message } from '@/components/chat/message-list-simple';
 
 interface UseContextAwareChatOptions {
   autoTrackTopics?: boolean;

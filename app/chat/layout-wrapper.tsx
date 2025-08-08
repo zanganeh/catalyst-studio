@@ -16,8 +16,16 @@ export function ChatLayoutWrapper({ children }: { children: React.ReactNode }) {
         {children}
       </ChatPanel>
       
-      <NavigationPanel />
-      <MainContentPanel />
+      <NavigationPanel>
+        <div className="p-4">
+          {/* Navigation content will go here */}
+        </div>
+      </NavigationPanel>
+      <MainContentPanel>
+        <div className="p-4">
+          {/* Main content will go here */}
+        </div>
+      </MainContentPanel>
     </LayoutContainer>
   );
 }

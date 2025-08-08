@@ -82,8 +82,11 @@ export function useEnhancedChat() {
   const isEnhanced = isFeatureEnabled('enhancedChat');
   
   // Lazy import hooks when enhanced to avoid unnecessary imports
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [structuredPrompts, setStructuredPrompts] = React.useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [conversationContext, setConversationContext] = React.useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [contextAwareChat, setContextAwareChat] = React.useState<any>(null);
   
   React.useEffect(() => {

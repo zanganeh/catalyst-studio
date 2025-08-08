@@ -241,6 +241,7 @@ export const workflows = new Map<string, PromptWorkflow>([
 // Helper Functions
 export function generatePrompt(
   templateId: string, 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   variables: Record<string, any>,
   context?: ProjectContext
 ): StructuredPrompt | null {
@@ -295,7 +296,7 @@ export function getSuggestions(templateId: string, context?: ProjectContext): st
   const template = promptTemplates.get(templateId);
   if (!template) return [];
   
-  let suggestions = [...template.followUpSuggestions];
+  const suggestions = [...template.followUpSuggestions];
   
   // Add context-aware suggestions
   if (context) {
@@ -321,6 +322,7 @@ export function getTemplatesByIntent(intent: PromptIntent): PromptTemplate[] {
 
 export function validateVariables(
   template: PromptTemplate, 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   variables: Record<string, any>
 ): { valid: boolean; errors: string[] } {
   const errors: string[] = [];

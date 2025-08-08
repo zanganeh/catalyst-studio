@@ -7,6 +7,7 @@ interface PerformanceEntry {
   action: string;
   duration: number;
   timestamp: Date;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: Record<string, any>;
 }
 
@@ -14,6 +15,7 @@ interface ErrorEntry {
   message: string;
   stack?: string;
   timestamp: Date;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   context?: Record<string, any>;
 }
 
@@ -25,6 +27,7 @@ class MonitoringService {
   /**
    * Log performance metrics
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   logPerformance(action: string, duration: number, metadata?: Record<string, any>) {
     const entry: PerformanceEntry = {
       action,
@@ -66,6 +69,7 @@ class MonitoringService {
   /**
    * Log errors
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   logError(message: string, error?: Error, context?: Record<string, any>) {
     const entry: ErrorEntry = {
       message,

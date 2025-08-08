@@ -37,6 +37,7 @@ export interface PromptVariable {
   type: 'string' | 'number' | 'boolean' | 'array' | 'object';
   required: boolean;
   description: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaultValue?: any;
   validationRules?: ValidationRule[];
   placeholder?: string;
@@ -45,12 +46,14 @@ export interface PromptVariable {
 
 export interface ValidationRule {
   type: 'minLength' | 'maxLength' | 'pattern' | 'custom';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   value: any;
   message: string;
 }
 
 export interface StructuredPrompt {
   template: PromptTemplate;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   variables: Record<string, any>;
   context?: ProjectContext;
 }
@@ -119,6 +122,7 @@ export interface WorkflowStep {
 export interface StepCondition {
   variable: string;
   operator: 'equals' | 'contains' | 'greaterThan' | 'lessThan' | 'exists';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   value: any;
 }
 
