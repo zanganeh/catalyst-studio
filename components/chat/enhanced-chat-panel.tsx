@@ -25,7 +25,8 @@ const TypingIndicator = dynamic(() => import('./typing-indicator').catch(() => (
   default: () => null // Graceful fallback if component doesn't exist yet
 })), { ssr: false });
 
-const MessageList = dynamic(() => import('./message-list').catch(() => ({
+// Use simplified message list without markdown dependencies for now
+const MessageList = dynamic(() => import('./message-list-simple').catch(() => ({
   default: () => null // Graceful fallback if component doesn't exist yet
 })), { ssr: false });
 
@@ -80,19 +81,22 @@ export default function EnhancedChatPanel({ className }: EnhancedChatPanelProps)
 export function useEnhancedChat() {
   const isEnhanced = isFeatureEnabled('enhancedChat');
   
-  // Import structured prompts hook when enhanced
-  const structuredPrompts = isEnhanced ? 
-    require('@/hooks/use-structured-prompts').useStructuredPrompts() : 
-    null;
+  // Lazy import hooks when enhanced to avoid unnecessary imports
+  const [structuredPrompts, setStructuredPrompts] = React.useState<any>(null);
+  const [conversationContext, setConversationContext] = React.useState<any>(null);
+  const [contextAwareChat, setContextAwareChat] = React.useState<any>(null);
   
-  const conversationContext = isEnhanced ?
-    require('@/hooks/use-structured-prompts').useConversationContext() :
-    null;
-  
-  // Import context-aware chat features when enhanced
-  const contextAwareChat = isEnhanced ?
-    require('@/hooks/use-context-aware-chat').useContextAwareChat() :
-    null;
+  React.useEffect(() => {
+    if (isEnhanced) {
+      import('@/hooks/use-structured-prompts').then(module => {
+        setStructuredPrompts(module.useStructuredPrompts());
+        setConversationContext(module.useConversationContext());
+      });
+      import('@/hooks/use-context-aware-chat').then(module => {
+        setContextAwareChat(module.useContextAwareChat());
+      });
+    }
+  }, [isEnhanced]);
   
   return {
     isEnhanced,
