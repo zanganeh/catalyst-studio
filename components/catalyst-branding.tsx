@@ -1,77 +1,90 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { isFeatureEnabled } from '@/config/features';
+import { useEffect } from 'react';
+import { useMultipleFeatures } from '@/contexts/feature-flag-context';
 
 /**
- * Catalyst X Branding Component
+ * Catalyst X Branding Component (REFACTORED)
+ * Uses centralized FeatureFlagContext
  * Story 1.1b - Applies visual identity when feature flag is enabled
+ * PERFORMANCE: Optimized DOM manipulation with cleanup
  */
 export function CatalystBranding() {
-  const [mounted, setMounted] = useState(false);
+  const { loading, features } = useMultipleFeatures([
+    'catalystBranding',
+    'glassMorphism',
+    'animations'
+  ]);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
+    if (loading) return;
+    
+    // Apply or remove classes based on feature states
+    const classes = [];
+    const stylesheets: { id: string; href: string; condition: boolean }[] = [];
     
     // Handle Catalyst branding
-    if (isFeatureEnabled('catalystBranding')) {
-      document.body.classList.add('catalyst-branding', 'catalyst-dark');
-      
-      // Add theme CSS if not already loaded
-      if (!document.getElementById('catalyst-theme')) {
-        const link = document.createElement('link');
-        link.id = 'catalyst-theme';
-        link.rel = 'stylesheet';
-        link.href = '/styles/catalyst-theme.css';
-        document.head.appendChild(link);
-      }
-    } else {
-      document.body.classList.remove('catalyst-branding', 'catalyst-dark');
+    if (features.catalystBranding) {
+      classes.push('catalyst-branding', 'catalyst-dark');
+      stylesheets.push({
+        id: 'catalyst-theme',
+        href: '/styles/catalyst-theme.css',
+        condition: true
+      });
     }
     
     // Handle Glass Morphism
-    if (isFeatureEnabled('glassMorphism')) {
-      document.body.classList.add('glass-morphism');
-      
-      // Add glass morphism CSS if not already loaded
-      if (!document.getElementById('glass-morphism-styles')) {
-        const link = document.createElement('link');
-        link.id = 'glass-morphism-styles';
-        link.rel = 'stylesheet';
-        link.href = '/styles/glass-morphism.css';
-        document.head.appendChild(link);
-      }
-    } else {
-      document.body.classList.remove('glass-morphism');
+    if (features.glassMorphism) {
+      classes.push('glass-morphism');
+      stylesheets.push({
+        id: 'glass-morphism-styles',
+        href: '/styles/glass-morphism.css',
+        condition: true
+      });
     }
     
     // Handle Animations
-    if (isFeatureEnabled('animations')) {
-      document.body.classList.add('animations-enabled');
-    } else {
-      document.body.classList.remove('animations-enabled');
+    if (features.animations) {
+      classes.push('animations-enabled');
     }
     
+    // Apply classes to body
+    document.body.classList.add(...classes);
+    
+    // Load stylesheets if needed
+    stylesheets.forEach(({ id, href, condition }) => {
+      if (condition && !document.getElementById(id)) {
+        const link = document.createElement('link');
+        link.id = id;
+        link.rel = 'stylesheet';
+        link.href = href;
+        document.head.appendChild(link);
+      }
+    });
+    
+    // Cleanup function
     return () => {
-      // Cleanup on unmount
-      document.body.classList.remove('catalyst-branding', 'catalyst-dark', 'glass-morphism', 'animations-enabled');
+      document.body.classList.remove(
+        'catalyst-branding',
+        'catalyst-dark',
+        'glass-morphism',
+        'animations-enabled'
+      );
     };
-  }, [mounted]);
+  }, [loading, features.catalystBranding, features.glassMorphism, features.animations]);
 
   // This component doesn't render anything visible
   return null;
 }
 
 /**
- * Catalyst Logo Component
+ * Catalyst Logo Component (REFACTORED)
  * Displays the animated X logo
  */
 export function CatalystLogo({ size = 60 }: { size?: number }) {
-  if (!isFeatureEnabled('catalystBranding')) {
+  const { loading, features } = useMultipleFeatures(['catalystBranding']);
+  
+  if (loading || !features.catalystBranding) {
     return null;
   }
 
@@ -96,11 +109,13 @@ export function CatalystLogo({ size = 60 }: { size?: number }) {
 }
 
 /**
- * Geometric Pattern Background
+ * Geometric Pattern Background (REFACTORED)
  * Adds the signature Catalyst X pattern
  */
 export function CatalystPattern({ children }: { children: React.ReactNode }) {
-  if (!isFeatureEnabled('catalystBranding')) {
+  const { loading, features } = useMultipleFeatures(['catalystBranding']);
+  
+  if (loading || !features.catalystBranding) {
     return <>{children}</>;
   }
 

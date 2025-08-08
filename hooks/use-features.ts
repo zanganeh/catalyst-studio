@@ -1,89 +1,73 @@
 /**
- * Custom Hooks for Feature Management
+ * Custom Hooks for Feature Management (FIXED)
+ * Now properly uses FeatureFlagContext instead of bypassing it
  * Story 1.1d - Base Component Structure
  */
 
-import { useState, useEffect } from 'react';
-import { isFeatureEnabled, enableFeature, disableFeature, type FeatureName } from '@/config/features';
+import { useMemo } from 'react';
+import { useFeatureFlags, useFeatureFlag, useMultipleFeatures } from '@/contexts/feature-flag-context';
+import type { FeatureName } from '@/config/features';
 
 /**
  * Hook to check if a feature is enabled
- * Handles client-side hydration properly
+ * FIXED: Now uses context instead of direct localStorage reads
  */
 export function useFeature(featureName: FeatureName) {
-  const [mounted, setMounted] = useState(false);
-  const [enabled, setEnabled] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    setEnabled(isFeatureEnabled(featureName));
-  }, [featureName]);
-
-  return { mounted, enabled };
+  return useFeatureFlag(featureName);
 }
 
 /**
  * Hook to manage multiple features
- * Returns state for all specified features
+ * FIXED: Now uses context and stable dependencies
  */
 export function useFeatures(featureNames: FeatureName[]) {
-  const [mounted, setMounted] = useState(false);
-  const [features, setFeatures] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    setMounted(true);
-    const featureStates: Record<string, boolean> = {};
-    featureNames.forEach(name => {
-      featureStates[name] = isFeatureEnabled(name);
-    });
-    setFeatures(featureStates);
-  }, [featureNames.join(',')]);
-
-  return { mounted, features };
+  // Use stable dependency to prevent re-renders
+  const stableFeatureNames = useMemo(
+    () => featureNames,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(featureNames)]
+  );
+  
+  return useMultipleFeatures(stableFeatureNames);
 }
 
 /**
  * Hook to toggle a feature
- * Returns current state and toggle function
+ * FIXED: Now uses context methods
  */
 export function useFeatureToggle(featureName: FeatureName) {
-  const [mounted, setMounted] = useState(false);
-  const [enabled, setEnabled] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    setEnabled(isFeatureEnabled(featureName));
-  }, [featureName]);
-
-  const toggle = () => {
-    if (enabled) {
-      disableFeature(featureName);
-      setEnabled(false);
-    } else {
-      enableFeature(featureName);
-      setEnabled(true);
-    }
+  const { loading, enabled } = useFeatureFlag(featureName);
+  const { toggle } = useFeatureFlags();
+  
+  return {
+    mounted: !loading,
+    enabled,
+    toggle: () => toggle(featureName)
   };
-
-  return { mounted, enabled, toggle };
 }
 
 /**
  * Hook to check if all layout features are ready
+ * FIXED: Uses stable array and context
  */
 export function useLayoutReady() {
-  const { mounted, features } = useFeatures([
-    'threeColumnLayout',
-    'catalystBranding',
-    'glassMorphism',
-    'animations'
-  ]);
-
-  const isReady = mounted && features.threeColumnLayout;
+  const layoutFeatures: FeatureName[] = useMemo(
+    () => ['threeColumnLayout', 'catalystBranding', 'glassMorphism', 'animations'],
+    []
+  );
+  
+  const { loading, features } = useMultipleFeatures(layoutFeatures);
+  
+  const isReady = !loading && features.threeColumnLayout;
   const isFullyEnhanced = isReady && 
     features.catalystBranding && 
     features.glassMorphism && 
     features.animations;
 
-  return { mounted, isReady, isFullyEnhanced, features };
+  return { 
+    mounted: !loading, 
+    isReady, 
+    isFullyEnhanced, 
+    features 
+  };
 }

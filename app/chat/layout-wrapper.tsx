@@ -16,13 +16,8 @@ export function ChatLayoutWrapper({ children }: { children: React.ReactNode }) {
         {children}
       </ChatPanel>
       
-      <NavigationPanel>
-        {/* Empty shell for now - Story 1.1a */}
-      </NavigationPanel>
-      
-      <MainContentPanel>
-        {/* Empty shell for now - Story 1.1a */}
-      </MainContentPanel>
+      <NavigationPanel />
+      <MainContentPanel />
     </LayoutContainer>
   );
 }

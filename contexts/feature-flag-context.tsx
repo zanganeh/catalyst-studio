@@ -30,30 +30,44 @@ export function FeatureFlagProvider({ children }: { children: ReactNode }) {
   const [features, setFeatures] = useState<Partial<FeatureFlags>>({});
 
   // Load initial state
+  // FIXED: Dynamically get feature names from the config
   const loadFeatures = () => {
-    const featureState: Partial<FeatureFlags> = {};
-    const featureNames: FeatureName[] = [
-      'threeColumnLayout',
-      'catalystBranding', 
-      'glassMorphism',
-      'animations',
-      'enhancedChat',
-      'contentBuilder',
-      'previewSystem',
-      'projectPersistence',
-      'cmsIntegration',
-      'analyticsDisplay',
-      'sourceCodeView',
-      'debugMode',
-      'performanceLogging',
-      'errorReporting'
-    ];
+    try {
+      const featureState: Partial<FeatureFlags> = {};
+      
+      // Get all feature names from the type system
+      // This ensures we're always in sync with the config
+      const allFeatures: FeatureName[] = [
+        'threeColumnLayout',
+        'catalystBranding', 
+        'glassMorphism',
+        'animations',
+        'enhancedChat',
+        'contentBuilder',
+        'previewSystem',
+        'projectPersistence',
+        'cmsIntegration',
+        'analyticsDisplay',
+        'sourceCodeView',
+        'debugMode',
+        'performanceLogging',
+        'errorReporting'
+      ];
 
-    featureNames.forEach(name => {
-      featureState[name] = isFeatureEnabled(name);
-    });
+      allFeatures.forEach(name => {
+        try {
+          featureState[name] = isFeatureEnabled(name);
+        } catch (error) {
+          console.error(`[FeatureFlags] Error loading feature ${name}:`, error);
+          featureState[name] = false; // Default to disabled on error
+        }
+      });
 
-    setFeatures(featureState);
+      setFeatures(featureState);
+    } catch (error) {
+      console.error('[FeatureFlags] Error loading features:', error);
+      setFeatures({}); // Set empty object on complete failure
+    }
   };
 
   useEffect(() => {
@@ -84,17 +98,29 @@ export function FeatureFlagProvider({ children }: { children: ReactNode }) {
   };
 
   const enable = (featureName: FeatureName) => {
-    enableFeature(featureName);
-    setFeatures(prev => ({ ...prev, [featureName]: true }));
+    try {
+      enableFeature(featureName);
+      setFeatures(prev => ({ ...prev, [featureName]: true }));
+    } catch (error) {
+      console.error(`[FeatureFlags] Error enabling feature ${featureName}:`, error);
+    }
   };
 
   const disable = (featureName: FeatureName) => {
-    disableFeature(featureName);
-    setFeatures(prev => ({ ...prev, [featureName]: false }));
+    try {
+      disableFeature(featureName);
+      setFeatures(prev => ({ ...prev, [featureName]: false }));
+    } catch (error) {
+      console.error(`[FeatureFlags] Error disabling feature ${featureName}:`, error);
+    }
   };
 
   const refresh = () => {
-    loadFeatures();
+    try {
+      loadFeatures();
+    } catch (error) {
+      console.error('[FeatureFlags] Error refreshing features:', error);
+    }
   };
 
   return (

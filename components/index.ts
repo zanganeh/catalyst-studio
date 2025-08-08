@@ -28,7 +28,7 @@ export {
 } from './glass-morphism';
 
 // Error Handling
-export { ErrorBoundary } from './error-boundary';
+export { ErrorBoundary, IsolatedErrorBoundary, useErrorHandler } from './error-boundary';
 
 // UI Components (from shadcn/ui)
 export { Button } from './ui/button';
