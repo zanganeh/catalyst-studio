@@ -11,8 +11,12 @@ export async function POST(req: Request) {
     apiKey: process.env.OPENROUTER_API_KEY || ''
   });  
 
+  // Type assertion to resolve version mismatch between OpenRouter and AI SDK
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const model = openrouter(process.env.OPENROUTER_MODEL || 'anthropic/claude-3.5-sonnet') as any;
+
   const result = streamText({
-    model: openrouter(process.env.OPENROUTER_MODEL || 'anthropic/claude-3.5-sonnet'),
+    model,
     messages,
   });
 

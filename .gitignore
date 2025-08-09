@@ -52,3 +52,5 @@ prisma/dev.db
 .claude/settings.local.json
 .claude/commands/**
 .b*/**
+test-results/**
+playwright-report/**

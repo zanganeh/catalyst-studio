@@ -67,3 +67,68 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom animations for enhanced chat */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes progress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@layer utilities {
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  .animate-progress {
+    animation: progress 2s ease-in-out infinite;
+  }
+  
+  .animate-shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+}
+
+/* Typing indicator specific styles */
+.typing-indicator-container {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+/* Suggestion chips animations */
+.suggestion-chip {
+  @apply transition-all duration-200 ease-in-out;
+}
+
+.suggestion-chip:active {
+  @apply scale-95;
+}

@@ -1,7 +1,10 @@
-'use client';
+import { Metadata } from 'next';
+import { ChatLayoutClient } from './layout-client';
 
-import { ErrorBoundary } from '@/components/error-boundary';
-import { ChatLayoutWrapper } from './layout-wrapper';
+export const metadata: Metadata = {
+  title: 'Chat - Catalyst Studio',
+  description: 'AI-powered chat assistant for website creation',
+};
 
 export default function ChatLayout({
   children,
@@ -9,15 +12,8 @@ export default function ChatLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ErrorBoundary
-      onError={(error, errorInfo) => {
-        // Log errors to monitoring service in production
-        console.error('Chat Error:', error, errorInfo);
-      }}
-    >
-      <ChatLayoutWrapper>
-        {children}
-      </ChatLayoutWrapper>
-    </ErrorBoundary>
+    <ChatLayoutClient>
+      {children}
+    </ChatLayoutClient>
   );
 }
