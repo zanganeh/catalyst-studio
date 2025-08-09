@@ -9,7 +9,8 @@
 const defaultFeatures = {
   // Core feature flags
   enhancedChat: false,        // Enhanced chat with structured prompts
-  contentBuilder: false,       // Content type builder UI
+  contentBuilder: false,       // Content type builder UI (deprecated)
+  contentTypeBuilder: false,   // Content type builder UI (Story 1.3)
   previewSystem: false,        // Multi-device preview
   projectPersistence: false,   // Save/load projects
   
