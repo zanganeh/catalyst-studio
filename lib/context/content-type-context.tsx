@@ -65,13 +65,25 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
     }
   }, []);
   
-  // Save content types to localStorage when they change (client-side only)
-  useEffect(() => {
-    if (typeof window !== 'undefined' && contentTypes.length > 0) {
+  // Save function that can be called explicitly
+  const saveToLocalStorage = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      console.log('Saving content types to localStorage:', contentTypes);
       localStorage.setItem('contentTypes', JSON.stringify(contentTypes));
       setIsDirty(false);
     }
   }, [contentTypes]);
+
+  // Save content types to localStorage when they change (client-side only)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isDirty) {
+      const timeoutId = setTimeout(() => {
+        saveToLocalStorage();
+      }, 500); // Debounce saves by 500ms
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [contentTypes, isDirty, saveToLocalStorage]);
   
   // Content Type CRUD operations
   const createContentTypeHandler = useCallback((name: string): ContentType => {
@@ -105,24 +117,39 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
   
   // Field management functions
   const addFieldHandler = useCallback((contentTypeId: string, fieldType: FieldType) => {
-    setContentTypes(prev => prev.map(ct => {
-      if (ct.id === contentTypeId) {
-        const order = ct.fields.length;
-        const newField = createField(fieldType, order);
-        return {
-          ...ct,
-          fields: [...ct.fields, newField],
-          updatedAt: new Date(),
-        };
-      }
-      return ct;
-    }));
+    // Create the field first
+    const targetContentType = contentTypes.find(ct => ct.id === contentTypeId);
+    if (!targetContentType) return;
     
+    const order = targetContentType.fields.length;
+    const newField = createField(fieldType, order);
+    
+    // Update contentTypes
+    setContentTypes(prev => {
+      const updated = prev.map(ct => {
+        if (ct.id === contentTypeId) {
+          return {
+            ...ct,
+            fields: [...ct.fields, newField],
+            updatedAt: new Date(),
+          };
+        }
+        return ct;
+      });
+      
+      // Save immediately
+      if (typeof window !== 'undefined') {
+        console.log('Saving after field add:', updated);
+        localStorage.setItem('contentTypes', JSON.stringify(updated));
+      }
+      
+      return updated;
+    });
+    
+    // Update currentContentType if it matches
     if (currentContentType?.id === contentTypeId) {
       setCurrentContentType(prev => {
-        if (!prev) return null;
-        const order = prev.fields.length;
-        const newField = createField(fieldType, order);
+        if (!prev) return prev;
         return {
           ...prev,
           fields: [...prev.fields, newField],
@@ -130,8 +157,9 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
         };
       });
     }
+    
     setIsDirty(true);
-  }, [currentContentType]);
+  }, [currentContentType, contentTypes]);
   
   const updateFieldHandler = useCallback((contentTypeId: string, fieldId: string, updates: Partial<Field>) => {
     setContentTypes(prev => prev.map(ct => {
