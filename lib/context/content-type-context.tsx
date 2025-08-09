@@ -44,48 +44,34 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
   const [currentContentType, setCurrentContentType] = useState<ContentType | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   
-  // Try to integrate with ProjectContext if it exists
-  let projectContext = null;
-  try {
-    const { useProjectContext: useProject } = require('@/lib/context/project-context');
-    projectContext = useProject();
-  } catch {
-    // ProjectContext not available
-  }
-  
-  // Load content types from localStorage on mount
+  // Load content types from localStorage on mount (client-side only)
   useEffect(() => {
-    const stored = localStorage.getItem('contentTypes');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        // Convert date strings back to Date objects
-        const contentTypes = parsed.map((ct: any) => ({
-          ...ct,
-          createdAt: new Date(ct.createdAt),
-          updatedAt: new Date(ct.updatedAt),
-        }));
-        setContentTypes(contentTypes);
-      } catch (error) {
-        console.error('Failed to load content types:', error);
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('contentTypes');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          // Convert date strings back to Date objects
+          const contentTypes = parsed.map((ct: any) => ({
+            ...ct,
+            createdAt: new Date(ct.createdAt),
+            updatedAt: new Date(ct.updatedAt),
+          }));
+          setContentTypes(contentTypes);
+        } catch (error) {
+          console.error('Failed to load content types:', error);
+        }
       }
     }
   }, []);
   
-  // Save content types to localStorage when they change
+  // Save content types to localStorage when they change (client-side only)
   useEffect(() => {
-    if (contentTypes.length > 0) {
+    if (typeof window !== 'undefined' && contentTypes.length > 0) {
       localStorage.setItem('contentTypes', JSON.stringify(contentTypes));
       setIsDirty(false);
-      
-      // Update project context if available
-      if (projectContext?.updateProject) {
-        projectContext.updateProject({
-          contentTypes,
-        });
-      }
     }
-  }, [contentTypes, projectContext]);
+  }, [contentTypes]);
   
   // Content Type CRUD operations
   const createContentTypeHandler = useCallback((name: string): ContentType => {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useContentTypes } from '@/lib/context/content-type-context';
 import { ContentType, Field, FieldType } from '@/lib/content-types/types';
 import { Button } from '@/components/ui/button';
@@ -24,23 +24,29 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
   } = useContentTypes();
 
   const [isEditingName, setIsEditingName] = useState(false);
-  const [nameInput, setNameInput] = useState(currentContentType?.name || '');
+  const [nameInput, setNameInput] = useState('');
   const [selectedField, setSelectedField] = useState<Field | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Initialize with content type if ID provided
-  React.useEffect(() => {
-    if (contentTypeId) {
-      const contentType = contentTypes.find(ct => ct.id === contentTypeId);
-      if (contentType) {
-        setCurrentContentType(contentType);
-        setNameInput(contentType.name);
+  useEffect(() => {
+    if (!isInitialized) {
+      if (contentTypeId) {
+        const contentType = contentTypes.find(ct => ct.id === contentTypeId);
+        if (contentType) {
+          setCurrentContentType(contentType);
+          setNameInput(contentType.name);
+        }
+      } else if (!currentContentType) {
+        // Create a new content type if none exists
+        const newContentType = createContentType('NewContentType');
+        setNameInput(newContentType.name);
+      } else {
+        setNameInput(currentContentType.name);
       }
-    } else if (!currentContentType) {
-      // Create a new content type if none exists
-      const newContentType = createContentType('NewContentType');
-      setNameInput(newContentType.name);
+      setIsInitialized(true);
     }
-  }, [contentTypeId, contentTypes, currentContentType, setCurrentContentType, createContentType]);
+  }, [contentTypeId, contentTypes, currentContentType, setCurrentContentType, createContentType, isInitialized]);
 
   const handleNameSave = () => {
     if (currentContentType && nameInput.trim()) {
@@ -85,6 +91,17 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
         return '📋';
     }
   };
+
+  // Show loading state during initialization to prevent hydration mismatch
+  if (!isInitialized) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-4">Loading...</h2>
+        </div>
+      </div>
+    );
+  }
 
   if (!currentContentType) {
     return (
