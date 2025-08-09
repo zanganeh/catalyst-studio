@@ -76,7 +76,8 @@ export function NavigationPanel({ children }: { children: React.ReactNode }) {
     return null; // Don't render navigation if layout not enabled
   }
 
-  const panelContent = (
+  // If no children provided, show default placeholder
+  const panelContent = children || (
     <div className={`p-4 ${
       features.catalystBranding ? 'text-gray-400' : 'text-gray-400'
     }`}>
@@ -99,7 +100,7 @@ export function NavigationPanel({ children }: { children: React.ReactNode }) {
         features.catalystBranding ? 'bg-gray-800' : ''
       }`}>
         {features.glassMorphism && <FloatingShape size={80} color="blue" position={{ top: '20%', left: '10%' }} delay={1} />}
-        {children || panelContent}
+        {panelContent}
       </div>
     </AnimatedPanel>
   );
