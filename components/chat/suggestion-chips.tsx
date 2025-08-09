@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { ChevronRight, Sparkles, Plus, Code, Rocket, Settings } from 'lucide-react';
 import { useEnhancedChat } from './enhanced-chat-panel';
 import { getSuggestions } from '@/lib/prompts';
+import { useProjectContext } from '@/lib/context/project-context';
 
 interface SuggestionChip {
   id: string;
@@ -23,8 +24,9 @@ export default function SuggestionChips({
   className = '' 
 }: SuggestionChipsProps) {
   const [suggestions, setSuggestions] = useState<SuggestionChip[]>([]);
-  const [isVisible, setIsVisible] = useState(true);
-  const { structuredPrompts, conversationContext } = useEnhancedChat();
+  const [isVisible] = useState(true);
+  const { structuredPrompts } = useEnhancedChat();
+  const { context: projectContext } = useProjectContext();
 
   // Generate context-aware suggestions
   useEffect(() => {
@@ -35,7 +37,7 @@ export default function SuggestionChips({
       if (structuredPrompts?.selectedTemplate) {
         const templateSuggestions = getSuggestions(
           structuredPrompts.selectedTemplate.id,
-          conversationContext?.context
+          projectContext
         );
         
         templateSuggestions.slice(0, 3).forEach((text, index) => {
@@ -49,7 +51,7 @@ export default function SuggestionChips({
       }
       
       // Add context-aware suggestions based on project stage
-      const stage = conversationContext?.context?.currentStage;
+      const stage = projectContext?.currentStage;
       if (stage === 'planning') {
         chips.push(
           {
@@ -125,7 +127,7 @@ export default function SuggestionChips({
     };
     
     generateSuggestions();
-  }, [structuredPrompts, conversationContext]);
+  }, [structuredPrompts, projectContext]);
 
   const handleChipClick = (chip: SuggestionChip) => {
     if (chip.action) {

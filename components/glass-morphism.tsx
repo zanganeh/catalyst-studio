@@ -19,7 +19,7 @@ export function GlassCard({
   children, 
   className = '', 
   blur = 'md',
-  opacity = 0.1 
+  // opacity = 0.1 // Reserved for future opacity control
 }: GlassCardProps) {
   const [mounted, setMounted] = useState(false);
   const [isGlassEnabled, setIsGlassEnabled] = useState(false);
