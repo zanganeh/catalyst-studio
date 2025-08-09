@@ -15,6 +15,7 @@ export enum FieldType {
 export enum RelationshipType {
   ONE_TO_ONE = 'oneToOne',
   ONE_TO_MANY = 'oneToMany',
+  MANY_TO_ONE = 'manyToOne',
   MANY_TO_MANY = 'manyToMany',
 }
 
@@ -87,6 +88,7 @@ export interface Relationship {
   targetContentTypeId: string;
   sourceFieldName?: string; // Field name on source content type
   targetFieldName?: string; // Field name on target content type
+  fieldName?: string; // Simple field name for UI
   isRequired: boolean;
 }
 

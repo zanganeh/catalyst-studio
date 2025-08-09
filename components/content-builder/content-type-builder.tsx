@@ -5,9 +5,11 @@ import { useContentTypes } from '@/lib/context/content-type-context';
 import { ContentType, Field, FieldType } from '@/lib/content-types/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { Plus, Edit2, Trash2, GripVertical, Settings } from 'lucide-react';
+import { Plus, Edit2, Network } from 'lucide-react';
 import { FieldTypeModal } from './field-type-modal-simple';
+import { SortableFieldList } from './sortable-field-list';
+import { FieldPropertiesPanel } from './field-properties-panel';
+import Link from 'next/link';
 
 interface ContentTypeBuilderProps {
   contentTypeId?: string;
@@ -22,6 +24,7 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
     updateContentType,
     deleteField,
     updateField,
+    reorderFields,
   } = useContentTypes();
 
   const [isEditingName, setIsEditingName] = useState(false);
@@ -29,24 +32,36 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
   const [selectedField, setSelectedField] = useState<Field | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isFieldModalOpen, setIsFieldModalOpen] = useState(false);
+  const [isPropertiesPanelOpen, setIsPropertiesPanelOpen] = useState(false);
 
   // Initialize with content type if ID provided
   useEffect(() => {
-    if (!isInitialized) {
-      if (contentTypeId) {
-        const contentType = contentTypes.find(ct => ct.id === contentTypeId);
-        if (contentType) {
-          setCurrentContentType(contentType);
-          setNameInput(contentType.name);
+    if (!isInitialized && contentTypes !== undefined) {
+      // Small delay to ensure localStorage has loaded
+      const timeoutId = setTimeout(() => {
+        if (contentTypeId) {
+          const contentType = contentTypes.find(ct => ct.id === contentTypeId);
+          if (contentType) {
+            setCurrentContentType(contentType);
+            setNameInput(contentType.name);
+          }
+        } else if (!currentContentType && contentTypes.length === 0) {
+          // Only create a new content type if none exist at all
+          const newContentType = createContentType('NewContentType');
+          setNameInput(newContentType.name);
+        } else if (contentTypes.length > 0 && !currentContentType) {
+          // If content types exist but none selected, select the first one with fields or the last one
+          const contentTypeWithFields = contentTypes.find(ct => ct.fields.length > 0);
+          const selectedContentType = contentTypeWithFields || contentTypes[contentTypes.length - 1];
+          setCurrentContentType(selectedContentType);
+          setNameInput(selectedContentType.name);
+        } else if (currentContentType) {
+          setNameInput(currentContentType.name);
         }
-      } else if (!currentContentType) {
-        // Create a new content type if none exists
-        const newContentType = createContentType('NewContentType');
-        setNameInput(newContentType.name);
-      } else {
-        setNameInput(currentContentType.name);
-      }
-      setIsInitialized(true);
+        setIsInitialized(true);
+      }, 100);
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [contentTypeId, contentTypes, currentContentType, setCurrentContentType, createContentType, isInitialized]);
 
@@ -73,25 +88,23 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
     }
   };
 
-  const getFieldIcon = (type: FieldType): string => {
-    switch (type) {
-      case FieldType.TEXT:
-        return '📝';
-      case FieldType.NUMBER:
-        return '🔢';
-      case FieldType.BOOLEAN:
-        return '✓';
-      case FieldType.DATE:
-        return '📅';
-      case FieldType.IMAGE:
-        return '🖼️';
-      case FieldType.RICH_TEXT:
-        return '📄';
-      case FieldType.REFERENCE:
-        return '🔗';
-      default:
-        return '📋';
+  const handleReorderFields = (fields: Field[]) => {
+    if (currentContentType) {
+      reorderFields(currentContentType.id, fields);
     }
+  };
+
+  const handleUpdateFieldProperties = (updates: Partial<Field>) => {
+    if (currentContentType && selectedField) {
+      updateField(currentContentType.id, selectedField.id, updates);
+      // Update the selected field reference
+      setSelectedField(prev => prev ? { ...prev, ...updates } : null);
+    }
+  };
+
+  const handleOpenProperties = (field: Field) => {
+    setSelectedField(field);
+    setIsPropertiesPanelOpen(true);
   };
 
   // Show loading state during initialization to prevent hydration mismatch
@@ -125,9 +138,10 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
     <div className="h-full flex flex-col">
       {/* Header with Content Type Name */}
       <div className="border-b p-6 bg-background">
-        <div className="flex items-center gap-4">
-          <span className="text-3xl">{currentContentType.icon}</span>
-          {isEditingName ? (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <span className="text-3xl">{currentContentType.icon}</span>
+            {isEditingName ? (
             <div className="flex items-center gap-2 flex-1">
               <Input
                 value={nameInput}
@@ -166,6 +180,13 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
               </Button>
             </div>
           )}
+          </div>
+          <Link href="/content-builder/relationships">
+            <Button variant="outline" size="sm" className="gap-2">
+              <Network className="h-4 w-4" />
+              Relationships
+            </Button>
+          </Link>
         </div>
         <p className="text-muted-foreground mt-2">
           {currentContentType.fields.length} field{currentContentType.fields.length !== 1 ? 's' : ''}
@@ -197,70 +218,14 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
         ) : (
           // Fields List
           <div className="space-y-3">
-            {currentContentType.fields
-              .sort((a, b) => a.order - b.order)
-              .map((field) => (
-                <Card
-                  key={field.id}
-                  className={`p-4 cursor-pointer transition-colors hover:bg-accent ${
-                    selectedField?.id === field.id ? 'ring-2 ring-primary' : ''
-                  }`}
-                  onClick={() => handleFieldClick(field)}
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Drag Handle */}
-                    <div className="cursor-move">
-                      <GripVertical className="h-5 w-5 text-muted-foreground" />
-                    </div>
-
-                    {/* Field Icon */}
-                    <div className="text-2xl">{getFieldIcon(field.type)}</div>
-
-                    {/* Field Info */}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">{field.label}</h3>
-                        {field.required && (
-                          <span className="text-xs text-red-500">Required</span>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {field.name} · {field.type}
-                      </p>
-                      {field.helpText && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {field.helpText}
-                        </p>
-                      )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // TODO: Open field properties panel
-                          console.log('Edit field properties');
-                        }}
-                      >
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteField(field.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </Card>
-              ))}
+            <SortableFieldList
+              fields={currentContentType.fields}
+              selectedField={selectedField}
+              onFieldClick={handleFieldClick}
+              onDeleteField={handleDeleteField}
+              onReorderFields={handleReorderFields}
+              onOpenProperties={handleOpenProperties}
+            />
 
             {/* Add Field Button */}
             <Button
@@ -281,6 +246,15 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
           open={isFieldModalOpen}
           onOpenChange={setIsFieldModalOpen}
           contentTypeId={currentContentType.id}
+        />
+      )}
+
+      {/* Field Properties Panel */}
+      {isPropertiesPanelOpen && (
+        <FieldPropertiesPanel
+          field={selectedField}
+          onUpdateField={handleUpdateFieldProperties}
+          onClose={() => setIsPropertiesPanelOpen(false)}
         />
       )}
     </div>

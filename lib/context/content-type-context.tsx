@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import {
   ContentType,
   Field,
@@ -44,6 +44,19 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
   const [currentContentType, setCurrentContentType] = useState<ContentType | null>(null);
   const [isDirty, setIsDirty] = useState(false);
   
+  // Use refs to maintain current values without causing re-renders
+  const contentTypesRef = useRef(contentTypes);
+  const currentContentTypeRef = useRef(currentContentType);
+  
+  // Update refs when state changes
+  useEffect(() => {
+    contentTypesRef.current = contentTypes;
+  }, [contentTypes]);
+  
+  useEffect(() => {
+    currentContentTypeRef.current = currentContentType;
+  }, [currentContentType]);
+  
   // Load content types from localStorage on mount (client-side only)
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -51,13 +64,26 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
-          // Convert date strings back to Date objects
-          const contentTypes = parsed.map((ct: any) => ({
-            ...ct,
-            createdAt: new Date(ct.createdAt),
-            updatedAt: new Date(ct.updatedAt),
-          }));
-          setContentTypes(contentTypes);
+          // Convert date strings back to Date objects and remove duplicates
+          const contentTypesMap = new Map();
+          parsed.forEach((ct: any) => {
+            // Keep the content type with more fields if there are duplicates with same name
+            const existing = contentTypesMap.get(ct.name);
+            if (!existing || ct.fields.length > existing.fields.length) {
+              contentTypesMap.set(ct.name, {
+                ...ct,
+                createdAt: new Date(ct.createdAt),
+                updatedAt: new Date(ct.updatedAt),
+              });
+            }
+          });
+          const uniqueContentTypes = Array.from(contentTypesMap.values());
+          setContentTypes(uniqueContentTypes);
+          
+          // If we cleaned up duplicates, save the cleaned version
+          if (uniqueContentTypes.length < parsed.length) {
+            localStorage.setItem('contentTypes', JSON.stringify(uniqueContentTypes));
+          }
         } catch (error) {
           console.error('Failed to load content types:', error);
         }
@@ -115,18 +141,16 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
     setIsDirty(true);
   }, [currentContentType]);
   
-  // Field management functions
+  // Field management functions  
   const addFieldHandler = useCallback((contentTypeId: string, fieldType: FieldType) => {
-    // Create the field first
-    const targetContentType = contentTypes.find(ct => ct.id === contentTypeId);
-    if (!targetContentType) return;
-    
-    const order = targetContentType.fields.length;
-    const newField = createField(fieldType, order);
-    
-    // Update contentTypes
     setContentTypes(prev => {
-      const updated = prev.map(ct => {
+      // Find the content type and calculate order
+      const targetContentType = prev.find(ct => ct.id === contentTypeId);
+      const order = targetContentType?.fields.length || 0;
+      const newField = createField(fieldType, order);
+      
+      // Update contentTypes
+      const updatedContentTypes = prev.map(ct => {
         if (ct.id === contentTypeId) {
           return {
             ...ct,
@@ -137,29 +161,26 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
         return ct;
       });
       
-      // Save immediately
+      // Save immediately to localStorage
       if (typeof window !== 'undefined') {
-        console.log('Saving after field add:', updated);
-        localStorage.setItem('contentTypes', JSON.stringify(updated));
+        console.log('Saving after field add:', updatedContentTypes);
+        localStorage.setItem('contentTypes', JSON.stringify(updatedContentTypes));
       }
       
-      return updated;
+      // Update currentContentType if it matches
+      if (currentContentTypeRef.current?.id === contentTypeId) {
+        const updated = updatedContentTypes.find(ct => ct.id === contentTypeId);
+        if (updated) {
+          // Need to update currentContentType in a separate effect
+          setTimeout(() => setCurrentContentType(updated), 0);
+        }
+      }
+      
+      return updatedContentTypes;
     });
     
-    // Update currentContentType if it matches
-    if (currentContentType?.id === contentTypeId) {
-      setCurrentContentType(prev => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          fields: [...prev.fields, newField],
-          updatedAt: new Date(),
-        };
-      });
-    }
-    
     setIsDirty(true);
-  }, [currentContentType, contentTypes]);
+  }, []);
   
   const updateFieldHandler = useCallback((contentTypeId: string, fieldId: string, updates: Partial<Field>) => {
     setContentTypes(prev => prev.map(ct => {
