@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Plus, Edit2, Trash2, GripVertical, Settings } from 'lucide-react';
+import { FieldTypeModal } from './field-type-modal-simple';
 
 interface ContentTypeBuilderProps {
   contentTypeId?: string;
@@ -27,6 +28,7 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
   const [nameInput, setNameInput] = useState('');
   const [selectedField, setSelectedField] = useState<Field | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [isFieldModalOpen, setIsFieldModalOpen] = useState(false);
 
   // Initialize with content type if ID provided
   useEffect(() => {
@@ -186,10 +188,7 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
             </div>
             <Button
               size="lg"
-              onClick={() => {
-                // TODO: Open field type modal
-                console.log('Open field type modal');
-              }}
+              onClick={() => setIsFieldModalOpen(true)}
             >
               <Plus className="mr-2 h-4 w-4" />
               Add First Field
@@ -267,10 +266,7 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => {
-                // TODO: Open field type modal
-                console.log('Open field type modal');
-              }}
+              onClick={() => setIsFieldModalOpen(true)}
             >
               <Plus className="mr-2 h-4 w-4" />
               Add Field
@@ -278,6 +274,15 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
           </div>
         )}
       </div>
+
+      {/* Field Type Selection Modal */}
+      {currentContentType && (
+        <FieldTypeModal
+          open={isFieldModalOpen}
+          onOpenChange={setIsFieldModalOpen}
+          contentTypeId={currentContentType.id}
+        />
+      )}
     </div>
   );
 }
