@@ -7,7 +7,7 @@ import { MobileNavigation } from '@/components/navigation/mobile-navigation';
 
 /**
  * Layout wrapper for the chat page
- * Applies three-column layout when feature flag is enabled
+ * Applies three-column layout
  * Preserves existing chat functionality completely
  */
 export function ChatLayoutWrapper({ children }: { children: React.ReactNode }) {
