@@ -9,7 +9,6 @@ import { DeviceSelector } from '@/components/preview/device-selector';
 import { PreviewControls } from '@/components/preview/preview-controls';
 import { PreviewContent } from '@/components/preview/preview-content';
 import { PreviewNavigation } from '@/components/preview/preview-navigation';
-import { NavigationSidebar } from '@/components/navigation/navigation-sidebar';
 import { useFeatureFlag } from '@/contexts/feature-flag-context';
 
 export default function PreviewPage() {
@@ -22,20 +21,15 @@ export default function PreviewPage() {
   // Show fallback if feature is disabled
   if (!isPreviewEnabled && !forceEnable) {
     return (
-      <div className="flex min-h-screen">
-        <NavigationSidebar />
-        <main className="flex-1 ml-64">
-          <div className="flex items-center justify-center h-screen">
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-                Preview System Coming Soon
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                The preview system is currently under development.
-              </p>
-            </div>
-          </div>
-        </main>
+      <div className="flex items-center justify-center h-full p-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+            Preview System Coming Soon
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            The preview system is currently under development.
+          </p>
+        </div>
       </div>
     );
   }
@@ -44,12 +38,10 @@ export default function PreviewPage() {
     <ProjectContextProvider>
       <ContentTypeProvider>
         <PreviewProvider>
-          <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
-        {/* Navigation Sidebar */}
-        <NavigationSidebar />
+          <div className="flex-1 bg-gray-50 dark:bg-gray-950">
         
-        {/* Main Content Area - Three Column Layout */}
-        <div className="flex-1 ml-64 flex flex-col">
+        {/* Main Content Area */}
+        <div className="flex flex-col h-full">
           {/* Preview Controls Bar */}
           <PreviewControls />
           

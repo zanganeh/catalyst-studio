@@ -35,7 +35,7 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
     {
       id: 'overview',
       label: 'Overview',
-      href: '/dashboard',
+      href: '/overview',
       icon: <Home className="h-4 w-4" />,
     },
   ];
@@ -117,8 +117,7 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
   ];
 
   const renderDirectLink = (item: DirectLinkItem) => {
-    const isActive = pathname === item.href || 
-                    (item.href === '/dashboard' && pathname === '/overview');
+    const isActive = pathname === item.href;
     
     if (item.featureFlag && !isFeatureEnabled(item.featureFlag)) {
       return null;
