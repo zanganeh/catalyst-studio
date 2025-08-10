@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useProject } from '@/lib/context/project-context'
@@ -12,11 +13,13 @@ import {
   ArrowRight,
   TrendingUp,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Eye
 } from 'lucide-react'
 
 export default function OverviewPage() {
   const { selectedProject } = useProject()
+  const router = useRouter()
 
   const stats = [
     {
@@ -77,19 +80,19 @@ export default function OverviewPage() {
     {
       title: 'Create Content Type',
       description: 'Define a new content structure',
-      href: '/content-builder',
+      href: '/studio/content-builder',
       icon: <FileText className="h-5 w-5" />
     },
     {
       title: 'Preview Changes',
       description: 'See your changes in real-time',
-      href: '/preview',
-      icon: <Package className="h-5 w-5" />
+      href: '/studio/preview',
+      icon: <Eye className="h-5 w-5" />
     },
     {
       title: 'View Analytics',
       description: 'Track your project metrics',
-      href: '/analytics',
+      href: '/studio/analytics',
       icon: <TrendingUp className="h-5 w-5" />
     }
   ]
@@ -176,7 +179,7 @@ export default function OverviewPage() {
                 key={action.title}
                 variant="ghost"
                 className="w-full justify-start text-left hover:bg-gray-700/50 group"
-                onClick={() => window.location.href = action.href}
+                onClick={() => router.push(action.href)}
               >
                 <div className="flex items-center gap-3 w-full">
                   <div className="p-2 bg-gray-700/50 text-orange-400 rounded-lg group-hover:bg-orange-500/20">

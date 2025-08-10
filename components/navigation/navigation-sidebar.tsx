@@ -9,6 +9,12 @@ import { NavigationSection } from './navigation-section';
 import { NavigationSection as NavigationSectionType } from '@/lib/navigation/types';
 import { FeatureName } from '@/config/features';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Home,
   Database,
   Eye,
@@ -25,6 +31,7 @@ interface DirectLinkItem {
   href: string;
   icon: React.ReactNode;
   featureFlag?: FeatureName;
+  tooltip?: string;
 }
 
 export const NavigationSidebar = React.memo(function NavigationSidebar() {
@@ -100,12 +107,14 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
       href: '/studio/preview',
       icon: <Eye className="h-4 w-4" />,
       featureFlag: 'previewSystem',
+      tooltip: 'Preview your website across different devices and screen sizes',
     },
     {
       id: 'analytics',
       label: 'Analytics',
       href: '/studio/analytics',
       icon: <BarChart3 className="h-4 w-4" />,
+      tooltip: 'Track and analyze your project performance',
     },
   ];
 
@@ -126,7 +135,7 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
       return null;
     }
 
-    return (
+    const linkContent = (
       <Link key={item.id} href={item.href}>
         <Button
           variant={isActive ? 'secondary' : 'ghost'}
@@ -141,6 +150,23 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
         </Button>
       </Link>
     );
+
+    if (item.tooltip) {
+      return (
+        <TooltipProvider key={item.id}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {linkContent}
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>{item.tooltip}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+
+    return linkContent;
   };
 
   return (
