@@ -6,7 +6,8 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useFeatureFlags } from '@/contexts/feature-flag-context';
 import { NavigationSection } from './navigation-section';
-import { NavigationSection as NavigationSectionType, NavigationItem } from '@/lib/navigation/types';
+import { NavigationSection as NavigationSectionType } from '@/lib/navigation/types';
+import { FeatureName } from '@/config/features';
 import {
   Home,
   Database,
@@ -23,7 +24,7 @@ interface DirectLinkItem {
   label: string;
   href: string;
   icon: React.ReactNode;
-  featureFlag?: string;
+  featureFlag?: FeatureName;
 }
 
 export const NavigationSidebar = React.memo(function NavigationSidebar() {
@@ -35,7 +36,7 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
     {
       id: 'overview',
       label: 'Overview',
-      href: '/overview',
+      href: '/studio/overview',
       icon: <Home className="h-4 w-4" />,
     },
   ];
@@ -50,12 +51,12 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
       items: [
         {
           label: 'Content Items',
-          href: '/content',
+          href: '/studio/content',
           icon: <FolderOpen className="h-4 w-4" />,
         },
         {
           label: 'Content Modeling',
-          href: '/content-builder',
+          href: '/studio/content-builder',
           icon: <Database className="h-4 w-4" />,
           featureFlag: 'contentTypeBuilder',
         },
@@ -69,7 +70,7 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
       items: [
         {
           label: 'Source Code',
-          href: '/development',
+          href: '/studio/development',
           icon: <Code2 className="h-4 w-4" />,
         },
       ]
@@ -82,7 +83,7 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
       items: [
         {
           label: 'CMS Connections',
-          href: '/integrations',
+          href: '/studio/integrations',
           icon: <Plug2 className="h-4 w-4" />,
         },
       ]
@@ -94,14 +95,14 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
     {
       id: 'preview',
       label: 'Preview',
-      href: '/preview',
+      href: '/studio/preview',
       icon: <Eye className="h-4 w-4" />,
       featureFlag: 'previewSystem',
     },
     {
       id: 'analytics',
       label: 'Analytics',
-      href: '/analytics',
+      href: '/studio/analytics',
       icon: <BarChart3 className="h-4 w-4" />,
     },
   ];
@@ -111,7 +112,7 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
     {
       id: 'settings',
       label: 'Settings',
-      href: '/settings',
+      href: '/studio/settings',
       icon: <Settings className="h-4 w-4" />,
     },
   ];
