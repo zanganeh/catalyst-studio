@@ -109,7 +109,8 @@ export interface ContentType {
 export interface ContentItem {
   id: string;
   contentTypeId: string;
-  data: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any // Field name -> value
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: Record<string, any>; // Field name -> value
   createdAt: Date;
   updatedAt: Date;
 }
