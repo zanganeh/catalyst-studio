@@ -46,7 +46,7 @@ export default function DevelopmentPage() {
       {/* Development Tools Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {devTools.map((tool) => (
-          <Card key={tool.title} className="bg-gray-800/50 border-gray-700">
+          <Card key={tool.title} className="catalyst-card">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
@@ -69,7 +69,7 @@ export default function DevelopmentPage() {
                   variant="outline" 
                   size="sm"
                   disabled
-                  className="border-gray-600 text-gray-400"
+                  className="catalyst-button-secondary opacity-50"
                 >
                   Preview
                 </Button>
@@ -80,7 +80,7 @@ export default function DevelopmentPage() {
       </div>
 
       {/* Info Card */}
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="catalyst-card">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Code2 className="h-5 w-5 text-orange-400" />

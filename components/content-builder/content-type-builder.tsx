@@ -112,7 +112,7 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <h2 className="text-xl font-semibold mb-4">Loading...</h2>
+          <h2 className="text-xl font-semibold mb-4 text-white">Loading...</h2>
         </div>
       </div>
     );
@@ -122,8 +122,8 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <h2 className="text-2xl font-semibold mb-4">No Content Type Selected</h2>
-          <Button onClick={() => {
+          <h2 className="text-2xl font-semibold mb-4 text-white">No Content Type Selected</h2>
+          <Button className="catalyst-button-primary" onClick={() => {
             const newContentType = createContentType('NewContentType');
             setNameInput(newContentType.name);
           }}>
@@ -137,7 +137,7 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
   return (
     <div className="h-full flex flex-col">
       {/* Header with Content Type Name */}
-      <div className="border-b p-6 bg-background">
+      <div className="border-b p-6 bg-dark-secondary border-gray-800">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <span className="text-3xl">{currentContentType.icon}</span>
@@ -170,7 +170,7 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
             </div>
           ) : (
             <div className="flex items-center gap-2 flex-1">
-              <h1 className="text-2xl font-bold">{currentContentType.name}</h1>
+              <h1 className="text-2xl font-bold text-white">{currentContentType.name}</h1>
               <Button
                 size="icon"
                 variant="ghost"
@@ -182,19 +182,19 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
           )}
           </div>
           <Link href="/content-builder/relationships">
-            <Button variant="outline" size="sm" className="gap-2">
+            <Button variant="outline" size="sm" className="gap-2 catalyst-button-secondary">
               <Network className="h-4 w-4" />
               Relationships
             </Button>
           </Link>
         </div>
-        <p className="text-muted-foreground mt-2">
+        <p className="text-gray-400 mt-2">
           {currentContentType.fields.length} field{currentContentType.fields.length !== 1 ? 's' : ''}
         </p>
       </div>
 
       {/* Fields List */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-6 bg-dark-primary">
         {currentContentType.fields.length === 0 ? (
           // Empty State
           <div className="flex flex-col items-center justify-center h-full text-center">

@@ -26,7 +26,7 @@ export function LayoutContainer({ children }: LayoutContainerProps) {
   // Feature enabled: wrap in three-column grid
   // 360px (chat) + 260px (nav) + flex (main)
   return (
-    <div className={`grid grid-cols-[360px_260px_1fr] h-screen ${
+    <div className={`grid grid-cols-[360px_260px_1fr] h-screen overflow-hidden ${
       features.catalystBranding ? 'bg-gray-900' : ''
     }`}>
       {children}
@@ -50,7 +50,7 @@ export function ChatPanel({ children }: { children: React.ReactNode }) {
 
   return (
     <AnimatedPanel direction="left" delay={0.1}>
-      <div className={`border-r overflow-hidden h-full relative ${
+      <div className={`border-r h-full flex flex-col relative ${
         features.catalystBranding ? 'border-gray-700' : 'border-gray-200'
       } ${
         features.glassMorphism && features.catalystBranding ? 'backdrop-blur-md bg-gray-900/70' :
@@ -93,7 +93,7 @@ export function NavigationPanel({ children }: { children: React.ReactNode }) {
 
   return (
     <AnimatedPanel direction="left" delay={0.2}>
-      <div className={`border-r overflow-y-auto h-full relative ${
+      <div className={`border-r h-full flex flex-col relative ${
         features.catalystBranding ? 'border-gray-700' : 'border-gray-200'
       } ${
         features.glassMorphism && features.catalystBranding ? 'backdrop-blur-md bg-gray-800/50' : 
@@ -122,7 +122,7 @@ export function MainContentPanel({ children }: { children: React.ReactNode }) {
 
   return (
     <AnimatedPanel direction="right" delay={0.3}>
-      <div className={`overflow-y-auto h-full relative ${
+      <div className={`h-full flex flex-col relative ${
         features.glassMorphism && features.catalystBranding ? 'backdrop-blur-sm bg-gray-950/80' :
         features.catalystBranding ? 'bg-gray-950' : ''
       }`}>

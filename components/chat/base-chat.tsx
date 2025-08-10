@@ -11,23 +11,23 @@ export default function BaseChat() {
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat();
 
   return (
-    <div className="container mx-auto px-4 py-8 h-screen">
-      <Card className="max-w-4xl mx-auto h-full flex flex-col">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Bot className="h-6 w-6" />
+    <div className="h-full flex flex-col bg-dark-secondary">
+      <div className="h-full flex flex-col">
+        <div className="px-4 py-4 border-b border-gray-800">
+          <h3 className="flex items-center gap-2 text-white font-semibold">
+            <Bot className="h-5 w-5 text-catalyst-orange" />
             AI Assistant
-          </CardTitle>
-          <CardDescription>
-            Chat with our AI assistant powered by OpenRouter
-          </CardDescription>
-        </CardHeader>
+          </h3>
+          <p className="text-gray-400 text-sm mt-1">
+            Chat with our AI assistant
+          </p>
+        </div>
         
-        <CardContent className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden px-4 py-4">
           <ScrollArea className="flex-1 pr-4 mb-4">
             <div className="space-y-4">
               {messages.length === 0 && (
-                <div className="text-center text-muted-foreground py-8">
+                <div className="text-center text-gray-500 py-8">
                   Start a conversation by typing a message below
                 </div>
               )}
@@ -46,12 +46,12 @@ export default function BaseChat() {
                   >
                     <div className="flex-shrink-0">
                       {message.role === 'user' ? (
-                        <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
-                          <User className="h-4 w-4 text-primary-foreground" />
+                        <div className="h-8 w-8 rounded-full bg-catalyst-orange flex items-center justify-center">
+                          <User className="h-4 w-4 text-white" />
                         </div>
                       ) : (
-                        <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
-                          <Bot className="h-4 w-4" />
+                        <div className="h-8 w-8 rounded-full bg-surface-dark flex items-center justify-center">
+                          <Bot className="h-4 w-4 text-catalyst-orange" />
                         </div>
                       )}
                     </div>
@@ -59,8 +59,8 @@ export default function BaseChat() {
                     <div
                       className={`rounded-lg px-4 py-2 ${
                         message.role === 'user'
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-secondary'
+                          ? 'bg-catalyst-orange text-white'
+                          : 'bg-surface-dark text-gray-100'
                       }`}
                     >
                       <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -100,12 +100,13 @@ export default function BaseChat() {
             <Button 
               type="submit" 
               disabled={isLoading || !input.trim()}
+              className="catalyst-button-primary"
             >
               <Send className="h-4 w-4" />
             </Button>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

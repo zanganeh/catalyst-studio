@@ -64,7 +64,7 @@ export default function IntegrationsPage() {
       </div>
 
       {/* CMS Integration Notice */}
-      <Card className="bg-orange-500/10 border-orange-500/30">
+      <Card className="catalyst-card bg-catalyst-orange-light border-catalyst-orange">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-orange-400" />
@@ -87,7 +87,7 @@ export default function IntegrationsPage() {
             {integrations
               .filter(i => i.category === category)
               .map(integration => (
-                <Card key={integration.title} className="bg-gray-800/50 border-gray-700">
+                <Card key={integration.title} className="catalyst-card">
                   <CardHeader>
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-orange-500/10 text-orange-400 rounded-lg">

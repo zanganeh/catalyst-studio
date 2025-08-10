@@ -16,7 +16,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Coming Soon Card */}
-      <Card className="bg-gray-800/50 border-gray-700">
+      <Card className="catalyst-card">
         <CardContent className="flex flex-col items-center justify-center py-16">
           <div className="p-4 bg-orange-500/10 rounded-full mb-4">
             <BarChart3 className="h-12 w-12 text-orange-400" />
@@ -28,7 +28,7 @@ export default function AnalyticsPage() {
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 w-full max-w-2xl">
-            <Card className="bg-gray-700/30 border-gray-600">
+            <Card className="catalyst-card-dark">
               <CardHeader className="pb-3">
                 <TrendingUp className="h-8 w-8 text-orange-400 mb-2" />
                 <CardTitle className="text-sm text-white">Performance Metrics</CardTitle>
@@ -40,7 +40,7 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
             
-            <Card className="bg-gray-700/30 border-gray-600">
+            <Card className="catalyst-card-dark">
               <CardHeader className="pb-3">
                 <Calendar className="h-8 w-8 text-orange-400 mb-2" />
                 <CardTitle className="text-sm text-white">Content Analytics</CardTitle>
@@ -52,7 +52,7 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
             
-            <Card className="bg-gray-700/30 border-gray-600">
+            <Card className="catalyst-card-dark">
               <CardHeader className="pb-3">
                 <Info className="h-8 w-8 text-orange-400 mb-2" />
                 <CardTitle className="text-sm text-white">Custom Reports</CardTitle>

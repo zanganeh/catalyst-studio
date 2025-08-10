@@ -17,9 +17,9 @@ export default function ContentBuilderPage() {
   // Show loading state during initialization to prevent hydration mismatch
   if (isEnabled === null) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-dark-primary to-dark-secondary">
         <div className="text-center">
-          <h2 className="text-xl font-semibold">Loading...</h2>
+          <h2 className="text-xl font-semibold text-white">Loading...</h2>
         </div>
       </div>
     );
@@ -27,10 +27,10 @@ export default function ContentBuilderPage() {
 
   if (!isEnabled) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Card className="p-8 max-w-md">
-          <h2 className="text-2xl font-bold mb-4">Content Type Builder</h2>
-          <p className="text-muted-foreground">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-dark-primary to-dark-secondary">
+        <Card className="p-8 max-w-md catalyst-card">
+          <h2 className="text-2xl font-bold mb-4 text-white">Content Type Builder</h2>
+          <p className="text-gray-400">
             This feature is currently not available. Please enable the contentTypeBuilder feature flag to access it.
           </p>
         </Card>
@@ -40,7 +40,7 @@ export default function ContentBuilderPage() {
 
   return (
     <ContentTypeProvider>
-      <div className="h-screen">
+      <div className="h-screen bg-gradient-to-br from-dark-primary to-dark-secondary">
         <ContentTypeBuilder />
       </div>
     </ContentTypeProvider>

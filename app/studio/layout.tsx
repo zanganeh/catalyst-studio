@@ -81,7 +81,7 @@ export default function StudioLayout() {
         
         {/* Main Content Panel - Right side, shows current view */}
         <MainContentPanel>
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col h-full overflow-hidden">
             {/* Breadcrumb */}
             <div className="px-6 py-3 border-b border-gray-700">
               <Breadcrumb />
@@ -96,7 +96,7 @@ export default function StudioLayout() {
                 exit="out"
                 variants={pageVariants}
                 transition={pageTransition}
-                className="flex-1 overflow-y-auto"
+                className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent"
               >
                 <IsolatedErrorBoundary componentName={`View-${pathname.split('/').pop()}`}>
                   <ViewComponent />
