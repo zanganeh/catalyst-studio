@@ -26,15 +26,12 @@ export function ChatWithPersistence({
   const [showLoadingState, setShowLoadingState] = useState(true);
 
   const {
-    isLoading,
     isSaving,
     lastSaved,
-    saveCount,
     storageStrategy,
     error,
     saveMessages,
-    loadMessages,
-    clearMessages
+    loadMessages
   } = useChatPersistence({
     sessionId,
     enabled,
