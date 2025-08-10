@@ -110,6 +110,35 @@ This backlog contains enhancement features for the Content Type Builder that wer
 
 ---
 
+### 6. TypeScript Type Safety Improvements
+**Priority**: Medium  
+**Story Points**: 2  
+**Description**: Refine TypeScript types to resolve type narrowing issues identified during code review.
+
+**Tasks:**
+- [ ] Refactor ValidationRules to use discriminated union pattern
+- [ ] Fix type narrowing issues in field-properties-panel.tsx
+- [ ] Add missing properties to Relationship interface in addRelationship calls
+- [ ] Create type guards for ValidationRules field type checking
+- [ ] Add proper type overloads for field validation methods
+
+**Acceptance Criteria:**
+- All TypeScript compilation errors are resolved
+- ValidationRules properly narrows based on field type
+- No use of type assertions or any types
+- Type safety maintained throughout the codebase
+- All existing tests continue to pass
+
+**Technical Details:**
+- Current issue: ValidationRules union type doesn't narrow properly when accessing field-specific properties
+- Solution: Implement discriminated union with a `type` field or create separate validation interfaces per field type
+- Files affected: 
+  - `lib/content-types/types.ts`
+  - `components/content-builder/field-properties-panel.tsx`
+  - `app/content-builder/relationships/page.tsx`
+
+---
+
 ## Notes
 - These items were identified during Story 1.3 implementation
 - Core functionality is complete and working without these enhancements
@@ -120,3 +149,4 @@ This backlog contains enhancement features for the Content Type Builder that wer
 | Date | Version | Description | Author |
 |------|---------|-------------|--------|
 | 2025-01-09 | 1.0 | Initial backlog created from Story 1.3 remaining items | James (Dev) |
+| 2025-01-09 | 1.1 | Added TypeScript type safety improvements from code review | James (Dev) |
