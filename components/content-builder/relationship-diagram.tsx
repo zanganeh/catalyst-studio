@@ -19,7 +19,7 @@ export function RelationshipDiagram({
   currentContentType,
   onAddRelationship,
   onEditRelationship,
-  onDeleteRelationship,
+  onDeleteRelationship, // eslint-disable-line @typescript-eslint/no-unused-vars
 }: RelationshipDiagramProps) {
   // Calculate relationships for the current content type
   const relationships = useMemo(() => {

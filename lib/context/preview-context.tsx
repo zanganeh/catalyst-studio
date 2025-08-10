@@ -9,7 +9,6 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import {
   PreviewState,
   Device,
-  DeviceType,
   Page,
   PreviewSettings,
   INITIAL_PREVIEW_STATE,
@@ -17,8 +16,6 @@ import {
   PreviewMessage,
   PreviewResponse
 } from '@/lib/preview/types'
-import { useProjectContext } from '@/lib/context/project-context'
-import { useContentTypes } from '@/lib/context/content-type-context'
 
 interface PreviewContextType {
   state: PreviewState

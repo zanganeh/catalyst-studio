@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useContentTypes } from '@/lib/context/content-type-context';
-import { ContentType, Field, FieldType } from '@/lib/content-types/types';
+import { Field } from '@/lib/content-types/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Plus, Edit2, Network } from 'lucide-react';

@@ -28,13 +28,13 @@ function DeviceSelectorComponent({ className }: DeviceSelectorProps) {
   // Group devices by type
   const deviceGroups = {
     [DeviceType.DESKTOP]: Object.entries(DEVICE_PRESETS).filter(
-      ([_, device]) => device.type === DeviceType.DESKTOP
+      ([, device]) => device.type === DeviceType.DESKTOP
     ),
     [DeviceType.TABLET]: Object.entries(DEVICE_PRESETS).filter(
-      ([_, device]) => device.type === DeviceType.TABLET
+      ([, device]) => device.type === DeviceType.TABLET
     ),
     [DeviceType.MOBILE]: Object.entries(DEVICE_PRESETS).filter(
-      ([_, device]) => device.type === DeviceType.MOBILE
+      ([, device]) => device.type === DeviceType.MOBILE
     ),
   }
 
@@ -107,7 +107,7 @@ function DeviceSelectorComponent({ className }: DeviceSelectorProps) {
       {/* Detailed device selector dropdown */}
       <div className="relative">
         <select
-          value={Object.entries(DEVICE_PRESETS).find(([_, d]) => 
+          value={Object.entries(DEVICE_PRESETS).find(([, d]) => 
             d.name === activeDevice.name
           )?.[0] || ''}
           onChange={(e) => switchDevice(e.target.value)}

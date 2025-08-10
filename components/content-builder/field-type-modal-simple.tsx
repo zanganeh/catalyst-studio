@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { FIELD_CATEGORIES, FieldType } from '@/lib/content-types/types';
 import { useContentTypes } from '@/lib/context/content-type-context';

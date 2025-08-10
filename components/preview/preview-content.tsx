@@ -327,18 +327,24 @@ export function generateContentFromSource(source: 'contentTypes' | 'mockData' | 
   }
 }
 
-function generateFromContentTypes(_contentTypes: unknown) {
+function generateFromContentTypes(contentTypes: unknown) {
   // Implementation would go here
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _ = contentTypes; // Placeholder parameter
   return { html: '<div>Generated from content types</div>', styles: '' }
 }
 
-function generateFromMockData(_mockData: unknown) {
+function generateFromMockData(mockData: unknown) {
   // Implementation would go here
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _ = mockData; // Placeholder parameter
   return { html: '<div>Generated from mock data</div>', styles: '' }
 }
 
-function generateFromAI(_prompt: unknown) {
+function generateFromAI(prompt: unknown) {
   // Placeholder for AI generation
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _ = prompt; // Placeholder parameter
   return { html: '<div>AI generation coming soon</div>', styles: '' }
 }
 

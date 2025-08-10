@@ -6,7 +6,6 @@ import {
   Field,
   Relationship,
   FieldType,
-  RelationshipType,
   generateId,
   createField,
   createContentType,

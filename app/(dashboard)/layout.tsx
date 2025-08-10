@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { usePathname } from 'next/navigation'
 import { Breadcrumb } from '@/components/navigation/breadcrumb'
 import { useFeatureFlags } from '@/contexts/feature-flag-context'
+import { IsolatedErrorBoundary } from '@/components/error-boundary'
 
 const pageVariants = {
   initial: { 
@@ -71,7 +72,9 @@ export default function DashboardLayout({
           transition={pageTransition}
           className="flex-1 overflow-y-auto"
         >
-          {children}
+          <IsolatedErrorBoundary componentName={`DashboardView-${pathname.split('/').pop()}`}>
+            {children}
+          </IsolatedErrorBoundary>
         </motion.div>
       </AnimatePresence>
     </div>
