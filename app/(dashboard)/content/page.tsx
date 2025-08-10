@@ -1,24 +1,50 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ContentList } from '@/components/content/content-list';
 import { ContentModal } from '@/components/content/content-modal';
 import { FormGenerator } from '@/components/content/form-generator';
 import { ContentErrorBoundary } from '@/components/content/content-error-boundary';
 import { useContentStore } from '@/lib/stores/content-store';
-import { useProjectContext } from '@/lib/context/project-context';
 import { useToast } from '@/components/ui/use-toast';
-import type { ContentItem } from '@/lib/content-types/types';
+import type { ContentItem, ContentType } from '@/lib/content-types/types';
 
 export default function ContentPage() {
-  const { context } = useProjectContext();
   const contentStore = useContentStore();
   const { toast } = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [selectedContentTypeId, setSelectedContentTypeId] = useState<string>('');
+  const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
   
-  const contentTypes = context.contentTypes || [];
+  // Load content types from localStorage (same storage as Content Builder)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('contentTypes');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          const contentTypesMap = new Map();
+          parsed.forEach((ct: ContentType & { createdAt: string; updatedAt: string }) => {
+            // Keep the content type with more fields if there are duplicates with same name
+            const existing = contentTypesMap.get(ct.name);
+            if (!existing || ct.fields.length > existing.fields.length) {
+              contentTypesMap.set(ct.name, {
+                ...ct,
+                createdAt: new Date(ct.createdAt),
+                updatedAt: new Date(ct.updatedAt),
+              });
+            }
+          });
+          const uniqueContentTypes = Array.from(contentTypesMap.values());
+          setContentTypes(uniqueContentTypes);
+        } catch (error) {
+          console.error('Failed to load content types:', error);
+          setContentTypes([]);
+        }
+      }
+    }
+  }, []);
   
   // Get selected content type for modal
   const selectedContentType = contentTypes.find(
@@ -48,7 +74,7 @@ export default function ContentPage() {
           title: 'Content deleted',
           description: 'The content item has been successfully deleted.',
         });
-      } catch (error) {
+      } catch (_error) {
         toast({
           title: 'Error',
           description: 'Failed to delete content item. Please try again.',
@@ -69,7 +95,7 @@ export default function ContentPage() {
         // Optionally open the edit modal for the duplicated item
         handleEditContent(duplicated);
       }
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Error',
         description: 'Failed to duplicate content item. Please try again.',
@@ -117,7 +143,7 @@ export default function ContentPage() {
       }
       setModalOpen(false);
       setSelectedItem(null);
-    } catch (error) {
+    } catch (_error) {
       toast({
         title: 'Error',
         description: 'Failed to save content. Please check your input and try again.',
@@ -130,6 +156,7 @@ export default function ContentPage() {
     <ContentErrorBoundary>
       <ContentList
         contentItems={contentStore.contentItems}
+        contentTypes={contentTypes}
         onNewContent={handleNewContent}
         onEditContent={handleEditContent}
         onDeleteContent={handleDeleteContent}

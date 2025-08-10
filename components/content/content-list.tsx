@@ -10,12 +10,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useProjectContext } from '@/lib/context/project-context';
 import type { ContentType, ContentItem } from '@/lib/content-types/types';
 import { ContentCard } from './content-card';
 
 interface ContentListProps {
   contentItems: ContentItem[];
+  contentTypes: ContentType[];
   onNewContent: () => void;
   onEditContent: (item: ContentItem) => void;
   onDeleteContent: (id: string) => void;
@@ -24,20 +24,17 @@ interface ContentListProps {
 
 export function ContentList({
   contentItems,
+  contentTypes,
   onNewContent,
   onEditContent,
   onDeleteContent,
   onDuplicateContent,
 }: ContentListProps) {
-  const { context } = useProjectContext();
   const [selectedContentTypeId, setSelectedContentTypeId] = useState<string>('');
-  
-  // Get content types from context
-  const contentTypes = context.contentTypes || [];
   
   // Filter content items by selected content type
   const filteredItems = useMemo(() => {
-    if (!selectedContentTypeId) return contentItems;
+    if (!selectedContentTypeId || selectedContentTypeId === 'all') return contentItems;
     return contentItems.filter(item => item.contentTypeId === selectedContentTypeId);
   }, [contentItems, selectedContentTypeId]);
   
@@ -78,7 +75,7 @@ export function ContentList({
               <SelectValue placeholder="All Content Types" />
             </SelectTrigger>
             <SelectContent className="bg-gray-900 border-gray-700">
-              <SelectItem value="" className="text-gray-300 hover:bg-gray-800">
+              <SelectItem value="all" className="text-gray-300 hover:bg-gray-800">
                 All Content Types
               </SelectItem>
               {contentTypes.map((contentType) => (
