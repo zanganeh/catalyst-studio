@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { 
   PlusCircle, 
   FileText, 
@@ -17,18 +16,6 @@ import {
   MoreHorizontal,
   Database
 } from 'lucide-react'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 
 export default function ContentPage() {
   return (
@@ -41,19 +28,10 @@ export default function ContentPage() {
       </div>
 
       <div className="flex gap-4">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Create New Entry
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Create a new content entry from your defined models</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Button>
+          <PlusCircle className="h-4 w-4 mr-2" />
+          Create New Entry
+        </Button>
         
         <Button variant="outline">
           <Search className="h-4 w-4 mr-2" />
@@ -74,24 +52,15 @@ export default function ContentPage() {
                 <CardTitle className="flex items-center gap-2">
                   <FileText className="h-5 w-5 text-blue-500" />
                   Blog Posts
-                  <Badge variant="secondary">Content Type</Badge>
+                  <span className="text-xs bg-secondary px-2 py-1 rounded">Content Type</span>
                 </CardTitle>
                 <CardDescription className="mt-1">
                   12 published entries • Based on Blog Post model
                 </CardDescription>
               </div>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <Database className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>View Blog Post content model</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Button variant="ghost" size="sm" title="View Blog Post content model">
+                <Database className="h-4 w-4" />
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -108,30 +77,20 @@ export default function ContentPage() {
                       <Calendar className="h-3 w-3" />
                       2 hours ago
                     </span>
-                    <Badge variant="outline" className="text-xs">Published</Badge>
+                    <span className="text-xs border px-2 py-0.5 rounded">Published</span>
                   </div>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Eye className="h-4 w-4 mr-2" />
-                      View
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" title="View">
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" title="Edit">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" title="Delete">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               
               <div className="flex items-center justify-between p-3 hover:bg-muted rounded-lg transition-colors">
@@ -146,30 +105,20 @@ export default function ContentPage() {
                       <Calendar className="h-3 w-3" />
                       1 day ago
                     </span>
-                    <Badge variant="outline" className="text-xs">Draft</Badge>
+                    <span className="text-xs border px-2 py-0.5 rounded">Draft</span>
                   </div>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Eye className="h-4 w-4 mr-2" />
-                      View
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" title="View">
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" title="Edit">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" title="Delete">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -182,24 +131,15 @@ export default function ContentPage() {
                 <CardTitle className="flex items-center gap-2">
                   <FolderOpen className="h-5 w-5 text-green-500" />
                   Pages
-                  <Badge variant="secondary">Content Type</Badge>
+                  <span className="text-xs bg-secondary px-2 py-1 rounded">Content Type</span>
                 </CardTitle>
                 <CardDescription className="mt-1">
                   8 published entries • Based on Page model
                 </CardDescription>
               </div>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <Database className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>View Page content model</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              <Button variant="ghost" size="sm" title="View Page content model">
+                <Database className="h-4 w-4" />
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -216,30 +156,20 @@ export default function ContentPage() {
                       <Calendar className="h-3 w-3" />
                       1 week ago
                     </span>
-                    <Badge variant="outline" className="text-xs">Published</Badge>
+                    <span className="text-xs border px-2 py-0.5 rounded">Published</span>
                   </div>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
-                      <Eye className="h-4 w-4 mr-2" />
-                      View
-                    </DropdownMenuItem>
-                    <DropdownMenuItem>
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="sm" title="View">
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" title="Edit">
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="sm" title="Delete">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
