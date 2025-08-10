@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { LayoutContainer, ChatPanel, NavigationPanel, MainContentPanel } from '@/components/layout/layout-container';
+import { NavigationSidebar } from '@/components/navigation/navigation-sidebar';
+import { MobileNavigation } from '@/components/navigation/mobile-navigation';
 
 /**
  * Layout wrapper for the chat page
@@ -10,22 +12,25 @@ import { LayoutContainer, ChatPanel, NavigationPanel, MainContentPanel } from '@
  */
 export function ChatLayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
-    <LayoutContainer>
-      <ChatPanel>
-        {/* Existing chat goes here unchanged */}
-        {children}
-      </ChatPanel>
+    <>
+      {/* Mobile Navigation */}
+      <MobileNavigation />
       
-      <NavigationPanel>
-        <div className="p-4">
-          {/* Navigation content will go here */}
-        </div>
-      </NavigationPanel>
-      <MainContentPanel>
-        <div className="p-4">
-          {/* Main content will go here */}
-        </div>
-      </MainContentPanel>
-    </LayoutContainer>
+      <LayoutContainer>
+        <ChatPanel>
+          {/* Existing chat goes here unchanged */}
+          {children}
+        </ChatPanel>
+        
+        <NavigationPanel>
+          <NavigationSidebar />
+        </NavigationPanel>
+        <MainContentPanel>
+          <div className="p-4">
+            {/* Main content will go here */}
+          </div>
+        </MainContentPanel>
+      </LayoutContainer>
+    </>
   );
 }

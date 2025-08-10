@@ -217,6 +217,18 @@ export function useProjectContext() {
   return context;
 }
 
+// Alias for convenience
+export const useProject = () => {
+  const { context } = useProjectContext();
+  return {
+    selectedProject: context.projectName ? {
+      id: '1',
+      name: context.projectName,
+      description: context.projectDescription || ''
+    } : null
+  };
+};
+
 // Higher-order component for wrapping components with project context
 export function withProjectContext<P extends object>(
   Component: React.ComponentType<P>
