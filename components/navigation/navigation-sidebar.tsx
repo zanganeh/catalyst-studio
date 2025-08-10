@@ -61,12 +61,19 @@ export function NavigationSidebar() {
   ];
 
   // Filter nav items based on feature flags
-  const visibleNavItems = navItems.filter(item => {
-    if (item.featureFlag) {
-      return isFeatureEnabled(item.featureFlag);
-    }
-    return true;
-  });
+  // Use stable feature flags to avoid hydration mismatch
+  const [visibleNavItems, setVisibleNavItems] = React.useState(navItems);
+  
+  React.useEffect(() => {
+    // Only filter on client side after hydration
+    const filtered = navItems.filter(item => {
+      if (item.featureFlag) {
+        return isFeatureEnabled(item.featureFlag);
+      }
+      return true;
+    });
+    setVisibleNavItems(filtered);
+  }, []);
 
   return (
     <nav className="flex flex-col h-full">

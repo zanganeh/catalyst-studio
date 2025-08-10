@@ -44,6 +44,7 @@ export function FeatureFlagProvider({ children }: { children: ReactNode }) {
         'animations',
         'enhancedChat',
         'contentBuilder',
+        'contentTypeBuilder',
         'previewSystem',
         'projectPersistence',
         'cmsIntegration',

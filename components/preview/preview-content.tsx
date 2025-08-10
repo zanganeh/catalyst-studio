@@ -42,7 +42,7 @@ function PreviewContentComponent({ autoGenerate = true }: PreviewContentProps) {
   }
 
   // Generate content cards for a content type
-  const generateContentCards = useCallback((contentType: { name: string; fields?: Array<{ label: string; type: string }> }) => {
+  const generateContentCards = useCallback((contentType: any) => {
     const cards = []
     for (let i = 1; i <= 3; i++) {
       cards.push(`
@@ -68,7 +68,7 @@ function PreviewContentComponent({ autoGenerate = true }: PreviewContentProps) {
       return generateDefaultContent()
     }
 
-    const { contentTypes } = contentTypeContext.state
+    const { contentTypes } = contentTypeContext
     
     if (contentTypes.length === 0) {
       return generateDefaultContent()
@@ -263,7 +263,7 @@ function PreviewContentComponent({ autoGenerate = true }: PreviewContentProps) {
   // Auto-generate content when content types change
   useEffect(() => {
     if (autoGenerate && contentTypeContext) {
-      const { contentTypes } = contentTypeContext.state
+      const { contentTypes } = contentTypeContext
       
       // Generate content if content types have changed
       const contentKey = JSON.stringify(contentTypes)
@@ -285,6 +285,8 @@ function PreviewContentComponent({ autoGenerate = true }: PreviewContentProps) {
   }, [autoGenerate, generatePreviewContent, state.content, updateContent]) // Required dependencies
 
   // Hot reload simulation - refresh content periodically if enabled
+  // TEMPORARILY DISABLED to debug style loss issue
+  /*
   useEffect(() => {
     if (state.settings.autoRefresh && state.content) {
       const interval = setInterval(() => {
@@ -295,13 +297,15 @@ function PreviewContentComponent({ autoGenerate = true }: PreviewContentProps) {
         
         if (state.content && !state.content.includes(refreshIndicator)) {
           const updatedContent = state.content + refreshIndicator
-          updateContent(updatedContent)
+          // Pass the current styles along with updated content
+          updateContent(updatedContent, state.styles)
         }
       }, state.settings.refreshInterval)
 
       return () => clearInterval(interval)
     }
-  }, [state.settings.autoRefresh, state.settings.refreshInterval, state.content, updateContent])
+  }, [state.settings.autoRefresh, state.settings.refreshInterval, state.content, state.styles, updateContent])
+  */
 
   return null // This component doesn't render anything directly
 }

@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { PreviewProvider } from '@/lib/context/preview-context';
+import { ProjectContextProvider } from '@/lib/context/project-context';
+import { ContentTypeProvider } from '@/lib/context/content-type-context';
 import { PreviewFrame } from '@/components/preview/preview-frame';
 import { DeviceSelector } from '@/components/preview/device-selector';
 import { PreviewControls } from '@/components/preview/preview-controls';
@@ -14,8 +16,12 @@ import { useFeatureFlag } from '@/contexts/feature-flag-context';
 export default function PreviewPage() {
   const { enabled: isPreviewEnabled } = useFeatureFlag('previewSystem');
 
+  // Temporarily bypass feature flag for testing
+  // TODO: Remove this after testing
+  const forceEnable = true;
+
   // Show fallback if feature is disabled
-  if (!isPreviewEnabled) {
+  if (!isPreviewEnabled && !forceEnable) {
     return (
       <div className="flex min-h-screen">
         <NavigationSidebar />
@@ -36,8 +42,10 @@ export default function PreviewPage() {
   }
 
   return (
-    <PreviewProvider>
-      <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
+    <ProjectContextProvider>
+      <ContentTypeProvider>
+        <PreviewProvider>
+          <div className="flex min-h-screen bg-gray-50 dark:bg-gray-950">
         {/* Navigation Sidebar */}
         <NavigationSidebar />
         
@@ -140,6 +148,8 @@ export default function PreviewPage() {
           </div>
         </div>
       </div>
-    </PreviewProvider>
+        </PreviewProvider>
+      </ContentTypeProvider>
+    </ProjectContextProvider>
   );
 }

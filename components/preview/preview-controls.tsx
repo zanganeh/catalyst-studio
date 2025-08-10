@@ -41,6 +41,83 @@ function PreviewControlsComponent({ className }: PreviewControlsProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [customZoom, setCustomZoom] = useState(state.zoom * 100);
 
+  const handleRefresh = useCallback(() => {
+    refresh();
+    toast({
+      title: 'Preview refreshed',
+      description: 'The preview has been reloaded.',
+      duration: 2000,
+    });
+  }, [refresh, toast]);
+
+  const handleZoomIn = useCallback(() => {
+    const newZoom = Math.min(state.zoom + 0.25, 2);
+    updateZoom(newZoom);
+  }, [state.zoom, updateZoom]);
+
+  const handleZoomOut = useCallback(() => {
+    const newZoom = Math.max(state.zoom - 0.25, 0.25);
+    updateZoom(newZoom);
+  }, [state.zoom, updateZoom]);
+
+  const handleZoomReset = useCallback(() => {
+    updateZoom(1);
+  }, [updateZoom]);
+
+  const enterFullscreen = useCallback(() => {
+    const element = document.querySelector('.preview-frame-container');
+    if (element && element.requestFullscreen) {
+      element.requestFullscreen();
+      setIsFullscreen(true);
+    }
+  }, []);
+
+  const exitFullscreen = useCallback(() => {
+    if (document.exitFullscreen) {
+      document.exitFullscreen();
+      setIsFullscreen(false);
+    }
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    if (!isFullscreen) {
+      enterFullscreen();
+    } else {
+      exitFullscreen();
+    }
+  }, [isFullscreen, enterFullscreen, exitFullscreen]);
+
+  const handleZoomPreset = (value: number) => {
+    updateZoom(value);
+  };
+
+  const handleCustomZoomChange = (value: number[]) => {
+    const zoom = value[0] / 100;
+    setCustomZoom(value[0]);
+    updateZoom(zoom);
+  };
+
+  const handleCopyURL = async () => {
+    const currentURL = window.location.href.replace('/preview', '');
+    const previewURL = `${currentURL}/preview/${state.currentPage || 'index'}`;
+    
+    try {
+      await navigator.clipboard.writeText(previewURL);
+      toast({
+        title: 'URL copied',
+        description: 'Preview URL has been copied to clipboard.',
+        duration: 2000,
+      });
+    } catch {
+      toast({
+        title: 'Failed to copy',
+        description: 'Could not copy URL to clipboard.',
+        variant: 'destructive',
+        duration: 2000,
+      });
+    }
+  };
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -83,89 +160,12 @@ function PreviewControlsComponent({ className }: PreviewControlsProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen, state.zoom, handleRefresh, handleZoomIn, handleZoomOut, handleZoomReset, toggleFullscreen, exitFullscreen]);
+  }, [isFullscreen, handleRefresh, handleZoomIn, handleZoomOut, handleZoomReset, toggleFullscreen, exitFullscreen]);
 
   // Update custom zoom when state changes
   useEffect(() => {
     setCustomZoom(state.zoom * 100);
   }, [state.zoom]);
-
-  const handleRefresh = useCallback(() => {
-    refresh();
-    toast({
-      title: 'Preview refreshed',
-      description: 'The preview has been reloaded.',
-      duration: 2000,
-    });
-  }, [refresh, toast]);
-
-  const handleZoomIn = useCallback(() => {
-    const newZoom = Math.min(state.zoom + 0.25, 2);
-    updateZoom(newZoom);
-  }, [state.zoom, updateZoom]);
-
-  const handleZoomOut = useCallback(() => {
-    const newZoom = Math.max(state.zoom - 0.25, 0.25);
-    updateZoom(newZoom);
-  }, [state.zoom, updateZoom]);
-
-  const handleZoomReset = useCallback(() => {
-    updateZoom(1);
-  }, [updateZoom]);
-
-  const handleZoomPreset = (value: number) => {
-    updateZoom(value);
-  };
-
-  const handleCustomZoomChange = (value: number[]) => {
-    const zoom = value[0] / 100;
-    setCustomZoom(value[0]);
-    updateZoom(zoom);
-  };
-
-  const handleCopyURL = async () => {
-    const currentURL = window.location.href.replace('/preview', '');
-    const previewURL = `${currentURL}/preview/${state.currentPage || 'index'}`;
-    
-    try {
-      await navigator.clipboard.writeText(previewURL);
-      toast({
-        title: 'URL copied',
-        description: 'Preview URL has been copied to clipboard.',
-        duration: 2000,
-      });
-    } catch {
-      toast({
-        title: 'Failed to copy',
-        description: 'Could not copy URL to clipboard.',
-        variant: 'destructive',
-        duration: 2000,
-      });
-    }
-  };
-
-  const enterFullscreen = useCallback(() => {
-    const element = document.querySelector('.preview-frame-container');
-    if (element && element.requestFullscreen) {
-      element.requestFullscreen();
-      setIsFullscreen(true);
-    }
-  }, []);
-
-  const exitFullscreen = useCallback(() => {
-    if (document.exitFullscreen) {
-      document.exitFullscreen();
-      setIsFullscreen(false);
-    }
-  }, []);
-
-  const toggleFullscreen = useCallback(() => {
-    if (!isFullscreen) {
-      enterFullscreen();
-    } else {
-      exitFullscreen();
-    }
-  }, [isFullscreen, enterFullscreen, exitFullscreen]);
 
   // Check fullscreen state changes
   useEffect(() => {

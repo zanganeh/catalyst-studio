@@ -23,22 +23,22 @@ function PreviewFrameComponent({ className }: PreviewFrameProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [iframeLoaded, setIframeLoaded] = useState(false)
   const [isVisible, setIsVisible] = useState(true)
+  const [iframeSrcDoc, setIframeSrcDoc] = useState<string>('')
   
-  const { activeDevice, content, zoom, settings, isLoading, error } = state
+  const { activeDevice, content, styles, zoom, settings, isLoading, error } = state
 
   // Calculate scaled dimensions
   const scaledWidth = activeDevice.width * activeDevice.scale * zoom
   const scaledHeight = activeDevice.height * activeDevice.scale * zoom
 
-  // Initialize iframe content
-  const initializeIframe = useCallback(() => {
-    if (!iframeRef.current?.contentWindow) return
-
-    try {
-      const iframeDoc = iframeRef.current.contentDocument || iframeRef.current.contentWindow.document
-      
-      // Base HTML template with security headers
-      const baseHTML = `
+  // Generate HTML content for iframe
+  const generateIframeHTML = useCallback((initialContent?: string, initialStyles?: string) => {
+    // Use provided content or fall back to current state content
+    const contentToUse = initialContent || content
+    const stylesToUse = initialStyles || styles || ''
+    
+    // Base HTML template with security headers
+    const baseHTML = `
         <!DOCTYPE html>
         <html lang="en">
         <head>
@@ -104,7 +104,8 @@ function PreviewFrameComponent({ className }: PreviewFrameProps) {
                     if (event.data.payload.content) {
                       document.querySelector('.preview-container').innerHTML = event.data.payload.content;
                     }
-                    if (event.data.payload.styles) {
+                    // Only update styles if they are explicitly provided
+                    if (event.data.payload.styles !== undefined) {
                       const styleEl = document.getElementById('custom-styles');
                       if (styleEl) {
                         styleEl.textContent = event.data.payload.styles;
@@ -150,25 +151,34 @@ function PreviewFrameComponent({ className }: PreviewFrameProps) {
               }, '*');
             });
           </script>
-          <style id="custom-styles"></style>
+          <style id="custom-styles">${stylesToUse}</style>
         </head>
         <body>
           <div class="preview-container">
-            ${content || '<div class="loading-state"><div class="spinner"></div></div>'}
+            ${contentToUse || `
+              <div style="padding: 2rem; text-align: center;">
+                <h1 style="font-size: 2rem; font-weight: bold; margin-bottom: 1rem; background: linear-gradient(135deg, #FF5500 0%, #FF8844 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Welcome to Preview</h1>
+                <p style="color: #666; margin-bottom: 2rem;">Your preview content will appear here</p>
+                <div style="display: flex; gap: 1rem; justify-content: center;">
+                  <div style="padding: 1rem; background: #f5f5f5; border-radius: 8px;">
+                    <strong>Tip:</strong> Use the device selector to switch views
+                  </div>
+                </div>
+              </div>
+            `}
           </div>
         </body>
         </html>
       `
-
-      iframeDoc.open()
-      iframeDoc.write(baseHTML)
-      iframeDoc.close()
       
-      setIframeLoaded(true)
-    } catch (err) {
-      console.error('Failed to initialize iframe:', err)
-    }
-  }, [content])
+    return baseHTML
+  }, [content, styles]) // Keep content and styles in deps for updates
+
+  // Initialize iframe content on mount or content/styles change
+  useEffect(() => {
+    const html = generateIframeHTML()
+    setIframeSrcDoc(html)
+  }, [generateIframeHTML])
 
   // Intersection Observer for lazy loading
   useEffect(() => {
@@ -191,28 +201,40 @@ function PreviewFrameComponent({ className }: PreviewFrameProps) {
     }
   }, [])
 
-  // Update iframe content when content changes and is visible
+  // Track if this is the initial load
+  const isInitialLoadRef = useRef(true)
+  
+  // Update iframe content when content or styles change and is visible
   useEffect(() => {
     if (iframeLoaded && iframeRef.current?.contentWindow && isVisible) {
-      const message: PreviewMessage = {
-        type: 'UPDATE_CONTENT',
-        payload: { content },
-        timestamp: Date.now()
+      // Skip sending PostMessage on initial load since content is already in srcdoc
+      if (isInitialLoadRef.current) {
+        isInitialLoadRef.current = false
+        return
       }
-      iframeRef.current.contentWindow.postMessage(message, '*')
+      
+      // Only send update if we have both content and styles to avoid clearing styles
+      if (content && styles) {
+        const message: PreviewMessage = {
+          type: 'UPDATE_CONTENT',
+          payload: { content, styles },
+          timestamp: Date.now()
+        }
+        iframeRef.current.contentWindow.postMessage(message, '*')
+      }
     }
-  }, [content, iframeLoaded, isVisible])
+  }, [content, styles, iframeLoaded, isVisible])
 
-  // Initialize iframe on load
+  // Handle iframe load event
   const handleIframeLoad = useCallback(() => {
-    initializeIframe()
+    setIframeLoaded(true)
     
     // Store ref for context
     if (typeof window !== 'undefined') {
       const win = window as Window & { __previewIframeRef?: { current: HTMLIFrameElement | null } }
       win.__previewIframeRef = { current: iframeRef.current }
     }
-  }, [initializeIframe])
+  }, [])
 
   // Device frame styles
   const showFrame = settings.showDeviceFrame
@@ -286,7 +308,8 @@ function PreviewFrameComponent({ className }: PreviewFrameProps) {
                 border: 'none'
               }}
               title="Website Preview"
-              sandbox="allow-scripts"
+              srcDoc={iframeSrcDoc}
+              sandbox="allow-scripts allow-same-origin"
               onLoad={handleIframeLoad}
             />
           </>

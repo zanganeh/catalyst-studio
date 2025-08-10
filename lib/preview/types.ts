@@ -171,12 +171,16 @@ export interface PreviewSettings {
   refreshInterval: number // milliseconds
   defaultDevice: string
   zoom: number
+  showGrid: boolean
+  showRulers: boolean
+  highlightInteractive: boolean
 }
 
 // Complete preview state
 export interface PreviewState {
   activeDevice: Device
   content: string
+  styles?: string
   pages: Page[]
   currentPage: number
   zoom: number
@@ -218,7 +222,10 @@ export const DEFAULT_PREVIEW_SETTINGS: PreviewSettings = {
   autoRefresh: true,
   refreshInterval: 2000, // 2 seconds as per requirement
   defaultDevice: 'desktop-macbook',
-  zoom: 1
+  zoom: 1,
+  showGrid: false,
+  showRulers: false,
+  highlightInteractive: false
 }
 
 // Initial preview state

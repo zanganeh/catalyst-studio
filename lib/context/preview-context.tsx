@@ -65,13 +65,20 @@ export function PreviewProvider({ children, featureFlag = true }: PreviewProvide
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   // Integration with existing contexts from Stories 1.2 and 1.3
-  const projectContext = useProjectContext ? useProjectContext() : null
-  const contentTypeContext = useContentTypes ? useContentTypes() : null
+  // These contexts may not be available in all environments
+  // Note: Hooks must be called unconditionally, so we'll handle missing providers differently
 
   // Check if feature is enabled
   const isFeatureEnabled = useCallback(() => {
     return featureFlag
   }, [featureFlag])
+
+  // Send message to preview iframe - defined early to avoid dependency issues
+  const sendMessageToPreview = useCallback((message: PreviewMessage) => {
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(message, '*')
+    }
+  }, [])
 
   // Device switching with smooth transition
   const switchDevice = useCallback((deviceKey: string) => {
@@ -95,7 +102,7 @@ export function PreviewProvider({ children, featureFlag = true }: PreviewProvide
         setState(prev => ({ ...prev, isLoading: false }))
       }, 300)
     }
-  }, [])
+  }, [sendMessageToPreview])
 
   // Set custom device configuration
   const setCustomDevice = useCallback((device: Device) => {
@@ -125,18 +132,23 @@ export function PreviewProvider({ children, featureFlag = true }: PreviewProvide
       setState(prev => ({
         ...prev,
         content,
+        styles, // Store styles in state
         lastUpdate: Date.now(),
         isLoading: false
       }))
 
-      // Send content update to iframe
-      sendMessageToPreview({
-        type: 'UPDATE_CONTENT',
-        payload: { content, styles },
-        timestamp: Date.now()
-      })
+      // Send content update to iframe if it's available
+      if (iframeRef.current?.contentWindow) {
+        sendMessageToPreview({
+          type: 'UPDATE_CONTENT',
+          payload: { content, styles },
+          timestamp: Date.now()
+        })
+      } else {
+        console.log('Preview: Iframe not ready, content will be shown on next load')
+      }
     }, 500)
-  }, [])
+  }, [sendMessageToPreview])
 
   // Clear all content
   const clearContent = useCallback(() => {
@@ -170,7 +182,7 @@ export function PreviewProvider({ children, featureFlag = true }: PreviewProvide
       }
       return prev
     })
-  }, [])
+  }, [sendMessageToPreview])
 
   // Add new page
   const addPage = useCallback((page: Page) => {
@@ -240,7 +252,7 @@ export function PreviewProvider({ children, featureFlag = true }: PreviewProvide
         lastUpdate: Date.now()
       }))
     }, 100)
-  }, [])
+  }, [sendMessageToPreview])
 
   // Toggle device frame visibility
   const toggleDeviceFrame = useCallback(() => {
@@ -263,13 +275,6 @@ export function PreviewProvider({ children, featureFlag = true }: PreviewProvide
     // Force refresh after clearing cache
     refresh()
   }, [refresh])
-
-  // Send message to preview iframe
-  const sendMessageToPreview = useCallback((message: PreviewMessage) => {
-    if (iframeRef.current?.contentWindow) {
-      iframeRef.current.contentWindow.postMessage(message, '*')
-    }
-  }, [])
 
   // Handle messages from preview iframe
   useEffect(() => {
@@ -304,6 +309,8 @@ export function PreviewProvider({ children, featureFlag = true }: PreviewProvide
   }, [])
 
   // Auto-refresh functionality
+  // TEMPORARILY DISABLED to debug style loss issue
+  /*
   useEffect(() => {
     if (state.settings.autoRefresh && state.content) {
       const interval = setInterval(() => {
@@ -313,6 +320,7 @@ export function PreviewProvider({ children, featureFlag = true }: PreviewProvide
       return () => clearInterval(interval)
     }
   }, [state.settings.autoRefresh, state.settings.refreshInterval, state.content, refresh])
+  */
 
   // Load settings from localStorage on mount
   useEffect(() => {
@@ -353,10 +361,20 @@ export function PreviewProvider({ children, featureFlag = true }: PreviewProvide
     isFeatureEnabled
   }
 
-  // Store iframe ref for message passing
+  // Watch for iframe ref from PreviewFrame component
   useEffect(() => {
-    // This will be set by the PreviewFrame component
-    (window as any).__previewIframeRef = iframeRef
+    const checkIframeRef = () => {
+      const win = window as Window & { __previewIframeRef?: { current: HTMLIFrameElement | null } }
+      if (win.__previewIframeRef?.current) {
+        iframeRef.current = win.__previewIframeRef.current
+      }
+    }
+    
+    // Check immediately and periodically
+    checkIframeRef()
+    const interval = setInterval(checkIframeRef, 100)
+    
+    return () => clearInterval(interval)
   }, [])
 
   return <PreviewContext.Provider value={value}>{children}</PreviewContext.Provider>
