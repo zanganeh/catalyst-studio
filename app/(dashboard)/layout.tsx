@@ -38,7 +38,7 @@ export default function DashboardLayout({
   // Route guards for feature-flagged views
   React.useEffect(() => {
     // Check if analytics view requires feature flag (future implementation)
-    if (pathname.startsWith('/analytics') && !isFeatureEnabled('analytics')) {
+    if (pathname.startsWith('/analytics') && !isFeatureEnabled('analyticsDisplay')) {
       // For now, analytics is always accessible as a placeholder
     }
     

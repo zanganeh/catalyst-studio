@@ -3,7 +3,7 @@
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Database, Cloud, Webhook, Shield, Zap, Plug2 } from 'lucide-react'
+import { Database, Cloud, Webhook, Shield, Zap } from 'lucide-react'
 
 export default function IntegrationsPage() {
   const integrations = [
