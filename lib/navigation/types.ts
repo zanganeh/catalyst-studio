@@ -16,6 +16,7 @@ export interface NavigationItem {
   badge?: string | number
   featureFlag?: FeatureName
   children?: NavigationItem[]
+  tooltip?: string
 }
 
 export interface NavigationSection {

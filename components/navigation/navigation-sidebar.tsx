@@ -53,12 +53,14 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
           label: 'Content Items',
           href: '/studio/content',
           icon: <FolderOpen className="h-4 w-4" />,
+          tooltip: 'Browse and manage your content entries',
         },
         {
           label: 'Content Modeling',
           href: '/studio/content-builder',
           icon: <Database className="h-4 w-4" />,
           featureFlag: 'contentTypeBuilder',
+          tooltip: 'Design content schemas and data structures',
         },
       ]
     },

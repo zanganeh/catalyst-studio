@@ -9,6 +9,12 @@ import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useFeatureFlags } from '@/contexts/feature-flag-context'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface NavigationSectionProps {
   section: NavigationSectionType
@@ -44,26 +50,43 @@ export const NavigationSection = memo(function NavigationSection({
       !child.featureFlag || isFeatureEnabled(child.featureFlag)
     ) || []
     
+    const linkContent = (
+      <Link
+        href={item.href}
+        className={cn(
+          'flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200',
+          'hover:bg-white/5 hover:text-orange-400',
+          isItemActive && 'bg-orange-500/10 text-orange-400 border-l-2 border-orange-400',
+          !isItemActive && 'text-gray-300'
+        )}
+        style={{ paddingLeft: `${depth * 12 + 12}px` }}
+      >
+        {item.icon && <span className="w-4 h-4">{item.icon}</span>}
+        <span className="flex-1">{item.label}</span>
+        {item.badge && (
+          <span className="px-2 py-0.5 text-xs bg-orange-500/20 text-orange-400 rounded-full">
+            {item.badge}
+          </span>
+        )}
+      </Link>
+    )
+    
     return (
       <div key={item.href}>
-        <Link
-          href={item.href}
-          className={cn(
-            'flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-all duration-200',
-            'hover:bg-white/5 hover:text-orange-400',
-            isItemActive && 'bg-orange-500/10 text-orange-400 border-l-2 border-orange-400',
-            !isItemActive && 'text-gray-300'
-          )}
-          style={{ paddingLeft: `${depth * 12 + 12}px` }}
-        >
-          {item.icon && <span className="w-4 h-4">{item.icon}</span>}
-          <span className="flex-1">{item.label}</span>
-          {item.badge && (
-            <span className="px-2 py-0.5 text-xs bg-orange-500/20 text-orange-400 rounded-full">
-              {item.badge}
-            </span>
-          )}
-        </Link>
+        {item.tooltip ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {linkContent}
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>{item.tooltip}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          linkContent
+        )}
         {hasChildren && visibleChildren.length > 0 && (
           <div className="mt-1">
             {visibleChildren.map(child => renderNavigationItem(child, depth + 1))}
