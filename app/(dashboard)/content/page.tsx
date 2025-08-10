@@ -74,7 +74,7 @@ export default function ContentPage() {
           title: 'Content deleted',
           description: 'The content item has been successfully deleted.',
         });
-      } catch (_error) {
+      } catch {
         toast({
           title: 'Error',
           description: 'Failed to delete content item. Please try again.',
@@ -95,7 +95,7 @@ export default function ContentPage() {
         // Optionally open the edit modal for the duplicated item
         handleEditContent(duplicated);
       }
-    } catch (_error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to duplicate content item. Please try again.',
@@ -125,11 +125,11 @@ export default function ContentPage() {
       } else {
         // Create new with rollback support
         if (selectedContentTypeId) {
-          const { item, rollback } = contentStore.addContent(selectedContentTypeId, data);
+          const { rollback } = contentStore.addContent(selectedContentTypeId, data);
           
           // Simulate backend save (replace with actual API call)
           try {
-            // await api.createContent(item);
+            // await api.createContent(data);
             toast({
               title: 'Content created',
               description: 'New content item has been created successfully.',
@@ -143,7 +143,7 @@ export default function ContentPage() {
       }
       setModalOpen(false);
       setSelectedItem(null);
-    } catch (_error) {
+    } catch {
       toast({
         title: 'Error',
         description: 'Failed to save content. Please check your input and try again.',

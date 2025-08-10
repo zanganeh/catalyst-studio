@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,7 @@ interface ContentModalProps {
   onOpenChange: (open: boolean) => void;
   contentType: ContentType | null;
   contentItem?: ContentItem | null;
-  onSave: (data: Record<string, any>) => void;
+  onSave: (data: Record<string, unknown>) => void;
   children: React.ReactNode;
 }
 
@@ -42,6 +43,15 @@ export function ContentModal({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showUnsavedAlert, setShowUnsavedAlert] = useState(false);
   
+  // Handle close with unsaved changes check
+  const handleClose = useCallback(() => {
+    if (hasUnsavedChanges) {
+      setShowUnsavedAlert(true);
+    } else {
+      onOpenChange(false);
+    }
+  }, [hasUnsavedChanges, onOpenChange]);
+  
   // Handle ESC key press
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -52,19 +62,10 @@ export function ContentModal({
     
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [open, hasUnsavedChanges]);
-  
-  // Handle close with unsaved changes check
-  const handleClose = useCallback(() => {
-    if (hasUnsavedChanges) {
-      setShowUnsavedAlert(true);
-    } else {
-      onOpenChange(false);
-    }
-  }, [hasUnsavedChanges, onOpenChange]);
+  }, [open, handleClose]);
   
   // Handle save callback from form
-  const handleSave = useCallback((data: Record<string, any>) => {
+  const handleSave = useCallback((data: Record<string, unknown>) => {
     onSave(data);
     setHasUnsavedChanges(false);
     onOpenChange(false);
@@ -81,17 +82,22 @@ export function ContentModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className="max-w-2xl bg-gray-900/95 backdrop-blur-md border-gray-700"
-        onPointerDownOutside={(e) => {
+        onPointerDownOutside={() => {
           // Allow closing by clicking backdrop
           onOpenChange(false);
         }}
-        aria-labelledby="dialog-title"
       >
         <DialogHeader className="border-b border-gray-800 pb-4">
-          <DialogTitle id="dialog-title" className="text-xl font-semibold text-white flex items-center gap-2">
+          <DialogTitle className="text-xl font-semibold text-white flex items-center gap-2">
             <span aria-hidden="true">{contentType.icon}</span>
             <span>{title}</span>
           </DialogTitle>
+          <DialogDescription className="text-gray-400 mt-2">
+            {contentItem 
+              ? `Edit the fields below to update this ${contentType.name.toLowerCase()}.`
+              : `Fill in the form below to create a new ${contentType.name.toLowerCase()}.`
+            }
+          </DialogDescription>
           <button
             onClick={() => onOpenChange(false)}
             className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100 transition-opacity text-gray-400 hover:text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-gray-900"
