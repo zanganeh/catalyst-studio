@@ -202,6 +202,26 @@
   .catalyst-badge-green {
     @apply bg-catalyst-green-light text-catalyst-green border border-catalyst-green;
   }
+  
+  /* Select and Form Control Styles */
+  .catalyst-select {
+    @apply bg-surface-dark backdrop-blur-glass border border-gray-800 text-gray-200 rounded-lg;
+    @apply focus:outline-none focus:ring-2 focus:ring-catalyst-orange focus:border-catalyst-orange;
+    @apply hover:border-gray-700 transition-colors;
+  }
+  
+  /* Force dark theme on select elements globally */
+  select {
+    @apply bg-gray-900 text-gray-200;
+  }
+  
+  select option {
+    @apply bg-gray-900 text-gray-200;
+  }
+  
+  select optgroup {
+    @apply bg-gray-900 text-catalyst-orange font-semibold;
+  }
 }
 
 /* Force dark backgrounds across all pages */
