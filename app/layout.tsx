@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { CatalystBranding } from "@/components/catalyst-branding";
-import { FeatureFlagProvider } from "@/contexts/feature-flag-context";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,10 +29,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <FeatureFlagProvider>
+        <Providers>
           <CatalystBranding />
           {children}
-        </FeatureFlagProvider>
+        </Providers>
       </body>
     </html>
   );
