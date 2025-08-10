@@ -92,11 +92,14 @@ function createDynamicSchema(fields: Field[]) {
 
 // Individual field renderer components
 function TextField({ field, control, errors }: any) {
+  const errorId = `${field.name}-error`;
+  const helpId = `${field.name}-help`;
+  
   return (
     <div className="space-y-2">
       <Label htmlFor={field.name} className="text-gray-300">
         {field.label}
-        {field.required && <span className="text-red-500 ml-1">*</span>}
+        {field.required && <span className="text-red-500 ml-1" aria-label="required">*</span>}
       </Label>
       <Controller
         name={field.name}
@@ -108,25 +111,31 @@ function TextField({ field, control, errors }: any) {
             id={field.name}
             placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
             className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
+            aria-required={field.required}
+            aria-invalid={!!errors[field.name]}
+            aria-describedby={`${field.helpText ? helpId : ''} ${errors[field.name] ? errorId : ''}`.trim()}
           />
         )}
       />
       {field.helpText && (
-        <p className="text-sm text-gray-500">{field.helpText}</p>
+        <p id={helpId} className="text-sm text-gray-500">{field.helpText}</p>
       )}
       {errors[field.name] && (
-        <p className="text-sm text-red-500">{errors[field.name]?.message}</p>
+        <p id={errorId} role="alert" className="text-sm text-red-500">{errors[field.name]?.message}</p>
       )}
     </div>
   );
 }
 
 function RichTextField({ field, control, errors }: any) {
+  const errorId = `${field.name}-error`;
+  const helpId = `${field.name}-help`;
+  
   return (
     <div className="space-y-2">
       <Label htmlFor={field.name} className="text-gray-300">
         {field.label}
-        {field.required && <span className="text-red-500 ml-1">*</span>}
+        {field.required && <span className="text-red-500 ml-1" aria-label="required">*</span>}
       </Label>
       <Controller
         name={field.name}
@@ -138,25 +147,31 @@ function RichTextField({ field, control, errors }: any) {
             id={field.name}
             placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
             className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 min-h-[120px]"
+            aria-required={field.required}
+            aria-invalid={!!errors[field.name]}
+            aria-describedby={`${field.helpText ? helpId : ''} ${errors[field.name] ? errorId : ''}`.trim()}
           />
         )}
       />
       {field.helpText && (
-        <p className="text-sm text-gray-500">{field.helpText}</p>
+        <p id={helpId} className="text-sm text-gray-500">{field.helpText}</p>
       )}
       {errors[field.name] && (
-        <p className="text-sm text-red-500">{errors[field.name]?.message}</p>
+        <p id={errorId} role="alert" className="text-sm text-red-500">{errors[field.name]?.message}</p>
       )}
     </div>
   );
 }
 
 function NumberField({ field, control, errors }: any) {
+  const errorId = `${field.name}-error`;
+  const helpId = `${field.name}-help`;
+  
   return (
     <div className="space-y-2">
       <Label htmlFor={field.name} className="text-gray-300">
         {field.label}
-        {field.required && <span className="text-red-500 ml-1">*</span>}
+        {field.required && <span className="text-red-500 ml-1" aria-label="required">*</span>}
       </Label>
       <Controller
         name={field.name}
@@ -170,20 +185,25 @@ function NumberField({ field, control, errors }: any) {
             placeholder={field.placeholder || '0'}
             className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
             onChange={(e) => formField.onChange(parseFloat(e.target.value))}
+            aria-required={field.required}
+            aria-invalid={!!errors[field.name]}
+            aria-describedby={`${field.helpText ? helpId : ''} ${errors[field.name] ? errorId : ''}`.trim()}
           />
         )}
       />
       {field.helpText && (
-        <p className="text-sm text-gray-500">{field.helpText}</p>
+        <p id={helpId} className="text-sm text-gray-500">{field.helpText}</p>
       )}
       {errors[field.name] && (
-        <p className="text-sm text-red-500">{errors[field.name]?.message}</p>
+        <p id={errorId} role="alert" className="text-sm text-red-500">{errors[field.name]?.message}</p>
       )}
     </div>
   );
 }
 
 function BooleanField({ field, control }: any) {
+  const helpId = `${field.name}-help`;
+  
   return (
     <div className="space-y-2">
       <div className="flex items-center space-x-2">
@@ -197,27 +217,32 @@ function BooleanField({ field, control }: any) {
               checked={formField.value}
               onCheckedChange={formField.onChange}
               className="data-[state=checked]:bg-orange-500"
+              aria-required={field.required}
+              aria-describedby={field.helpText ? helpId : undefined}
             />
           )}
         />
         <Label htmlFor={field.name} className="text-gray-300 cursor-pointer">
           {field.label}
-          {field.required && <span className="text-red-500 ml-1">*</span>}
+          {field.required && <span className="text-red-500 ml-1" aria-label="required">*</span>}
         </Label>
       </div>
       {field.helpText && (
-        <p className="text-sm text-gray-500">{field.helpText}</p>
+        <p id={helpId} className="text-sm text-gray-500">{field.helpText}</p>
       )}
     </div>
   );
 }
 
 function DateField({ field, control, errors }: any) {
+  const errorId = `${field.name}-error`;
+  const helpId = `${field.name}-help`;
+  
   return (
     <div className="space-y-2">
       <Label htmlFor={field.name} className="text-gray-300">
         {field.label}
-        {field.required && <span className="text-red-500 ml-1">*</span>}
+        {field.required && <span className="text-red-500 ml-1" aria-label="required">*</span>}
       </Label>
       <Controller
         name={field.name}
@@ -230,27 +255,33 @@ function DateField({ field, control, errors }: any) {
               type="date"
               id={field.name}
               className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
+              aria-required={field.required}
+              aria-invalid={!!errors[field.name]}
+              aria-describedby={`${field.helpText ? helpId : ''} ${errors[field.name] ? errorId : ''}`.trim()}
             />
-            <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+            <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" aria-hidden="true" />
           </div>
         )}
       />
       {field.helpText && (
-        <p className="text-sm text-gray-500">{field.helpText}</p>
+        <p id={helpId} className="text-sm text-gray-500">{field.helpText}</p>
       )}
       {errors[field.name] && (
-        <p className="text-sm text-red-500">{errors[field.name]?.message}</p>
+        <p id={errorId} role="alert" className="text-sm text-red-500">{errors[field.name]?.message}</p>
       )}
     </div>
   );
 }
 
 function ImageField({ field, control, errors }: any) {
+  const errorId = `${field.name}-error`;
+  const helpId = `${field.name}-help`;
+  
   return (
     <div className="space-y-2">
       <Label htmlFor={field.name} className="text-gray-300">
         {field.label}
-        {field.required && <span className="text-red-500 ml-1">*</span>}
+        {field.required && <span className="text-red-500 ml-1" aria-label="required">*</span>}
       </Label>
       <Controller
         name={field.name}
@@ -264,12 +295,15 @@ function ImageField({ field, control, errors }: any) {
               id={field.name}
               placeholder="Enter image URL"
               className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
+              aria-required={field.required}
+              aria-invalid={!!errors[field.name]}
+              aria-describedby={`${field.helpText ? helpId : ''} ${errors[field.name] ? errorId : ''}`.trim()}
             />
             {formField.value && (
-              <div className="relative w-full h-32 bg-gray-800 rounded-md overflow-hidden">
+              <div className="relative w-full h-32 bg-gray-800 rounded-md overflow-hidden" role="img" aria-label="Image preview">
                 <img
                   src={formField.value}
-                  alt="Preview"
+                  alt="Preview of uploaded image"
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
@@ -281,30 +315,39 @@ function ImageField({ field, control, errors }: any) {
         )}
       />
       {field.helpText && (
-        <p className="text-sm text-gray-500">{field.helpText}</p>
+        <p id={helpId} className="text-sm text-gray-500">{field.helpText}</p>
       )}
       {errors[field.name] && (
-        <p className="text-sm text-red-500">{errors[field.name]?.message}</p>
+        <p id={errorId} role="alert" className="text-sm text-red-500">{errors[field.name]?.message}</p>
       )}
     </div>
   );
 }
 
 function ReferenceField({ field, control, errors }: any) {
+  const errorId = `${field.name}-error`;
+  const helpId = `${field.name}-help`;
+  
   // TODO: This would need to fetch and display available references
   return (
     <div className="space-y-2">
       <Label htmlFor={field.name} className="text-gray-300">
         {field.label}
-        {field.required && <span className="text-red-500 ml-1">*</span>}
+        {field.required && <span className="text-red-500 ml-1" aria-label="required">*</span>}
       </Label>
       <Controller
         name={field.name}
         control={control}
         defaultValue={field.defaultValue || ''}
         render={({ field: formField }) => (
-          <Select value={formField.value} onValueChange={formField.onChange}>
-            <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white">
+          <Select 
+            value={formField.value} 
+            onValueChange={formField.onChange}
+            aria-required={field.required}
+            aria-invalid={!!errors[field.name]}
+            aria-describedby={`${field.helpText ? helpId : ''} ${errors[field.name] ? errorId : ''}`.trim()}
+          >
+            <SelectTrigger id={field.name} className="bg-gray-800/50 border-gray-700 text-white">
               <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
             </SelectTrigger>
             <SelectContent className="bg-gray-900 border-gray-700">
@@ -319,10 +362,10 @@ function ReferenceField({ field, control, errors }: any) {
         )}
       />
       {field.helpText && (
-        <p className="text-sm text-gray-500">{field.helpText}</p>
+        <p id={helpId} className="text-sm text-gray-500">{field.helpText}</p>
       )}
       {errors[field.name] && (
-        <p className="text-sm text-red-500">{errors[field.name]?.message}</p>
+        <p id={errorId} role="alert" className="text-sm text-red-500">{errors[field.name]?.message}</p>
       )}
     </div>
   );
@@ -369,6 +412,23 @@ export function FormGenerator({ contentType, contentItem, onSubmit }: FormGenera
   useEffect(() => {
     reset(contentItem?.data || {});
   }, [contentItem, reset]);
+  
+  // Handle keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+S or Cmd+S to save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        const form = document.getElementById('content-form') as HTMLFormElement;
+        if (form) {
+          form.requestSubmit();
+        }
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
   
   // Sort fields by order
   const sortedFields = [...contentType.fields].sort((a, b) => a.order - b.order);

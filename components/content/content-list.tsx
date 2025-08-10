@@ -99,8 +99,9 @@ export function ContentList({
         
         <Button
           onClick={onNewContent}
-          className="bg-orange-500 hover:bg-orange-600 text-white"
+          className="bg-orange-500 hover:bg-orange-600 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-gray-900"
           disabled={contentTypes.length === 0}
+          aria-label="Create new content item"
         >
           <Plus className="w-4 h-4 mr-2" />
           New Content
