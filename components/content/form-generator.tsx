@@ -276,6 +276,25 @@ function DateField({ field, control, errors }: any) {
 function ImageField({ field, control, errors }: any) {
   const errorId = `${field.name}-error`;
   const helpId = `${field.name}-help`;
+  const [urlError, setUrlError] = React.useState<string>('');
+  
+  const validateImageUrl = (url: string) => {
+    if (!url) {
+      setUrlError('');
+      return;
+    }
+    
+    try {
+      const parsed = new URL(url);
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        setUrlError('Only HTTP(S) URLs are allowed');
+        return;
+      }
+      setUrlError('');
+    } catch {
+      setUrlError('Please enter a valid URL');
+    }
+  };
   
   return (
     <div className="space-y-2">
@@ -293,20 +312,26 @@ function ImageField({ field, control, errors }: any) {
               {...formField}
               type="url"
               id={field.name}
-              placeholder="Enter image URL"
+              placeholder="Enter image URL (https://...)"
               className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
+              onChange={(e) => {
+                formField.onChange(e);
+                validateImageUrl(e.target.value);
+              }}
               aria-required={field.required}
-              aria-invalid={!!errors[field.name]}
-              aria-describedby={`${field.helpText ? helpId : ''} ${errors[field.name] ? errorId : ''}`.trim()}
+              aria-invalid={!!errors[field.name] || !!urlError}
+              aria-describedby={`${field.helpText ? helpId : ''} ${errors[field.name] || urlError ? errorId : ''}`.trim()}
             />
-            {formField.value && (
+            {formField.value && !urlError && (
               <div className="relative w-full h-32 bg-gray-800 rounded-md overflow-hidden" role="img" aria-label="Image preview">
                 <img
                   src={formField.value}
                   alt="Preview of uploaded image"
                   className="w-full h-full object-cover"
+                  loading="lazy"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = 'none';
+                    setUrlError('Failed to load image');
                   }}
                 />
               </div>
@@ -317,8 +342,10 @@ function ImageField({ field, control, errors }: any) {
       {field.helpText && (
         <p id={helpId} className="text-sm text-gray-500">{field.helpText}</p>
       )}
-      {errors[field.name] && (
-        <p id={errorId} role="alert" className="text-sm text-red-500">{errors[field.name]?.message}</p>
+      {(errors[field.name] || urlError) && (
+        <p id={errorId} role="alert" className="text-sm text-red-500">
+          {errors[field.name]?.message || urlError}
+        </p>
       )}
     </div>
   );
@@ -413,7 +440,7 @@ export function FormGenerator({ contentType, contentItem, onSubmit }: FormGenera
     reset(contentItem?.data || {});
   }, [contentItem, reset]);
   
-  // Handle keyboard shortcuts
+  // Handle keyboard shortcuts with proper cleanup
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+S or Cmd+S to save
@@ -426,9 +453,14 @@ export function FormGenerator({ contentType, contentItem, onSubmit }: FormGenera
       }
     };
     
+    // Add event listener
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+    
+    // Cleanup function to prevent memory leaks
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []); // Empty deps array is safe here as we don't use any external values
   
   // Sort fields by order
   const sortedFields = [...contentType.fields].sort((a, b) => a.order - b.order);

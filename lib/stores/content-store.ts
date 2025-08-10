@@ -7,9 +7,9 @@ interface ContentState {
   contentItems: ContentItem[];
   projectId: string;
   
-  // CRUD operations
-  addContent: (contentTypeId: string, data: Record<string, any>) => ContentItem;
-  updateContent: (id: string, data: Record<string, any>) => void;
+  // CRUD operations with rollback support
+  addContent: (contentTypeId: string, data: Record<string, any>) => { item: ContentItem; rollback: () => void };
+  updateContent: (id: string, data: Record<string, any>) => { rollback: () => void; previousData: any };
   deleteContent: (id: string) => void;
   getContentByType: (contentTypeId: string) => ContentItem[];
   getContentById: (id: string) => ContentItem | undefined;
@@ -34,6 +34,7 @@ export const useContentStore = create<ContentState>()(
       projectId: 'default',
       
       addContent: (contentTypeId: string, data: Record<string, any>) => {
+        const previousState = get().contentItems;
         const newItem: ContentItem = {
           id: generateId(),
           contentTypeId,
@@ -46,10 +47,16 @@ export const useContentStore = create<ContentState>()(
           contentItems: [...state.contentItems, newItem],
         }));
         
-        return newItem;
+        return {
+          item: newItem,
+          rollback: () => set({ contentItems: previousState }),
+        };
       },
       
       updateContent: (id: string, data: Record<string, any>) => {
+        const previousState = get().contentItems;
+        const previousItem = previousState.find(item => item.id === id);
+        
         set((state) => ({
           contentItems: state.contentItems.map((item) =>
             item.id === id
@@ -57,6 +64,11 @@ export const useContentStore = create<ContentState>()(
               : item
           ),
         }));
+        
+        return {
+          rollback: () => set({ contentItems: previousState }),
+          previousData: previousItem?.data,
+        };
       },
       
       deleteContent: (id: string) => {

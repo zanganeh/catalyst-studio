@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { ContentList } from '@/components/content/content-list';
 import { ContentModal } from '@/components/content/content-modal';
 import { FormGenerator } from '@/components/content/form-generator';
+import { ContentErrorBoundary } from '@/components/content/content-error-boundary';
 import { useContentStore } from '@/lib/stores/content-store';
 import { useProjectContext } from '@/lib/context/project-context';
 import { useToast } from '@/components/ui/use-toast';
@@ -77,23 +78,41 @@ export default function ContentPage() {
     }
   };
   
-  const handleSaveContent = (data: Record<string, any>) => {
+  const handleSaveContent = async (data: Record<string, unknown>) => {
     try {
       if (selectedItem) {
-        // Update existing
-        contentStore.updateContent(selectedItem.id, data);
-        toast({
-          title: 'Content updated',
-          description: 'Your changes have been saved successfully.',
-        });
-      } else {
-        // Create new
-        if (selectedContentTypeId) {
-          contentStore.addContent(selectedContentTypeId, data);
+        // Update existing with rollback support
+        const { rollback } = contentStore.updateContent(selectedItem.id, data);
+        
+        // Simulate backend save (replace with actual API call)
+        try {
+          // await api.updateContent(selectedItem.id, data);
           toast({
-            title: 'Content created',
-            description: 'New content item has been created successfully.',
+            title: 'Content updated',
+            description: 'Your changes have been saved successfully.',
           });
+        } catch (error) {
+          // Rollback on failure
+          rollback();
+          throw error;
+        }
+      } else {
+        // Create new with rollback support
+        if (selectedContentTypeId) {
+          const { item, rollback } = contentStore.addContent(selectedContentTypeId, data);
+          
+          // Simulate backend save (replace with actual API call)
+          try {
+            // await api.createContent(item);
+            toast({
+              title: 'Content created',
+              description: 'New content item has been created successfully.',
+            });
+          } catch (error) {
+            // Rollback on failure
+            rollback();
+            throw error;
+          }
         }
       }
       setModalOpen(false);
@@ -108,7 +127,7 @@ export default function ContentPage() {
   };
   
   return (
-    <>
+    <ContentErrorBoundary>
       <ContentList
         contentItems={contentStore.contentItems}
         onNewContent={handleNewContent}
@@ -132,6 +151,6 @@ export default function ContentPage() {
           />
         )}
       </ContentModal>
-    </>
+    </ContentErrorBoundary>
   );
 }

@@ -77,6 +77,7 @@ export function ContentModal({
     : `Create New ${contentType.name}`;
   
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className="max-w-2xl bg-gray-900/95 backdrop-blur-md border-gray-700"
