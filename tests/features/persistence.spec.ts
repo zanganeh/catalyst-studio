@@ -2,10 +2,15 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Chat Persistence', () => {
   test.beforeEach(async ({ page }) => {
-    // Enable the projectPersistence feature flag
+    // Enable the projectPersistence feature flag and other required flags
     await page.goto('/');
     await page.evaluate(() => {
-      localStorage.setItem('featureFlags', JSON.stringify({ projectPersistence: true }));
+      localStorage.setItem('featureFlags', JSON.stringify({ 
+        projectPersistence: true,
+        contentTypeBuilder: true,
+        threeColumnLayout: true,
+        catalystBranding: true
+      }));
     });
   });
 
