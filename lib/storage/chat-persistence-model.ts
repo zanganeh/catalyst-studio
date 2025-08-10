@@ -185,7 +185,7 @@ export class ChatPersistenceHelper {
     if (this.migrator.needsMigration(data.version)) {
       const migrated = this.migrator.migrate(data, data.version);
       return {
-        ...migrated,
+        ...(migrated as PersistedChat),
         version: CURRENT_SCHEMA_VERSION
       };
     }
