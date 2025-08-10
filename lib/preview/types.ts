@@ -184,6 +184,7 @@ export interface PreviewState {
   isLoading: boolean
   error: string | null
   lastUpdate: number
+  cachedContent?: Record<string, string>
 }
 
 // PostMessage protocol types

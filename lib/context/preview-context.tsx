@@ -18,7 +18,7 @@ import {
   PreviewResponse
 } from '@/lib/preview/types'
 import { useProjectContext } from '@/lib/context/project-context'
-import { useContentTypeContext } from '@/lib/context/content-type-context'
+import { useContentTypes } from '@/lib/context/content-type-context'
 
 interface PreviewContextType {
   state: PreviewState
@@ -35,10 +35,11 @@ interface PreviewContextType {
   updatePage: (pageId: string, updates: Partial<Page>) => void
   // Settings
   updateSettings: (settings: Partial<PreviewSettings>) => void
-  setZoom: (zoom: number) => void
+  updateZoom: (zoom: number) => void
   // Preview actions
   refresh: () => void
   toggleDeviceFrame: () => void
+  clearCache: () => void
   // Utility
   isFeatureEnabled: () => boolean
 }
@@ -65,7 +66,7 @@ export function PreviewProvider({ children, featureFlag = true }: PreviewProvide
   
   // Integration with existing contexts from Stories 1.2 and 1.3
   const projectContext = useProjectContext ? useProjectContext() : null
-  const contentTypeContext = useContentTypeContext ? useContentTypeContext() : null
+  const contentTypeContext = useContentTypes ? useContentTypes() : null
 
   // Check if feature is enabled
   const isFeatureEnabled = useCallback(() => {
@@ -212,9 +213,9 @@ export function PreviewProvider({ children, featureFlag = true }: PreviewProvide
   }, [])
 
   // Set zoom level
-  const setZoom = useCallback((zoom: number) => {
-    // Clamp zoom between 0.5 and 2
-    const clampedZoom = Math.max(0.5, Math.min(2, zoom))
+  const updateZoom = useCallback((zoom: number) => {
+    // Clamp zoom between 0.25 and 2
+    const clampedZoom = Math.max(0.25, Math.min(2, zoom))
     setState(prev => ({
       ...prev,
       zoom: clampedZoom
@@ -251,6 +252,17 @@ export function PreviewProvider({ children, featureFlag = true }: PreviewProvide
       }
     }))
   }, [])
+
+  // Clear preview cache
+  const clearCache = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      cachedContent: {},
+      lastUpdate: Date.now()
+    }))
+    // Force refresh after clearing cache
+    refresh()
+  }, [refresh])
 
   // Send message to preview iframe
   const sendMessageToPreview = useCallback((message: PreviewMessage) => {
@@ -334,9 +346,10 @@ export function PreviewProvider({ children, featureFlag = true }: PreviewProvide
     removePage,
     updatePage,
     updateSettings,
-    setZoom,
+    updateZoom,
     refresh,
     toggleDeviceFrame,
+    clearCache,
     isFeatureEnabled
   }
 

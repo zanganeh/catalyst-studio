@@ -14,7 +14,7 @@ interface PreviewNavigationProps {
   className?: string
 }
 
-export function PreviewNavigation({ className }: PreviewNavigationProps) {
+function PreviewNavigationComponent({ className }: PreviewNavigationProps) {
   const { state, navigateToPage } = usePreviewContext()
   const { pages, currentPage } = state
 
@@ -166,3 +166,6 @@ export function PreviewNavigation({ className }: PreviewNavigationProps) {
     </div>
   )
 }
+
+// Export memoized component for performance
+export const PreviewNavigation = React.memo(PreviewNavigationComponent)

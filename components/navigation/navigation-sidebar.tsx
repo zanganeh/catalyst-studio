@@ -12,6 +12,7 @@ import {
   Home,
   Database,
   Package,
+  Eye,
 } from 'lucide-react';
 
 interface NavItem {
@@ -40,6 +41,12 @@ export function NavigationSidebar() {
       href: '/content-builder',
       icon: <Database className="h-4 w-4" />,
       featureFlag: 'contentTypeBuilder',
+    },
+    {
+      label: 'Preview',
+      href: '/preview',
+      icon: <Eye className="h-4 w-4" />,
+      featureFlag: 'previewSystem',
     },
     {
       label: 'Components',

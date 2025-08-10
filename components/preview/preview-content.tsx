@@ -7,7 +7,7 @@
 
 import React, { useEffect, useRef, useMemo, useCallback } from 'react'
 import { usePreviewContext } from '@/lib/context/preview-context'
-import { useContentTypeContext } from '@/lib/context/content-type-context'
+import { useContentTypes } from '@/lib/context/content-type-context'
 import { debounce } from '@/lib/utils'
 
 interface PreviewContentProps {
@@ -15,11 +15,52 @@ interface PreviewContentProps {
   autoGenerate?: boolean
 }
 
-export function PreviewContent({ className, autoGenerate = true }: PreviewContentProps) {
+function PreviewContentComponent({ autoGenerate = true }: PreviewContentProps) {
   const { state, updateContent } = usePreviewContext()
-  const contentTypeContext = useContentTypeContext ? useContentTypeContext() : null
+  // Always call hooks - conditional usage handled by the context itself
+  const contentTypeContext = useContentTypes()
   const lastContentRef = useRef<string>('')
-  const updateTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Generate sample data for field types
+  const generateFieldSample = (fieldType: string) => {
+    switch (fieldType) {
+      case 'text':
+        return 'Lorem ipsum dolor sit'
+      case 'number':
+        return '42'
+      case 'boolean':
+        return 'Yes'
+      case 'date':
+        return new Date().toLocaleDateString()
+      case 'image':
+        return '[Image placeholder]'
+      case 'richText':
+        return 'Rich text content...'
+      default:
+        return 'Sample value'
+    }
+  }
+
+  // Generate content cards for a content type
+  const generateContentCards = useCallback((contentType: { name: string; fields?: Array<{ label: string; type: string }> }) => {
+    const cards = []
+    for (let i = 1; i <= 3; i++) {
+      cards.push(`
+        <div class="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+          <h3 class="font-semibold text-gray-800 mb-2">${contentType.name} ${i}</h3>
+          <p class="text-sm text-gray-600 mb-3">Sample content for ${contentType.name.toLowerCase()}</p>
+          ${contentType.fields?.slice(0, 2).map((field) => `
+            <div class="text-xs text-gray-500 mb-1">
+              <span class="font-medium">${field.label}:</span> 
+              ${generateFieldSample(field.type)}
+            </div>
+          `).join('') || ''}
+          <button class="mt-3 text-xs text-[#FF5500] hover:underline">Read more →</button>
+        </div>
+      `)
+    }
+    return cards.join('')
+  }, [])
 
   // Generate preview content from content types
   const generatePreviewContent = useCallback(() => {
@@ -112,48 +153,7 @@ export function PreviewContent({ className, autoGenerate = true }: PreviewConten
     `
 
     return { html, styles }
-  }, [contentTypeContext])
-
-  // Generate content cards for a content type
-  const generateContentCards = (contentType: any) => {
-    const cards = []
-    for (let i = 1; i <= 3; i++) {
-      cards.push(`
-        <div class="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-          <h3 class="font-semibold text-gray-800 mb-2">${contentType.name} ${i}</h3>
-          <p class="text-sm text-gray-600 mb-3">Sample content for ${contentType.name.toLowerCase()}</p>
-          ${contentType.fields?.slice(0, 2).map((field: any) => `
-            <div class="text-xs text-gray-500 mb-1">
-              <span class="font-medium">${field.label}:</span> 
-              ${generateFieldSample(field.type)}
-            </div>
-          `).join('') || ''}
-          <button class="mt-3 text-xs text-[#FF5500] hover:underline">Read more →</button>
-        </div>
-      `)
-    }
-    return cards.join('')
-  }
-
-  // Generate sample data for field types
-  const generateFieldSample = (fieldType: string) => {
-    switch (fieldType) {
-      case 'text':
-        return 'Lorem ipsum dolor sit'
-      case 'number':
-        return '42'
-      case 'boolean':
-        return 'Yes'
-      case 'date':
-        return new Date().toLocaleDateString()
-      case 'image':
-        return '[Image placeholder]'
-      case 'richText':
-        return 'Rich text content...'
-      default:
-        return 'Sample value'
-    }
-  }
+  }, [contentTypeContext, generateContentCards])
 
   // Generate default content when no content types exist
   const generateDefaultContent = () => {
@@ -282,7 +282,7 @@ export function PreviewContent({ className, autoGenerate = true }: PreviewConten
       const { html, styles } = generatePreviewContent()
       updateContent(html, styles)
     }
-  }, []) // Only on mount
+  }, [autoGenerate, generatePreviewContent, state.content, updateContent]) // Required dependencies
 
   // Hot reload simulation - refresh content periodically if enabled
   useEffect(() => {
@@ -307,7 +307,7 @@ export function PreviewContent({ className, autoGenerate = true }: PreviewConten
 }
 
 // Utility function for content generation from various sources
-export function generateContentFromSource(source: 'contentTypes' | 'mockData' | 'ai', data?: any) {
+export function generateContentFromSource(source: 'contentTypes' | 'mockData' | 'ai', data?: unknown) {
   switch (source) {
     case 'contentTypes':
       // Generate from content type definitions
@@ -323,17 +323,20 @@ export function generateContentFromSource(source: 'contentTypes' | 'mockData' | 
   }
 }
 
-function generateFromContentTypes(contentTypes: any[]) {
+function generateFromContentTypes(_contentTypes: unknown) {
   // Implementation would go here
   return { html: '<div>Generated from content types</div>', styles: '' }
 }
 
-function generateFromMockData(mockData: any) {
+function generateFromMockData(_mockData: unknown) {
   // Implementation would go here
   return { html: '<div>Generated from mock data</div>', styles: '' }
 }
 
-function generateFromAI(prompt: string) {
+function generateFromAI(_prompt: unknown) {
   // Placeholder for AI generation
   return { html: '<div>AI generation coming soon</div>', styles: '' }
 }
+
+// Export memoized component for performance
+export const PreviewContent = React.memo(PreviewContentComponent)

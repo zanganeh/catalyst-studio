@@ -21,7 +21,7 @@ interface DeviceSelectorProps {
   className?: string
 }
 
-export function DeviceSelector({ className }: DeviceSelectorProps) {
+function DeviceSelectorComponent({ className }: DeviceSelectorProps) {
   const { state, switchDevice } = usePreviewContext()
   const { activeDevice } = state
 
@@ -72,10 +72,11 @@ export function DeviceSelector({ className }: DeviceSelectorProps) {
                   <button
                     onClick={() => switchDevice(defaultDevice)}
                     className={cn(
-                      'flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200',
-                      'hover:bg-white hover:shadow-sm',
+                      'flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ease-[cubic-bezier(0.4,0.0,0.2,1)]',
+                      'hover:bg-white hover:shadow-sm transform hover:scale-105 active:scale-95',
                       isActive && 'bg-white shadow-sm'
                     )}
+                    style={{ willChange: 'transform' }}
                     aria-label={`Switch to ${label} view`}
                   >
                     <Icon 
@@ -165,3 +166,6 @@ export function DeviceSelector({ className }: DeviceSelectorProps) {
     </div>
   )
 }
+
+// Export memoized component for performance
+export const DeviceSelector = React.memo(DeviceSelectorComponent)

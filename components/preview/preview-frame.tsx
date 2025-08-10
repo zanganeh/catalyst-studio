@@ -10,15 +10,19 @@ import { usePreviewContext } from '@/lib/context/preview-context'
 import { cn } from '@/lib/utils'
 import { PreviewMessage } from '@/lib/preview/types'
 import { Loader2 } from 'lucide-react'
+import { DesktopFrame } from './device-frames/desktop-frame'
+import { TabletFrame } from './device-frames/tablet-frame'
+import { MobileFrame } from './device-frames/mobile-frame'
 
 interface PreviewFrameProps {
   className?: string
 }
 
-export function PreviewFrame({ className }: PreviewFrameProps) {
+function PreviewFrameComponent({ className }: PreviewFrameProps) {
   const { state, refresh } = usePreviewContext()
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const [iframeLoaded, setIframeLoaded] = useState(false)
+  const [isVisible, setIsVisible] = useState(true)
   
   const { activeDevice, content, zoom, settings, isLoading, error } = state
 
@@ -166,9 +170,30 @@ export function PreviewFrame({ className }: PreviewFrameProps) {
     }
   }, [content])
 
-  // Update iframe content when content changes
+  // Intersection Observer for lazy loading
   useEffect(() => {
-    if (iframeLoaded && iframeRef.current?.contentWindow) {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsVisible(entry.isIntersecting)
+      },
+      { threshold: 0.1 }
+    )
+
+    const container = document.querySelector('.preview-frame-container')
+    if (container) {
+      observer.observe(container)
+    }
+
+    return () => {
+      if (container) {
+        observer.unobserve(container)
+      }
+    }
+  }, [])
+
+  // Update iframe content when content changes and is visible
+  useEffect(() => {
+    if (iframeLoaded && iframeRef.current?.contentWindow && isVisible) {
       const message: PreviewMessage = {
         type: 'UPDATE_CONTENT',
         payload: { content },
@@ -176,7 +201,7 @@ export function PreviewFrame({ className }: PreviewFrameProps) {
       }
       iframeRef.current.contentWindow.postMessage(message, '*')
     }
-  }, [content, iframeLoaded])
+  }, [content, iframeLoaded, isVisible])
 
   // Initialize iframe on load
   const handleIframeLoad = useCallback(() => {
@@ -184,106 +209,92 @@ export function PreviewFrame({ className }: PreviewFrameProps) {
     
     // Store ref for context
     if (typeof window !== 'undefined') {
-      (window as any).__previewIframeRef = { current: iframeRef.current }
+      const win = window as Window & { __previewIframeRef?: { current: HTMLIFrameElement | null } }
+      win.__previewIframeRef = { current: iframeRef.current }
     }
   }, [initializeIframe])
 
   // Device frame styles
-  const frameStyles = activeDevice.frame
   const showFrame = settings.showDeviceFrame
+
+  // Render device-specific frame
+  const renderDeviceFrame = (children: React.ReactNode) => {
+    if (!showFrame) {
+      return <div className="relative w-full h-full">{children}</div>
+    }
+
+    switch (activeDevice.type) {
+      case 'desktop':
+        return <DesktopFrame>{children}</DesktopFrame>
+      case 'tablet':
+        return <TabletFrame>{children}</TabletFrame>
+      case 'mobile':
+        return <MobileFrame>{children}</MobileFrame>
+      default:
+        return <div className="relative w-full h-full">{children}</div>
+    }
+  }
 
   return (
     <div className={cn('preview-frame-container relative flex items-center justify-center p-8', className)}>
       {/* Device Frame Wrapper */}
       <div 
         className={cn(
-          'relative transition-all duration-300 ease-in-out',
+          'relative transition-all duration-300 ease-[cubic-bezier(0.4,0.0,0.2,1)]',
           showFrame && 'device-frame'
         )}
         style={{
-          width: showFrame ? scaledWidth + 40 : scaledWidth,
-          height: showFrame ? scaledHeight + 40 : scaledHeight,
+          width: showFrame ? scaledWidth + (activeDevice.type === 'desktop' ? 0 : 80) : scaledWidth,
+          height: showFrame ? scaledHeight + (activeDevice.type === 'desktop' ? 40 : 120) : scaledHeight,
           transform: `scale(${zoom})`,
-          transformOrigin: 'center'
+          transformOrigin: 'center',
+          willChange: 'transform'
         }}
       >
-        {/* Device Frame */}
-        {showFrame && (
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              borderRadius: frameStyles?.borderRadius,
-              border: `${frameStyles?.borderWidth} solid ${frameStyles?.borderColor}`,
-              backgroundColor: frameStyles?.backgroundColor,
-              boxShadow: frameStyles?.boxShadow,
-              padding: frameStyles?.padding
-            }}
-          >
-            {/* Notch for mobile devices */}
-            {frameStyles?.hasNotch && (
-              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-black rounded-b-2xl" />
+        {renderDeviceFrame(
+          <>
+            {/* Loading Overlay */}
+            {isLoading && (
+              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
+                <Loader2 className="w-8 h-8 animate-spin text-[#FF5500]" />
+              </div>
             )}
-            
-            {/* Home button for older devices */}
-            {frameStyles?.hasHomeButton && (
-              <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-12 h-12 border-2 border-gray-400 rounded-full" />
-            )}
-            
-            {/* Browser chrome for desktop */}
-            {frameStyles?.hasBrowserChrome && (
-              <div className="absolute -top-8 left-0 right-0 h-8 bg-gray-100 rounded-t-lg flex items-center px-3 gap-2">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-400" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400" />
-                  <div className="w-3 h-3 rounded-full bg-green-400" />
-                </div>
-                <div className="flex-1 mx-4 h-5 bg-white rounded px-2 text-xs text-gray-500 flex items-center">
-                  localhost:3000
+
+            {/* Error State */}
+            {error && (
+              <div className="absolute inset-0 bg-white flex items-center justify-center z-10 rounded-lg">
+                <div className="text-center p-4">
+                  <p className="text-red-500 font-medium">Preview Error</p>
+                  <p className="text-sm text-gray-600 mt-1">{error}</p>
+                  <button
+                    onClick={refresh}
+                    className="mt-4 px-4 py-2 bg-[#FF5500] text-white rounded-lg hover:bg-[#FF5500]/90 transition-colors"
+                  >
+                    Retry
+                  </button>
                 </div>
               </div>
             )}
-          </div>
-        )}
 
-        {/* Loading Overlay */}
-        {isLoading && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
-            <Loader2 className="w-8 h-8 animate-spin text-[#FF5500]" />
-          </div>
+            {/* Preview iframe */}
+            <iframe
+              ref={iframeRef}
+              className="w-full h-full bg-white"
+              style={{
+                width: scaledWidth,
+                height: scaledHeight,
+                border: 'none'
+              }}
+              title="Website Preview"
+              sandbox="allow-scripts"
+              onLoad={handleIframeLoad}
+            />
+          </>
         )}
-
-        {/* Error State */}
-        {error && (
-          <div className="absolute inset-0 bg-white flex items-center justify-center z-10 rounded-lg">
-            <div className="text-center p-4">
-              <p className="text-red-500 font-medium">Preview Error</p>
-              <p className="text-sm text-gray-600 mt-1">{error}</p>
-              <button
-                onClick={refresh}
-                className="mt-4 px-4 py-2 bg-[#FF5500] text-white rounded-lg hover:bg-[#FF5500]/90 transition-colors"
-              >
-                Retry
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Preview iframe */}
-        <iframe
-          ref={iframeRef}
-          className="w-full h-full bg-white rounded-lg"
-          style={{
-            width: scaledWidth,
-            height: scaledHeight,
-            border: 'none',
-            borderRadius: showFrame ? '0' : '8px',
-            boxShadow: showFrame ? 'none' : '0 10px 15px -3px rgb(0 0 0 / 0.1)'
-          }}
-          title="Website Preview"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-modals"
-          onLoad={handleIframeLoad}
-        />
       </div>
     </div>
   )
 }
+
+// Export memoized component for performance
+export const PreviewFrame = React.memo(PreviewFrameComponent)
