@@ -113,7 +113,7 @@ export function ContentModal({
             onSubmit: handleSave,
             contentType,
             contentItem,
-          })}
+          } as Record<string, unknown>)}
         </div>
         
         <DialogFooter className="border-t border-gray-800 pt-4">

@@ -65,7 +65,7 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
           const parsed = JSON.parse(stored);
           // Convert date strings back to Date objects and remove duplicates
           const contentTypesMap = new Map();
-          parsed.forEach((ct: any) => {
+          parsed.forEach((ct: { name: string; fields: unknown[]; createdAt: string; updatedAt: string; [key: string]: unknown }) => {
             // Keep the content type with more fields if there are duplicates with same name
             const existing = contentTypesMap.get(ct.name);
             if (!existing || ct.fields.length > existing.fields.length) {

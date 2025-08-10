@@ -135,7 +135,7 @@ export function RelationshipDiagram({
                       </span>
                       {rel.fieldName && (
                         <span className="text-sm text-muted-foreground">
-                          via "{rel.fieldName}"
+                          via &quot;{rel.fieldName}&quot;
                         </span>
                       )}
                     </div>
@@ -160,7 +160,7 @@ export function RelationshipDiagram({
               Referenced By
             </h4>
             <div className="space-y-2">
-              {relationships.incoming.map((rel: any) => (
+              {relationships.incoming.map((rel) => (
                 <div
                   key={rel.id}
                   className="flex items-center justify-between p-3 bg-muted/30 rounded-lg"
@@ -176,7 +176,7 @@ export function RelationshipDiagram({
                     </span>
                     {rel.fieldName && (
                       <span className="text-sm text-muted-foreground">
-                        via "{rel.fieldName}"
+                        via &quot;{rel.fieldName}&quot;
                       </span>
                     )}
                   </div>
@@ -223,7 +223,7 @@ export function RelationshipDiagram({
             {/* Left - Incoming Relationships */}
             {relationships.incoming.length > 0 && (
               <div className="absolute left-0 flex flex-col gap-2">
-                {relationships.incoming.slice(0, 3).map((rel: any, index) => (
+                {relationships.incoming.slice(0, 3).map((rel, index) => (
                   <div
                     key={rel.id}
                     className="flex items-center gap-2"

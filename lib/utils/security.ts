@@ -60,24 +60,21 @@ export const imageCSPHeaders = {
 
 /**
  * Sanitizes rich text content to prevent XSS
+ * WARNING: This is a basic implementation. Consider using DOMPurify for production.
  */
 export function sanitizeRichText(html: string): string {
   if (!html) return '';
   
-  // Basic sanitization - in production, use DOMPurify
-  const tempDiv = document.createElement('div');
-  tempDiv.textContent = html;
+  // For now, return plain text to prevent XSS
+  // This is a safe fallback until DOMPurify is properly integrated
+  if (typeof document !== 'undefined') {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    return tempDiv.textContent || tempDiv.innerText || '';
+  }
   
-  // Allow only safe tags
-  const safeTags = ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'li', 'a', 'blockquote'];
-  const safeAttrs = ['href', 'title', 'target'];
-  
-  // This is a simplified version - use DOMPurify in production
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    .replace(/on\w+\s*=\s*"[^"]*"/gi, '')
-    .replace(/on\w+\s*=\s*'[^']*'/gi, '')
-    .replace(/javascript:/gi, '');
+  // Server-side fallback: strip all HTML tags
+  return html.replace(/<[^>]*>/g, '');
 }
 
 /**

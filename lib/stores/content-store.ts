@@ -8,8 +8,8 @@ interface ContentState {
   projectId: string;
   
   // CRUD operations with rollback support
-  addContent: (contentTypeId: string, data: Record<string, any>) => { item: ContentItem; rollback: () => void };
-  updateContent: (id: string, data: Record<string, any>) => { rollback: () => void; previousData: any };
+  addContent: (contentTypeId: string, data: Record<string, unknown>) => { item: ContentItem; rollback: () => void };
+  updateContent: (id: string, data: Record<string, unknown>) => { rollback: () => void; previousData: Record<string, unknown> | undefined };
   deleteContent: (id: string) => void;
   getContentByType: (contentTypeId: string) => ContentItem[];
   getContentById: (id: string) => ContentItem | undefined;
@@ -33,7 +33,7 @@ export const useContentStore = create<ContentState>()(
       contentItems: [],
       projectId: 'default',
       
-      addContent: (contentTypeId: string, data: Record<string, any>) => {
+      addContent: (contentTypeId: string, data: Record<string, unknown>) => {
         const previousState = get().contentItems;
         const newItem: ContentItem = {
           id: generateId(),
@@ -53,7 +53,7 @@ export const useContentStore = create<ContentState>()(
         };
       },
       
-      updateContent: (id: string, data: Record<string, any>) => {
+      updateContent: (id: string, data: Record<string, unknown>) => {
         const previousState = get().contentItems;
         const previousItem = previousState.find(item => item.id === id);
         
@@ -174,7 +174,7 @@ export const useContentStore = create<ContentState>()(
 );
 
 // Optimistic update wrapper for better UX
-export function withOptimisticUpdate<T extends any[], R>(
+export function withOptimisticUpdate<T extends unknown[], R>(
   fn: (...args: T) => R,
   rollback: () => void
 ): (...args: T) => R {

@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from 'lucide-react';
@@ -16,28 +15,28 @@ import type { ContentType, ContentItem, Field, FieldType } from '@/lib/content-t
 interface FormGeneratorProps {
   contentType: ContentType;
   contentItem?: ContentItem | null;
-  onSubmit: (data: Record<string, any>) => void;
+  onSubmit: (data: Record<string, unknown>) => void;
 }
 
 // Create dynamic Zod schema based on field configuration
 function createDynamicSchema(fields: Field[]) {
-  const schemaShape: Record<string, z.ZodType<any>> = {};
+  const schemaShape: Record<string, z.ZodType<unknown>> = {};
   
   fields.forEach((field) => {
-    let fieldSchema: z.ZodType<any>;
+    let fieldSchema: z.ZodType<unknown>;
     
     switch (field.type) {
       case 'text':
         fieldSchema = z.string();
         if (field.validation) {
-          const validation = field.validation as any;
-          if (validation.minLength) {
+          const validation = field.validation as Record<string, unknown>;
+          if (typeof validation.minLength === 'number') {
             fieldSchema = (fieldSchema as z.ZodString).min(validation.minLength);
           }
-          if (validation.maxLength) {
+          if (typeof validation.maxLength === 'number') {
             fieldSchema = (fieldSchema as z.ZodString).max(validation.maxLength);
           }
-          if (validation.pattern) {
+          if (typeof validation.pattern === 'string') {
             fieldSchema = (fieldSchema as z.ZodString).regex(new RegExp(validation.pattern));
           }
         }
@@ -50,11 +49,11 @@ function createDynamicSchema(fields: Field[]) {
       case 'number':
         fieldSchema = z.number();
         if (field.validation) {
-          const validation = field.validation as any;
-          if (validation.min !== undefined) {
+          const validation = field.validation as Record<string, unknown>;
+          if (typeof validation.min === 'number') {
             fieldSchema = (fieldSchema as z.ZodNumber).min(validation.min);
           }
-          if (validation.max !== undefined) {
+          if (typeof validation.max === 'number') {
             fieldSchema = (fieldSchema as z.ZodNumber).max(validation.max);
           }
         }
@@ -77,7 +76,7 @@ function createDynamicSchema(fields: Field[]) {
         break;
       
       default:
-        fieldSchema = z.any();
+        fieldSchema = z.unknown();
     }
     
     if (!field.required) {
@@ -91,7 +90,13 @@ function createDynamicSchema(fields: Field[]) {
 }
 
 // Individual field renderer components
-function TextField({ field, control, errors }: any) {
+interface FieldProps {
+  field: Field;
+  control: any; // Control type from react-hook-form
+  errors: Record<string, { message?: string }>;
+}
+
+function TextField({ field, control, errors }: FieldProps) {
   const errorId = `${field.name}-error`;
   const helpId = `${field.name}-help`;
   
@@ -127,7 +132,7 @@ function TextField({ field, control, errors }: any) {
   );
 }
 
-function RichTextField({ field, control, errors }: any) {
+function RichTextField({ field, control, errors }: FieldProps) {
   const errorId = `${field.name}-error`;
   const helpId = `${field.name}-help`;
   
@@ -163,7 +168,7 @@ function RichTextField({ field, control, errors }: any) {
   );
 }
 
-function NumberField({ field, control, errors }: any) {
+function NumberField({ field, control, errors }: FieldProps) {
   const errorId = `${field.name}-error`;
   const helpId = `${field.name}-help`;
   
@@ -201,7 +206,7 @@ function NumberField({ field, control, errors }: any) {
   );
 }
 
-function BooleanField({ field, control }: any) {
+function BooleanField({ field, control }: Omit<FieldProps, 'errors'>) {
   const helpId = `${field.name}-help`;
   
   return (
@@ -234,7 +239,7 @@ function BooleanField({ field, control }: any) {
   );
 }
 
-function DateField({ field, control, errors }: any) {
+function DateField({ field, control, errors }: FieldProps) {
   const errorId = `${field.name}-error`;
   const helpId = `${field.name}-help`;
   
@@ -273,7 +278,7 @@ function DateField({ field, control, errors }: any) {
   );
 }
 
-function ImageField({ field, control, errors }: any) {
+function ImageField({ field, control, errors }: FieldProps) {
   const errorId = `${field.name}-error`;
   const helpId = `${field.name}-help`;
   const [urlError, setUrlError] = React.useState<string>('');
@@ -351,7 +356,7 @@ function ImageField({ field, control, errors }: any) {
   );
 }
 
-function ReferenceField({ field, control, errors }: any) {
+function ReferenceField({ field, control, errors }: FieldProps) {
   const errorId = `${field.name}-error`;
   const helpId = `${field.name}-help`;
   
@@ -399,7 +404,7 @@ function ReferenceField({ field, control, errors }: any) {
 }
 
 // Field renderer based on type
-function renderField(field: Field, control: any, errors: any) {
+function renderField(field: Field, control: any, errors: Record<string, { message?: string }>) {
   const props = { field, control, errors };
   
   switch (field.type) {
