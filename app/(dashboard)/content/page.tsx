@@ -1,180 +1,183 @@
-'use client'
+'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { 
-  PlusCircle, 
-  FileText, 
-  FolderOpen, 
-  Search, 
-  Filter,
-  Calendar,
-  User,
-  Eye,
-  Edit,
-  Trash2,
-  MoreHorizontal,
-  Database
-} from 'lucide-react'
+import React, { useState, useEffect } from 'react';
+import { ContentList } from '@/components/content/content-list';
+import { ContentModal } from '@/components/content/content-modal';
+import { FormGenerator } from '@/components/content/form-generator';
+import { ContentErrorBoundary } from '@/components/content/content-error-boundary';
+import { useContentStore } from '@/lib/stores/content-store';
+import { useToast } from '@/components/ui/use-toast';
+import type { ContentItem, ContentType } from '@/lib/content-types/types';
 
 export default function ContentPage() {
+  const contentStore = useContentStore();
+  const { toast } = useToast();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
+  const [selectedContentTypeId, setSelectedContentTypeId] = useState<string>('');
+  const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
+  
+  // Load content types from localStorage (same storage as Content Builder)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('contentTypes');
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          const contentTypesMap = new Map();
+          parsed.forEach((ct: ContentType & { createdAt: string; updatedAt: string }) => {
+            // Keep the content type with more fields if there are duplicates with same name
+            const existing = contentTypesMap.get(ct.name);
+            if (!existing || ct.fields.length > existing.fields.length) {
+              contentTypesMap.set(ct.name, {
+                ...ct,
+                createdAt: new Date(ct.createdAt),
+                updatedAt: new Date(ct.updatedAt),
+              });
+            }
+          });
+          const uniqueContentTypes = Array.from(contentTypesMap.values());
+          setContentTypes(uniqueContentTypes);
+        } catch (error) {
+          console.error('Failed to load content types:', error);
+          setContentTypes([]);
+        }
+      }
+    }
+  }, []);
+  
+  // Get selected content type for modal
+  const selectedContentType = contentTypes.find(
+    ct => ct.id === (selectedItem?.contentTypeId || selectedContentTypeId)
+  );
+  
+  const handleNewContent = () => {
+    // If we have content types, select the first one by default
+    if (contentTypes.length > 0 && !selectedContentTypeId) {
+      setSelectedContentTypeId(contentTypes[0].id);
+    }
+    setSelectedItem(null);
+    setModalOpen(true);
+  };
+  
+  const handleEditContent = (item: ContentItem) => {
+    setSelectedItem(item);
+    setSelectedContentTypeId(item.contentTypeId);
+    setModalOpen(true);
+  };
+  
+  const handleDeleteContent = (id: string) => {
+    if (confirm('Are you sure you want to delete this content item?')) {
+      try {
+        contentStore.deleteContent(id);
+        toast({
+          title: 'Content deleted',
+          description: 'The content item has been successfully deleted.',
+        });
+      } catch {
+        toast({
+          title: 'Error',
+          description: 'Failed to delete content item. Please try again.',
+          variant: 'destructive',
+        });
+      }
+    }
+  };
+  
+  const handleDuplicateContent = (item: ContentItem) => {
+    try {
+      const duplicated = contentStore.duplicateContent(item.id);
+      if (duplicated) {
+        toast({
+          title: 'Content duplicated',
+          description: 'The content item has been successfully duplicated.',
+        });
+        // Optionally open the edit modal for the duplicated item
+        handleEditContent(duplicated);
+      }
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to duplicate content item. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const handleSaveContent = async (data: Record<string, unknown>) => {
+    try {
+      if (selectedItem) {
+        // Update existing with rollback support
+        const { rollback } = contentStore.updateContent(selectedItem.id, data);
+        
+        // Simulate backend save (replace with actual API call)
+        try {
+          // await api.updateContent(selectedItem.id, data);
+          toast({
+            title: 'Content updated',
+            description: 'Your changes have been saved successfully.',
+          });
+        } catch (error) {
+          // Rollback on failure
+          rollback();
+          throw error;
+        }
+      } else {
+        // Create new with rollback support
+        if (selectedContentTypeId) {
+          const { rollback } = contentStore.addContent(selectedContentTypeId, data);
+          
+          // Simulate backend save (replace with actual API call)
+          try {
+            // await api.createContent(data);
+            toast({
+              title: 'Content created',
+              description: 'New content item has been created successfully.',
+            });
+          } catch (error) {
+            // Rollback on failure
+            rollback();
+            throw error;
+          }
+        }
+      }
+      setModalOpen(false);
+      setSelectedItem(null);
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to save content. Please check your input and try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold text-white">Content Items</h1>
-        <p className="text-gray-400 mt-2">
-          Browse and manage all your content instances. These are the actual content entries created from your content models.
-        </p>
-      </div>
-
-      <div className="flex gap-4">
-        <Button className="catalyst-button-primary">
-          <PlusCircle className="h-4 w-4 mr-2" />
-          Create New Entry
-        </Button>
-        
-        <Button variant="outline" className="catalyst-button-secondary">
-          <Search className="h-4 w-4 mr-2" />
-          Search
-        </Button>
-        
-        <Button variant="outline" className="catalyst-button-secondary">
-          <Filter className="h-4 w-4 mr-2" />
-          Filter
-        </Button>
-      </div>
-
-      <div className="grid gap-4">
-        <Card className="catalyst-card">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-blue-500" />
-                  Blog Posts
-                  <span className="catalyst-badge">Content Type</span>
-                </CardTitle>
-                <CardDescription className="mt-1 text-gray-400">
-                  12 published entries • Based on Blog Post model
-                </CardDescription>
-              </div>
-              <Button variant="ghost" size="sm" className="catalyst-button-ghost" title="View Blog Post content model">
-                <Database className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between p-3 hover:bg-surface-dark rounded-lg transition-colors">
-                <div className="flex-1">
-                  <div className="font-medium text-white">Getting Started with Catalyst</div>
-                  <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <User className="h-3 w-3" />
-                      John Doe
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      2 hours ago
-                    </span>
-                    <span className="catalyst-badge-green">Published</span>
-                  </div>
-                </div>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="sm" className="catalyst-button-ghost" title="View">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="catalyst-button-ghost" title="Edit">
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="catalyst-button-ghost" title="Delete">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-between p-3 hover:bg-surface-dark rounded-lg transition-colors">
-                <div className="flex-1">
-                  <div className="font-medium text-white">Advanced Content Modeling</div>
-                  <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <User className="h-3 w-3" />
-                      Jane Smith
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      1 day ago
-                    </span>
-                    <span className="catalyst-badge">Draft</span>
-                  </div>
-                </div>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="sm" className="catalyst-button-ghost" title="View">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="catalyst-button-ghost" title="Edit">
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="catalyst-button-ghost" title="Delete">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="catalyst-card">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <FolderOpen className="h-5 w-5 text-green-500" />
-                  Pages
-                  <span className="catalyst-badge">Content Type</span>
-                </CardTitle>
-                <CardDescription className="mt-1 text-gray-400">
-                  8 published entries • Based on Page model
-                </CardDescription>
-              </div>
-              <Button variant="ghost" size="sm" className="catalyst-button-ghost" title="View Page content model">
-                <Database className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between p-3 hover:bg-surface-dark rounded-lg transition-colors">
-                <div className="flex-1">
-                  <div className="font-medium text-white">Home</div>
-                  <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <User className="h-3 w-3" />
-                      Admin
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      1 week ago
-                    </span>
-                    <span className="catalyst-badge-green">Published</span>
-                  </div>
-                </div>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="sm" className="catalyst-button-ghost" title="View">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="catalyst-button-ghost" title="Edit">
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="catalyst-button-ghost" title="Delete">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  )
+    <ContentErrorBoundary>
+      <ContentList
+        contentItems={contentStore.contentItems}
+        contentTypes={contentTypes}
+        onNewContent={handleNewContent}
+        onEditContent={handleEditContent}
+        onDeleteContent={handleDeleteContent}
+        onDuplicateContent={handleDuplicateContent}
+      />
+      
+      <ContentModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        contentType={selectedContentType || null}
+        contentItem={selectedItem}
+        onSave={handleSaveContent}
+      >
+        {selectedContentType && (
+          <FormGenerator
+            contentType={selectedContentType}
+            contentItem={selectedItem}
+            onSubmit={handleSaveContent}
+          />
+        )}
+      </ContentModal>
+    </ContentErrorBoundary>
+  );
 }

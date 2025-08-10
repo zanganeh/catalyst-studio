@@ -42,14 +42,14 @@ function PreviewContentComponent({ autoGenerate = true }: PreviewContentProps) {
   }
 
   // Generate content cards for a content type
-  const generateContentCards = useCallback((contentType: any) => {
+  const generateContentCards = useCallback((contentType: { name: string; fields?: Array<{ label: string; type: string }> }) => {
     const cards = []
     for (let i = 1; i <= 3; i++) {
       cards.push(`
         <div class="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <h3 class="font-semibold text-gray-800 mb-2">${contentType.name} ${i}</h3>
           <p class="text-sm text-gray-600 mb-3">Sample content for ${contentType.name.toLowerCase()}</p>
-          ${contentType.fields?.slice(0, 2).map((field: any) => `
+          ${contentType.fields?.slice(0, 2).map((field: { label: string; type: string }) => `
             <div class="text-xs text-gray-500 mb-1">
               <span class="font-medium">${field.label}:</span> 
               ${generateFieldSample(field.type)}
