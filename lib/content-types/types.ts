@@ -62,7 +62,7 @@ export type ValidationRules =
   | z.infer<typeof NumberValidationSchema>
   | z.infer<typeof DateValidationSchema>
   | z.infer<typeof ImageValidationSchema>
-  | Record<string, any>;
+  | Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // Field Model
 export interface Field {
@@ -71,7 +71,7 @@ export interface Field {
   label: string; // Display label
   type: FieldType;
   required: boolean;
-  defaultValue?: any;
+  defaultValue?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   validation?: ValidationRules;
   helpText?: string;
   placeholder?: string;
@@ -109,7 +109,7 @@ export interface ContentType {
 export interface ContentItem {
   id: string;
   contentTypeId: string;
-  data: Record<string, any>; // Field name -> value
+  data: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any // Field name -> value
   createdAt: Date;
   updatedAt: Date;
 }

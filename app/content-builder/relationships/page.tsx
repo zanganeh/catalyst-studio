@@ -26,7 +26,13 @@ export default function RelationshipsPage() {
     fieldName: string;
   }) => {
     if (currentContentType) {
-      addRelationship(currentContentType.id, relationship);
+      const completeRelationship = {
+        ...relationship,
+        name: relationship.fieldName,
+        sourceContentTypeId: currentContentType.id,
+        isRequired: false,
+      };
+      addRelationship(currentContentType.id, completeRelationship);
     }
   };
 

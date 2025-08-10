@@ -49,7 +49,7 @@ function PreviewContentComponent({ autoGenerate = true }: PreviewContentProps) {
         <div class="bg-white p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow">
           <h3 class="font-semibold text-gray-800 mb-2">${contentType.name} ${i}</h3>
           <p class="text-sm text-gray-600 mb-3">Sample content for ${contentType.name.toLowerCase()}</p>
-          ${contentType.fields?.slice(0, 2).map((field) => `
+          ${contentType.fields?.slice(0, 2).map((field: any) => `
             <div class="text-xs text-gray-500 mb-1">
               <span class="font-medium">${field.label}:</span> 
               ${generateFieldSample(field.type)}

@@ -106,8 +106,8 @@ test.describe('Preview System', () => {
     
     // Mock clipboard API
     await page.evaluate(() => {
-      navigator.clipboard = {
-        writeText: jest.fn(() => Promise.resolve())
+      (navigator as any).clipboard = {
+        writeText: () => Promise.resolve()
       };
     });
     

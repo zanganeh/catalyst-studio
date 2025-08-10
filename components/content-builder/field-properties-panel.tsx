@@ -32,7 +32,7 @@ export function FieldPropertiesPanel({
     return null;
   }
 
-  const handleChange = (key: keyof Field, value: any) => {
+  const handleChange = (key: keyof Field, value: unknown) => {
     setLocalField(prev => {
       if (!prev) return null;
       return { ...prev, [key]: value };
@@ -72,7 +72,7 @@ export function FieldPropertiesPanel({
                 id="minLength"
                 type="number"
                 min="0"
-                value={localField.validation?.minLength || ''}
+                value={(localField.validation as any)?.minLength || ''}
                 onChange={(e) => {
                   const value = e.target.value ? parseInt(e.target.value) : undefined;
                   handleChange('validation', {
@@ -88,7 +88,7 @@ export function FieldPropertiesPanel({
                 id="maxLength"
                 type="number"
                 min="0"
-                value={localField.validation?.maxLength || ''}
+                value={(localField.validation as any)?.maxLength || ''}
                 onChange={(e) => {
                   const value = e.target.value ? parseInt(e.target.value) : undefined;
                   handleChange('validation', {
@@ -102,7 +102,7 @@ export function FieldPropertiesPanel({
               <Label htmlFor="pattern">Pattern (RegEx)</Label>
               <Input
                 id="pattern"
-                value={localField.validation?.pattern || ''}
+                value={(localField.validation as any)?.pattern || ''}
                 onChange={(e) => {
                   handleChange('validation', {
                     ...localField.validation,
@@ -123,7 +123,7 @@ export function FieldPropertiesPanel({
               <Input
                 id="min"
                 type="number"
-                value={localField.validation?.min !== undefined ? localField.validation.min : ''}
+                value={(localField.validation as any)?.min !== undefined ? (localField.validation as any).min : ''}
                 onChange={(e) => {
                   const value = e.target.value ? parseFloat(e.target.value) : undefined;
                   handleChange('validation', {
@@ -138,7 +138,7 @@ export function FieldPropertiesPanel({
               <Input
                 id="max"
                 type="number"
-                value={localField.validation?.max !== undefined ? localField.validation.max : ''}
+                value={(localField.validation as any)?.max !== undefined ? (localField.validation as any).max : ''}
                 onChange={(e) => {
                   const value = e.target.value ? parseFloat(e.target.value) : undefined;
                   handleChange('validation', {
@@ -155,7 +155,7 @@ export function FieldPropertiesPanel({
                 type="number"
                 min="0"
                 step="0.01"
-                value={localField.validation?.step || ''}
+                value={(localField.validation as any)?.step || ''}
                 onChange={(e) => {
                   const value = e.target.value ? parseFloat(e.target.value) : undefined;
                   handleChange('validation', {
@@ -177,7 +177,7 @@ export function FieldPropertiesPanel({
               <Input
                 id="minDate"
                 type="date"
-                value={localField.validation?.minDate || ''}
+                value={(localField.validation as any)?.minDate || ''}
                 onChange={(e) => {
                   handleChange('validation', {
                     ...localField.validation,
@@ -191,7 +191,7 @@ export function FieldPropertiesPanel({
               <Input
                 id="maxDate"
                 type="date"
-                value={localField.validation?.maxDate || ''}
+                value={(localField.validation as any)?.maxDate || ''}
                 onChange={(e) => {
                   handleChange('validation', {
                     ...localField.validation,
@@ -213,7 +213,7 @@ export function FieldPropertiesPanel({
                 type="number"
                 min="0"
                 step="0.1"
-                value={localField.validation?.maxSize || ''}
+                value={(localField.validation as any)?.maxSize || ''}
                 onChange={(e) => {
                   const value = e.target.value ? parseFloat(e.target.value) : undefined;
                   handleChange('validation', {
@@ -227,7 +227,7 @@ export function FieldPropertiesPanel({
               <Label htmlFor="allowedTypes">Allowed File Types</Label>
               <Input
                 id="allowedTypes"
-                value={localField.validation?.allowedTypes?.join(', ') || ''}
+                value={(localField.validation as any)?.allowedTypes?.join(', ') || ''}
                 onChange={(e) => {
                   const types = e.target.value.split(',').map(t => t.trim()).filter(Boolean);
                   handleChange('validation', {
