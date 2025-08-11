@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useMultipleFeatures } from '@/contexts/feature-flag-context';
+import { useMultipleFeatures } from '@/contexts/feature-flag-context-stub';
 
 /**
  * Catalyst X Branding Component (REFACTORED)

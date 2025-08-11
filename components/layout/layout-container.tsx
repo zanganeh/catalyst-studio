@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useMultipleFeatures } from '@/contexts/feature-flag-context';
+import { useMultipleFeatures } from '@/contexts/feature-flag-context-stub';
 import { AnimatedPanel, FloatingShape } from '@/components/glass-morphism';
 
 interface LayoutContainerProps {

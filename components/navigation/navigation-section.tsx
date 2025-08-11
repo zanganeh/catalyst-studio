@@ -8,7 +8,7 @@ import { useNavigation } from '@/lib/context/navigation-context'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useFeatureFlags } from '@/contexts/feature-flag-context'
+import { useFeatureFlags } from '@/contexts/feature-flag-context-stub'
 import {
   Tooltip,
   TooltipContent,

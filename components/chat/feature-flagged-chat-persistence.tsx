@@ -3,7 +3,7 @@
 import React from 'react';
 import { Message } from 'ai';
 import { ChatWithPersistence } from './chat-with-persistence';
-import { isFeatureEnabled } from '@/config/features';
+import { isFeatureEnabled } from '@/config/features-stub';
 
 interface FeatureFlaggedChatPersistenceProps {
   children: React.ReactNode;

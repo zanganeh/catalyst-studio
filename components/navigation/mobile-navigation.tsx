@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { NavigationSection } from './navigation-section'
 import { NavigationSection as NavigationSectionType, NavigationItem } from '@/lib/navigation/types'
 import { usePathname } from 'next/navigation'
-import { useFeatureFlags } from '@/contexts/feature-flag-context'
+import { useFeatureFlags } from '@/contexts/feature-flag-context-stub'
 import Link from 'next/link'
 import {
   MessageSquare,

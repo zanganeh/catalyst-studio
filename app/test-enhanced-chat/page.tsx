@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { isFeatureEnabled, enableFeature, disableFeature } from '@/config/features';
+import { isFeatureEnabled, enableFeature, disableFeature } from '@/config/features-stub';
 import EnhancedChatPanel from '@/components/chat/enhanced-chat-panel';
 
 export default function TestEnhancedChat() {

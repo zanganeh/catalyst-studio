@@ -4,10 +4,10 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { useFeatureFlags } from '@/contexts/feature-flag-context';
+import { useFeatureFlags } from '@/contexts/feature-flag-context-stub';
 import { NavigationSection } from './navigation-section';
 import { NavigationSection as NavigationSectionType } from '@/lib/navigation/types';
-import { FeatureName } from '@/config/features';
+import { FeatureName } from '@/config/features-stub';
 import {
   Tooltip,
   TooltipContent,

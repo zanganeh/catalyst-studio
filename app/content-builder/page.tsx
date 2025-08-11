@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ContentTypeProvider } from '@/lib/context/content-type-context';
 import ContentTypeBuilder from '@/components/content-builder/content-type-builder';
-import { isFeatureEnabled } from '@/config/features';
+import { isFeatureEnabled } from '@/config/features-stub';
 import { Card } from '@/components/ui/card';
 
 export default function ContentBuilderPage() {

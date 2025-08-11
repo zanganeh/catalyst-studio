@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { isFeatureEnabled } from '@/config/features';
+import { isFeatureEnabled } from '@/config/features-stub';
 
 interface GlassCardProps {
   children: React.ReactNode;

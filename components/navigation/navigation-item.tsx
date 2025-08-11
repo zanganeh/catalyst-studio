@@ -4,7 +4,7 @@ import React, { useCallback } from 'react'
 import Link from 'next/link'
 import { NavigationItem as NavigationItemType } from '@/lib/navigation/types'
 import { cn } from '@/lib/utils'
-import { useFeatureFlags } from '@/contexts/feature-flag-context'
+import { useFeatureFlags } from '@/contexts/feature-flag-context-stub'
 
 interface NavigationItemProps {
   item: NavigationItemType

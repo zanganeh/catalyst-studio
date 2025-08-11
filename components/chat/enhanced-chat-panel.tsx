@@ -2,7 +2,7 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { isFeatureEnabled } from '@/config/features';
+import { isFeatureEnabled } from '@/config/features-stub';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { ProjectContextProvider } from '@/lib/context/project-context';
 

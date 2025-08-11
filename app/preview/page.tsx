@@ -9,7 +9,7 @@ import { DeviceSelector } from '@/components/preview/device-selector';
 import { PreviewControls } from '@/components/preview/preview-controls';
 import { PreviewContent } from '@/components/preview/preview-content';
 import { PreviewNavigation } from '@/components/preview/preview-navigation';
-import { useFeatureFlag } from '@/contexts/feature-flag-context';
+import { useFeatureFlag } from '@/contexts/feature-flag-context-stub';
 
 export default function PreviewPage() {
   const { enabled: isPreviewEnabled } = useFeatureFlag('previewSystem');

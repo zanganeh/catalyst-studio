@@ -1,5 +1,4 @@
 import { ReactNode } from 'react'
-import { FeatureName } from '@/config/features'
 
 export enum ViewType {
   Overview = 'overview',
@@ -14,7 +13,6 @@ export interface NavigationItem {
   href: string
   icon?: ReactNode
   badge?: string | number
-  featureFlag?: FeatureName
   children?: NavigationItem[]
   tooltip?: string
 }
@@ -25,7 +23,6 @@ export interface NavigationSection {
   icon: ReactNode
   expanded: boolean
   items: NavigationItem[]
-  featureFlag?: FeatureName
 }
 
 export interface NavigationState {

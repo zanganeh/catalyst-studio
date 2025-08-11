@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { isFeatureEnabled } from '@/config/features';
+import { isFeatureEnabled } from '@/config/features-stub';
 import dynamic from 'next/dynamic';
 
 // Dynamically import components to avoid SSR issues
