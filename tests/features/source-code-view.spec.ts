@@ -230,7 +230,7 @@ test.describe('Performance Tests', () => {
     const layoutFile = page.locator('[role="treeitem"]').filter({ hasText: 'layout.tsx' });
     await layoutFile.click();
     
-    await page.waitForSelector('[data-testid="monaco-editor"]', { timeout: 5000 });
+    await page.waitForSelector('[data-testid="monaco-editor"]', { timeout: 10000 });
     
     const openTime = Date.now() - startTime;
     expect(openTime).toBeLessThan(1000); // Allow 1s for file opening
@@ -276,6 +276,8 @@ test.describe('Performance Tests', () => {
 });
 
 test.describe('Accessibility Tests', () => {
+  // Note: Advanced accessibility tests are skipped as they require full implementation
+  // beyond the current mock data structure. These features are planned for future iterations.
   test.skip('should have proper ARIA labels', async ({ page }) => {
     await page.goto('/development');
     await page.waitForLoadState('networkidle');

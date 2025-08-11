@@ -1,4 +1,5 @@
 import { FileNode } from '@/components/development/file-tree';
+import type JSZip from 'jszip';
 
 export interface ExportOptions {
   fileName?: string;
@@ -106,24 +107,10 @@ export class CodeExportService {
     return this.exportProject(files, projectName);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async loadJSZip(): Promise<any> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    if (typeof window !== 'undefined' && !(window as any).JSZip) {
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-      script.async = true;
-      
-      return new Promise((resolve, reject) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        script.onload = () => resolve((window as any).JSZip);
-        script.onerror = () => reject(new Error('Failed to load JSZip library'));
-        document.head.appendChild(script);
-      });
-    }
-    
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (window as any).JSZip;
+  private async loadJSZip(): Promise<typeof JSZip> {
+    // Dynamic import to avoid SSR issues
+    const JSZipModule = await import('jszip');
+    return JSZipModule.default;
   }
 
   private getMimeType(fileName: string): string {
