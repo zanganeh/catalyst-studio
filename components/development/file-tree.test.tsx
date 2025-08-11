@@ -121,8 +121,8 @@ describe('FileTree', () => {
     expect(screen.getByText('components')).toBeInTheDocument();
     
     fireEvent.keyDown(tree, { key: 'ArrowDown' });
-    focusedElement = document.activeElement;
-    expect(focusedElement).toHaveAttribute('aria-label', expect.stringContaining('components'));
+    const nextFocusedElement = document.activeElement;
+    expect(nextFocusedElement).toHaveAttribute('aria-label', expect.stringContaining('components'));
   });
 
   it('should expand folder with right arrow and collapse with left arrow', () => {
@@ -199,7 +199,7 @@ describe('FileTree', () => {
   });
 
   it('should have proper ARIA attributes', () => {
-    const { container } = render(<FileTree files={mockFiles} />);
+    render(<FileTree files={mockFiles} />);
 
     const tree = screen.getByRole('tree');
     expect(tree).toHaveAttribute('aria-label', 'File explorer');

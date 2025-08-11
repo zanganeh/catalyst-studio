@@ -29,6 +29,7 @@ interface TreeNodeProps {
   onToggleFolder: (folderId: string) => void;
   focusedNodeId: string | null;
   onFocusNode: (nodeId: string) => void;
+  onAnnounce?: (message: string) => void;
 }
 
 const getFileIcon = (extension?: string) => {
@@ -62,6 +63,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   onToggleFolder,
   focusedNodeId,
   onFocusNode,
+  onAnnounce,
 }) => {
   const isExpanded = expandedFolders.has(node.id);
   const isSelected = selectedFile === node.id;
@@ -79,9 +81,10 @@ const TreeNode: React.FC<TreeNodeProps> = ({
       onToggleFolder(node.id);
     } else {
       onFileSelect?.(node);
+      onAnnounce?.(`Selected file: ${node.name}`);
     }
     onFocusNode(node.id);
-  }, [node, onToggleFolder, onFileSelect, onFocusNode]);
+  }, [node, onToggleFolder, onFileSelect, onFocusNode, onAnnounce]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
     e.stopPropagation();
@@ -117,11 +120,13 @@ const TreeNode: React.FC<TreeNodeProps> = ({
     <>
       <div
         ref={nodeRef}
-        role={node.type === 'folder' ? 'treeitem' : 'treeitem'}
+        role="treeitem"
         aria-expanded={node.type === 'folder' ? isExpanded : undefined}
         aria-selected={isSelected}
         aria-level={level}
         aria-label={`${node.type === 'folder' ? 'Folder' : 'File'}: ${node.name}`}
+        aria-setsize={node.children?.length || 0}
+        aria-posinset={level + 1}
         tabIndex={isFocused ? 0 : -1}
         className={cn(
           "flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-white/5 rounded transition-colors",
@@ -176,6 +181,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
               onToggleFolder={onToggleFolder}
               focusedNodeId={focusedNodeId}
               onFocusNode={onFocusNode}
+              onAnnounce={onAnnounce}
             />
           ))}
         </div>
@@ -193,19 +199,28 @@ export function FileTree({
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [announcement, setAnnouncement] = useState('');
   const treeRef = useRef<HTMLDivElement>(null);
 
   const toggleFolder = useCallback((folderId: string) => {
     setExpandedFolders((prev) => {
       const next = new Set(prev);
+      const isExpanding = !next.has(folderId);
       if (next.has(folderId)) {
         next.delete(folderId);
       } else {
         next.add(folderId);
       }
+      
+      // Announce folder state change to screen readers
+      const folder = files.find(f => f.id === folderId);
+      if (folder) {
+        setAnnouncement(`${folder.name} folder ${isExpanding ? 'expanded' : 'collapsed'}`);
+      }
+      
       return next;
     });
-  }, []);
+  }, [files]);
 
   const findNextNode = useCallback((currentId: string | null, direction: 'up' | 'down'): string | null => {
     const allNodes: string[] = [];
@@ -298,38 +313,52 @@ export function FileTree({
   }, [searchQuery, files]);
 
   return (
-    <div 
-      ref={treeRef}
-      role="tree"
-      aria-label="File explorer"
-      className={cn(
-        "bg-zinc-900/50 backdrop-blur-sm rounded-lg border border-white/10",
-        "overflow-auto",
-        className
-      )}
-      onKeyDown={handleTreeKeyDown}
-    >
-      <div className="p-2">
-        {files.length === 0 ? (
-          <div className="text-gray-500 text-sm p-4 text-center">
-            No files to display
-          </div>
-        ) : (
-          files.map((file) => (
-            <TreeNode
-              key={file.id}
-              node={file}
-              level={0}
-              selectedFile={selectedFile}
-              onFileSelect={onFileSelect}
-              expandedFolders={expandedFolders}
-              onToggleFolder={toggleFolder}
-              focusedNodeId={focusedNodeId}
-              onFocusNode={setFocusedNodeId}
-            />
-          ))
+    <>
+      <div 
+        ref={treeRef}
+        role="tree"
+        aria-label="File explorer"
+        aria-multiselectable="false"
+        aria-activedescendant={focusedNodeId || undefined}
+        className={cn(
+          "bg-zinc-900/50 backdrop-blur-sm rounded-lg border border-white/10",
+          "overflow-auto",
+          className
         )}
+        onKeyDown={handleTreeKeyDown}
+      >
+        <div className="p-2">
+          {files.length === 0 ? (
+            <div className="text-gray-500 text-sm p-4 text-center">
+              No files to display
+            </div>
+          ) : (
+            files.map((file) => (
+              <TreeNode
+                key={file.id}
+                node={file}
+                level={0}
+                selectedFile={selectedFile}
+                onFileSelect={onFileSelect}
+                expandedFolders={expandedFolders}
+                onToggleFolder={toggleFolder}
+                focusedNodeId={focusedNodeId}
+                onFocusNode={setFocusedNodeId}
+                onAnnounce={setAnnouncement}
+              />
+            ))
+          )}
+        </div>
       </div>
-    </div>
+      {/* Screen reader announcements */}
+      <div 
+        className="sr-only" 
+        aria-live="polite" 
+        aria-atomic="true"
+        role="status"
+      >
+        {announcement}
+      </div>
+    </>
   );
 }
