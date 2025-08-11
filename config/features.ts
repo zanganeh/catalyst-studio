@@ -21,7 +21,7 @@ const defaultFeatures = {
   threeColumnLayout: false,    // New layout structure
   
   // Integration flags
-  cmsIntegration: true,        // CMS deployment features (ENABLED FOR STORY 1.10)
+  // cmsIntegration removed - all features production-ready (Story 1.10)
   analyticsDisplay: false,     // Analytics dashboard
   sourceCodeView: false,       // Code editor view
   

@@ -56,10 +56,11 @@ function DeploymentPageContent() {
     setShowResults(true);
     
     // Show toast notification (simulated)
+    // TODO: Replace with proper toast notification system
     if (job.status === 'completed') {
-      console.log('✅ Deployment completed successfully!');
+      // Success notification will be handled by toast component
     } else if (job.status === 'failed') {
-      console.log('❌ Deployment failed. Please check the logs.');
+      // Error notification will be handled by toast component
     }
   };
 
@@ -272,7 +273,8 @@ function DeploymentPageContent() {
 }
 
 export default function DeploymentPage() {
-  // Add test mode support for E2E tests
+  // TODO: Remove test mode after fixing E2E test environment hydration issues
+  // This is a temporary workaround for Playwright tests with client-side routing
   if (typeof window !== 'undefined' && window.location.search.includes('test=true')) {
     return (
       <div className="h-full flex flex-col">
