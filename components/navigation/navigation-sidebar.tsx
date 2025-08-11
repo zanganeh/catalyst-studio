@@ -4,10 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { useFeatureFlags } from '@/contexts/feature-flag-context-stub';
 import { NavigationSection } from './navigation-section';
 import { NavigationSection as NavigationSectionType } from '@/lib/navigation/types';
-import { FeatureName } from '@/config/features-stub';
 import {
   Tooltip,
   TooltipContent,
@@ -31,13 +29,11 @@ interface DirectLinkItem {
   label: string;
   href: string;
   icon: React.ReactNode;
-  featureFlag?: FeatureName;
   tooltip?: string;
 }
 
 export const NavigationSidebar = React.memo(function NavigationSidebar() {
   const pathname = usePathname();
-  const { isEnabled: isFeatureEnabled } = useFeatureFlags();
 
   // Direct link items (not expandable)
   const directLinks: DirectLinkItem[] = [
@@ -67,7 +63,6 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
           label: 'Content Modeling',
           href: '/studio/content-builder',
           icon: <Database className="h-4 w-4" />,
-          featureFlag: 'contentTypeBuilder',
           tooltip: 'Design content schemas and data structures',
         },
       ]
@@ -113,7 +108,6 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
       label: 'Preview',
       href: '/studio/preview',
       icon: <Eye className="h-4 w-4" />,
-      featureFlag: 'previewSystem',
       tooltip: 'Preview your website across different devices and screen sizes',
     },
     {
@@ -137,10 +131,6 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
 
   const renderDirectLink = (item: DirectLinkItem) => {
     const isActive = pathname === item.href;
-    
-    if (item.featureFlag && !isFeatureEnabled(item.featureFlag)) {
-      return null;
-    }
 
     const linkContent = (
       <Link key={item.id} href={item.href}>

@@ -9,31 +9,9 @@ import { DeviceSelector } from '@/components/preview/device-selector';
 import { PreviewControls } from '@/components/preview/preview-controls';
 import { PreviewContent } from '@/components/preview/preview-content';
 import { PreviewNavigation } from '@/components/preview/preview-navigation';
-import { useFeatureFlag } from '@/contexts/feature-flag-context-stub';
 
 export default function PreviewPage() {
-  const { enabled: isPreviewEnabled } = useFeatureFlag('previewSystem');
-
-  // Temporarily bypass feature flag for testing
-  // TODO: Remove this after testing
-  const forceEnable = true;
-
-  // Show fallback if feature is disabled
-  if (!isPreviewEnabled && !forceEnable) {
-    return (
-      <div className="flex items-center justify-center h-full p-6 bg-gradient-to-br from-dark-primary to-dark-secondary">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">
-            Preview System Coming Soon
-          </h1>
-          <p className="text-gray-400">
-            The preview system is currently under development.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
+  // Preview is always enabled now
   return (
     <ProjectContextProvider>
       <ContentTypeProvider>

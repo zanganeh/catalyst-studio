@@ -8,7 +8,6 @@ import { useNavigation } from '@/lib/context/navigation-context'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useFeatureFlags } from '@/contexts/feature-flag-context-stub'
 import {
   Tooltip,
   TooltipContent,
@@ -27,14 +26,11 @@ export const NavigationSection = memo(function NavigationSection({
 }: NavigationSectionProps) {
   const { navigationState, toggleSection } = useNavigation()
   const pathname = usePathname()
-  const { isEnabled: isFeatureEnabled } = useFeatureFlags()
   
   const isExpanded = navigationState.expandedSections.includes(section.id)
   
-  // Filter items based on feature flags
-  const visibleItems = section.items.filter(item => 
-    !item.featureFlag || isFeatureEnabled(item.featureFlag)
-  )
+  // All items are now visible
+  const visibleItems = section.items
   
   const handleToggle = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -45,10 +41,8 @@ export const NavigationSection = memo(function NavigationSection({
     const isItemActive = pathname === item.href || pathname.startsWith(item.href + '/')
     const hasChildren = item.children && item.children.length > 0
     
-    // Filter children based on feature flags
-    const visibleChildren = item.children?.filter(child => 
-      !child.featureFlag || isFeatureEnabled(child.featureFlag)
-    ) || []
+    // All children are now visible
+    const visibleChildren = item.children || []
     
     const linkContent = (
       <Link
@@ -94,10 +88,6 @@ export const NavigationSection = memo(function NavigationSection({
         )}
       </div>
     )
-  }
-  
-  if (section.featureFlag && !isFeatureEnabled(section.featureFlag)) {
-    return null
   }
   
   return (

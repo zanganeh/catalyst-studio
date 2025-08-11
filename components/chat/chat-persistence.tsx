@@ -3,9 +3,8 @@
 import React from 'react';
 import { Message } from 'ai';
 import { ChatWithPersistence } from './chat-with-persistence';
-import { isFeatureEnabled } from '@/config/features-stub';
 
-interface FeatureFlaggedChatPersistenceProps {
+interface ChatPersistenceProps {
   children: React.ReactNode;
   messages: Message[];
   setMessages?: (messages: Message[] | ((messages: Message[]) => Message[])) => void;
@@ -14,24 +13,16 @@ interface FeatureFlaggedChatPersistenceProps {
 }
 
 /**
- * Wrapper component that checks the projectPersistence feature flag
- * before enabling chat persistence functionality
+ * Component that enables chat persistence functionality
  */
-export function FeatureFlaggedChatPersistence({
+export function ChatPersistence({
   children,
   messages,
   setMessages,
   sessionId = 'default',
   onMessagesLoaded
-}: FeatureFlaggedChatPersistenceProps) {
-  const isPersistenceEnabled = isFeatureEnabled('projectPersistence');
-
-  if (!isPersistenceEnabled) {
-    // Feature is disabled, render children directly without persistence
-    return <>{children}</>;
-  }
-
-  // Feature is enabled, wrap with persistence
+}: ChatPersistenceProps) {
+  // Persistence is always enabled now
   return (
     <ChatWithPersistence
       messages={messages}
@@ -46,21 +37,15 @@ export function FeatureFlaggedChatPersistence({
 }
 
 /**
- * HOC to add feature-flagged persistence to any chat component
+ * HOC to add persistence to any chat component
  */
-export function withFeatureFlaggedPersistence<P extends { 
+export function withChatPersistence<P extends { 
   messages: Message[]; 
   setMessages?: (messages: Message[] | ((messages: Message[]) => Message[])) => void 
 }>(
   Component: React.ComponentType<P>
 ) {
-  return function FeatureFlaggedPersistenceWrapper(props: P) {
-    const isPersistenceEnabled = isFeatureEnabled('projectPersistence');
-
-    if (!isPersistenceEnabled) {
-      return <Component {...props} />;
-    }
-
+  return function ChatPersistenceWrapper(props: P) {
     return (
       <ChatWithPersistence
         messages={props.messages}
@@ -75,8 +60,8 @@ export function withFeatureFlaggedPersistence<P extends {
 }
 
 /**
- * Hook to check if persistence is enabled
+ * Hook to check if persistence is enabled (always true now)
  */
-export function usePersistenceFeatureFlag() {
-  return isFeatureEnabled('projectPersistence');
+export function usePersistence() {
+  return true;
 }

@@ -4,7 +4,6 @@ import React, { useCallback } from 'react'
 import Link from 'next/link'
 import { NavigationItem as NavigationItemType } from '@/lib/navigation/types'
 import { cn } from '@/lib/utils'
-import { useFeatureFlags } from '@/contexts/feature-flag-context-stub'
 
 interface NavigationItemProps {
   item: NavigationItemType
@@ -13,7 +12,6 @@ interface NavigationItemProps {
 }
 
 export function NavigationItem({ item, depth = 0, isActive = false }: NavigationItemProps) {
-  const { isEnabled: isFeatureEnabled } = useFeatureFlags()
   
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -25,15 +23,8 @@ export function NavigationItem({ item, depth = 0, isActive = false }: Navigation
     }
   }, [])
   
-  // Check feature flag
-  if (item.featureFlag && !isFeatureEnabled(item.featureFlag)) {
-    return null
-  }
-  
-  // Filter children based on feature flags
-  const visibleChildren = item.children?.filter(child => 
-    !child.featureFlag || isFeatureEnabled(child.featureFlag)
-  ) || []
+  // All children are now visible
+  const visibleChildren = item.children || []
   
   return (
     <div>

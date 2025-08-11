@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useMultipleFeatures } from '@/contexts/feature-flag-context-stub';
 
 /**
  * Catalyst X Branding Component (REFACTORED)
@@ -10,43 +9,29 @@ import { useMultipleFeatures } from '@/contexts/feature-flag-context-stub';
  * PERFORMANCE: Optimized DOM manipulation with cleanup
  */
 export function CatalystBranding() {
-  const { loading, features } = useMultipleFeatures([
-    'catalystBranding',
-    'glassMorphism',
-    'animations'
-  ]);
-
   useEffect(() => {
-    if (loading) return;
-    
-    // Apply or remove classes based on feature states
+    // All features are now always enabled
     const classes = [];
     const stylesheets: { id: string; href: string; condition: boolean }[] = [];
     
-    // Handle Catalyst branding
-    if (features.catalystBranding) {
-      classes.push('catalyst-branding', 'catalyst-dark');
-      stylesheets.push({
-        id: 'catalyst-theme',
-        href: '/styles/catalyst-theme.css',
-        condition: true
-      });
-    }
+    // Catalyst branding is always enabled
+    classes.push('catalyst-branding', 'catalyst-dark');
+    stylesheets.push({
+      id: 'catalyst-theme',
+      href: '/styles/catalyst-theme.css',
+      condition: true
+    });
     
-    // Handle Glass Morphism
-    if (features.glassMorphism) {
-      classes.push('glass-morphism');
-      stylesheets.push({
-        id: 'glass-morphism-styles',
-        href: '/styles/glass-morphism.css',
-        condition: true
-      });
-    }
+    // Glass Morphism is always enabled
+    classes.push('glass-morphism');
+    stylesheets.push({
+      id: 'glass-morphism-styles',
+      href: '/styles/glass-morphism.css',
+      condition: true
+    });
     
-    // Handle Animations
-    if (features.animations) {
-      classes.push('animations-enabled');
-    }
+    // Animations are always enabled
+    classes.push('animations-enabled');
     
     // Apply classes to body
     document.body.classList.add(...classes);
@@ -71,7 +56,7 @@ export function CatalystBranding() {
         'animations-enabled'
       );
     };
-  }, [loading, features.catalystBranding, features.glassMorphism, features.animations]);
+  }, []);
 
   // This component doesn't render anything visible
   return null;
@@ -82,12 +67,7 @@ export function CatalystBranding() {
  * Displays the animated X logo
  */
 export function CatalystLogo({ size = 60 }: { size?: number }) {
-  const { loading, features } = useMultipleFeatures(['catalystBranding']);
-  
-  if (loading || !features.catalystBranding) {
-    return null;
-  }
-
+  // Catalyst branding is always enabled
   return (
     <div className="inline-flex items-center gap-4">
       <div 
@@ -113,12 +93,7 @@ export function CatalystLogo({ size = 60 }: { size?: number }) {
  * Adds the signature Catalyst X pattern
  */
 export function CatalystPattern({ children }: { children: React.ReactNode }) {
-  const { loading, features } = useMultipleFeatures(['catalystBranding']);
-  
-  if (loading || !features.catalystBranding) {
-    return <>{children}</>;
-  }
-
+  // Catalyst branding is always enabled
   return (
     <div className="catalyst-pattern relative">
       {children}

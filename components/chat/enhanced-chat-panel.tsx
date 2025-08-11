@@ -2,7 +2,6 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { isFeatureEnabled } from '@/config/features-stub';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { ProjectContextProvider } from '@/lib/context/project-context';
 
@@ -16,8 +15,8 @@ const BaseChat = dynamic(() => import('@/components/chat/base-chat'), {
   ),
 });
 
-// Import our enhanced components (will be created in subsequent tasks)
-// These will be conditionally rendered based on feature flag
+// Import our enhanced components with graceful fallbacks
+// These components enhance the chat experience
 const SuggestionChips = dynamic(() => import('./suggestion-chips').catch(() => ({
   default: () => null // Graceful fallback if component doesn't exist yet
 })), { ssr: false });
@@ -39,22 +38,11 @@ interface EnhancedChatPanelProps {
  * Enhanced Chat Panel Wrapper
  * 
  * This component wraps the existing chat functionality and adds
- * enhanced features when the enhancedChat feature flag is enabled.
- * It preserves the original chat logic completely when the flag is disabled.
+ * enhanced features including suggestion chips, typing indicators,
+ * and improved context awareness.
  */
 export default function EnhancedChatPanel({ className }: EnhancedChatPanelProps) {
-  const isEnhanced = isFeatureEnabled('enhancedChat');
-
-  // If feature flag is disabled, return original chat unchanged
-  if (!isEnhanced) {
-    return (
-      <ErrorBoundary fallback={<div>Chat temporarily unavailable</div>}>
-        <BaseChat />
-      </ErrorBoundary>
-    );
-  }
-
-  // Enhanced chat with additional features
+  // Enhanced chat is now always enabled
   return (
     <ErrorBoundary fallback={<div>Chat temporarily unavailable</div>}>
       <ProjectContextProvider>
@@ -95,7 +83,8 @@ const EnhancedChatContext = React.createContext<{
 
 // Provider component that properly manages hooks
 export function EnhancedChatProvider({ children }: { children: React.ReactNode }) {
-  const isEnhanced = isFeatureEnabled('enhancedChat');
+  // Enhanced features are now always enabled
+  const isEnhanced = true;
   
   // These will hold the actual hook values, not the hooks themselves
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -106,21 +95,19 @@ export function EnhancedChatProvider({ children }: { children: React.ReactNode }
   const [contextAwareChat, setContextAwareChat] = React.useState<any>(null);
   
   React.useEffect(() => {
-    if (isEnhanced) {
-      // Load the modules and store their exports, not hook results
-      import('@/hooks/use-structured-prompts').then(module => {
-        setStructuredPrompts(module);
-      }).catch(() => {
-        console.warn('use-structured-prompts module not found');
-      });
-      
-      import('@/hooks/use-context-aware-chat').then(module => {
-        setContextAwareChat(module);
-      }).catch(() => {
-        console.warn('use-context-aware-chat module not found');
-      });
-    }
-  }, [isEnhanced]);
+    // Load the modules and store their exports, not hook results
+    import('@/hooks/use-structured-prompts').then(module => {
+      setStructuredPrompts(module);
+    }).catch(() => {
+      console.warn('use-structured-prompts module not found');
+    });
+    
+    import('@/hooks/use-context-aware-chat').then(module => {
+      setContextAwareChat(module);
+    }).catch(() => {
+      console.warn('use-context-aware-chat module not found');
+    });
+  }, []);
   
   return (
     <EnhancedChatContext.Provider value={{
@@ -141,7 +128,7 @@ export function useEnhancedChat() {
   // Return a default value if not within provider
   if (!context) {
     return {
-      isEnhanced: false,
+      isEnhanced: true, // Always enabled now
       structuredPrompts: null,
       conversationContext: null,
       contextAwareChat: null

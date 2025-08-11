@@ -87,20 +87,7 @@ test.describe('Enhanced Chat Features', () => {
   });
 });
 
-test.describe('Feature Flag Integration', () => {
-  test('should respect feature flags', async ({ page }) => {
-    // Navigate to feature flags page
-    await page.goto('http://localhost:3000/feature-flags');
-    await page.waitForLoadState('networkidle');
-    
-    // Check if page loads with correct title
-    await expect(page).toHaveTitle(/Catalyst Studio/i);
-    
-    // Look for enhancedChat feature flag text
-    const enhancedChatFlag = page.getByText('enhancedChat', { exact: true });
-    await expect(enhancedChatFlag).toBeVisible({ timeout: 10000 });
-  });
-});
+// Feature flag tests removed - Story 2.3 permanently enabled all features
 
 test.describe('Error Handling', () => {
   test('should handle network errors gracefully', async ({ page }) => {

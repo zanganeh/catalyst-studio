@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { NavigationSection } from './navigation-section'
 import { NavigationSection as NavigationSectionType, NavigationItem } from '@/lib/navigation/types'
 import { usePathname } from 'next/navigation'
-import { useFeatureFlags } from '@/contexts/feature-flag-context-stub'
 import Link from 'next/link'
 import {
   MessageSquare,
@@ -25,7 +24,6 @@ import {
 export function MobileNavigation() {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
-  const { isEnabled: isFeatureEnabled } = useFeatureFlags()
   
   // Close drawer when route changes
   useEffect(() => {
@@ -79,13 +77,11 @@ export function MobileNavigation() {
           label: 'Content Builder',
           href: '/content-builder',
           icon: <Database className="h-4 w-4" />,
-          featureFlag: 'contentTypeBuilder',
         },
         {
           label: 'Preview',
           href: '/preview',
           icon: <Eye className="h-4 w-4" />,
-          featureFlag: 'previewSystem',
         },
       ]
     },
@@ -229,9 +225,6 @@ export function MobileNavigation() {
                 <div className="pt-4 mt-4 border-t border-gray-700">
                   {quickAccessItems.map((item) => {
                     const isActive = pathname === item.href
-                    if (item.featureFlag && !isFeatureEnabled(item.featureFlag)) {
-                      return null
-                    }
                     return (
                       <Link key={item.href} href={item.href}>
                         <Button

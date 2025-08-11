@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Bot, User } from 'lucide-react';
-import { FeatureFlaggedChatPersistence } from './feature-flagged-chat-persistence';
+import { ChatPersistence } from './chat-persistence';
 
 export default function BaseChat() {
   const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat();
 
   return (
-    <FeatureFlaggedChatPersistence
+    <ChatPersistence
       messages={messages}
       setMessages={setMessages}
       sessionId="default"
@@ -113,6 +113,6 @@ export default function BaseChat() {
           </div>
         </div>
       </div>
-    </FeatureFlaggedChatPersistence>
+    </ChatPersistence>
   );
 }

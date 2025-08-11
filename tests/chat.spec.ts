@@ -9,7 +9,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Existing Chat Functionality Protection Tests', () => {
   test.beforeEach(async ({ page }) => {
     // Start with fresh page for each test
-    await page.goto('http://localhost:3001/chat');
+    await page.goto('http://localhost:3000/chat');
   });
 
   test('chat page loads successfully', async ({ page }) => {

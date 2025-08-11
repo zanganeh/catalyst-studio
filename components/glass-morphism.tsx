@@ -1,8 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { isFeatureEnabled } from '@/config/features-stub';
 
 interface GlassCardProps {
   children: React.ReactNode;
@@ -21,20 +19,6 @@ export function GlassCard({
   blur = 'md',
   // opacity = 0.1 // Reserved for future opacity control
 }: GlassCardProps) {
-  const [mounted, setMounted] = useState(false);
-  const [isGlassEnabled, setIsGlassEnabled] = useState(false);
-  const [isAnimationsEnabled, setIsAnimationsEnabled] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    setIsGlassEnabled(isFeatureEnabled('glassMorphism'));
-    setIsAnimationsEnabled(isFeatureEnabled('animations'));
-  }, []);
-
-  if (!mounted) {
-    return <div className={className}>{children}</div>;
-  }
-
   const blurClass = {
     sm: 'backdrop-blur-sm',
     md: 'backdrop-blur-md',
@@ -42,28 +26,20 @@ export function GlassCard({
     xl: 'backdrop-blur-xl',
   }[blur];
 
-  const glassClasses = isGlassEnabled
-    ? `${blurClass} bg-white/10 border border-white/20 shadow-2xl`
-    : '';
+  // Glass effects are always enabled now
+  const glassClasses = `${blurClass} bg-white/10 border border-white/20 shadow-2xl`;
 
-  if (isAnimationsEnabled) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
-        whileHover={{ scale: 1.02 }}
-        className={`${className} ${glassClasses} transition-all`}
-      >
-        {children}
-      </motion.div>
-    );
-  }
-
+  // Animations are always enabled now
   return (
-    <div className={`${className} ${glassClasses}`}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      whileHover={{ scale: 1.02 }}
+      className={`${className} ${glassClasses} transition-all`}
+    >
       {children}
-    </div>
+    </motion.div>
   );
 }
 
@@ -82,18 +58,7 @@ export function AnimatedPanel({
   delay?: number;
   className?: string;
 }) {
-  const [mounted, setMounted] = useState(false);
-  const [isAnimationsEnabled, setIsAnimationsEnabled] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    setIsAnimationsEnabled(isFeatureEnabled('animations'));
-  }, []);
-
-  if (!mounted || !isAnimationsEnabled) {
-    return <div className={className}>{children}</div>;
-  }
-
+  // Animations are always enabled now
   const variants = {
     hidden: {
       opacity: 0,
@@ -135,66 +100,37 @@ export function FloatingShape({
   position?: { top?: string; left?: string; right?: string; bottom?: string };
   delay?: number;
 }) {
-  const [mounted, setMounted] = useState(false);
-  const [isAnimationsEnabled, setIsAnimationsEnabled] = useState(false);
-  const [isGlassEnabled, setIsGlassEnabled] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    setIsAnimationsEnabled(isFeatureEnabled('animations'));
-    setIsGlassEnabled(isFeatureEnabled('glassMorphism'));
-  }, []);
-
-  if (!mounted || !isGlassEnabled) {
-    return null;
-  }
-
   const bgColor = {
     orange: 'bg-gradient-to-br from-orange-400 to-orange-600',
     blue: 'bg-gradient-to-br from-blue-400 to-blue-600',
     green: 'bg-gradient-to-br from-green-400 to-green-600',
   }[color];
 
-  const shape = (
-    <div
-      className={`absolute ${bgColor} rounded-lg transform rotate-45 opacity-20`}
+  // Glass and animations are always enabled now
+  return (
+    <motion.div
+      initial={{ scale: 0, rotate: 0 }}
+      animate={{ 
+        scale: [1, 1.2, 1],
+        rotate: [45, 50, 45],
+      }}
+      transition={{
+        duration: 10,
+        delay,
+        repeat: Infinity,
+        ease: 'easeInOut',
+      }}
+      className="absolute"
       style={{
         width: size,
         height: size,
         ...position,
         zIndex: -1,
       }}
-    />
+    >
+      <div className={`w-full h-full ${bgColor} rounded-lg opacity-20`} />
+    </motion.div>
   );
-
-  if (isAnimationsEnabled) {
-    return (
-      <motion.div
-        initial={{ scale: 0, rotate: 0 }}
-        animate={{ 
-          scale: [1, 1.2, 1],
-          rotate: [45, 50, 45],
-        }}
-        transition={{
-          duration: 10,
-          delay,
-          repeat: Infinity,
-          ease: 'easeInOut',
-        }}
-        className="absolute"
-        style={{
-          width: size,
-          height: size,
-          ...position,
-          zIndex: -1,
-        }}
-      >
-        <div className={`w-full h-full ${bgColor} rounded-lg opacity-20`} />
-      </motion.div>
-    );
-  }
-
-  return shape;
 }
 
 /**
@@ -202,18 +138,7 @@ export function FloatingShape({
  * Provides smooth page transitions
  */
 export function PageTransition({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
-  const [isAnimationsEnabled, setIsAnimationsEnabled] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    setIsAnimationsEnabled(isFeatureEnabled('animations'));
-  }, []);
-
-  if (!mounted || !isAnimationsEnabled) {
-    return <>{children}</>;
-  }
-
+  // Animations are always enabled now
   return (
     <AnimatePresence mode="wait">
       <motion.div
