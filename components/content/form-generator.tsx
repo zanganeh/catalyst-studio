@@ -10,7 +10,8 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from 'lucide-react';
 import { Label } from '@/components/ui/label';
-import type { ContentType, ContentItem, Field, FieldType } from '@/lib/content-types/types';
+import type { ContentType, ContentItem, Field } from '@/lib/content-types/types';
+import type { Control, FieldErrors } from 'react-hook-form';
 
 interface FormGeneratorProps {
   contentType: ContentType;
@@ -89,10 +90,13 @@ function createDynamicSchema(fields: Field[]) {
   return z.object(schemaShape);
 }
 
+// Type for form data
+type FormData = Record<string, unknown>;
+
 // Individual field renderer components
 interface FieldProps {
   field: Field;
-  control: any; // Control type from react-hook-form
+  control: Control<FormData>;
   errors: Record<string, { message?: string }>;
 }
 
@@ -113,6 +117,7 @@ function TextField({ field, control, errors }: FieldProps) {
         render={({ field: formField }) => (
           <Input
             {...formField}
+            value={formField.value as string || ''}
             id={field.name}
             placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
             className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
@@ -149,6 +154,7 @@ function RichTextField({ field, control, errors }: FieldProps) {
         render={({ field: formField }) => (
           <Textarea
             {...formField}
+            value={formField.value as string || ''}
             id={field.name}
             placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
             className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 min-h-[120px]"
@@ -185,6 +191,7 @@ function NumberField({ field, control, errors }: FieldProps) {
         render={({ field: formField }) => (
           <Input
             {...formField}
+            value={formField.value as number || ''}
             type="number"
             id={field.name}
             placeholder={field.placeholder || '0'}
@@ -219,7 +226,7 @@ function BooleanField({ field, control }: Omit<FieldProps, 'errors'>) {
           render={({ field: formField }) => (
             <Switch
               id={field.name}
-              checked={formField.value}
+              checked={formField.value as boolean || false}
               onCheckedChange={formField.onChange}
               className="data-[state=checked]:bg-orange-500"
               aria-required={field.required}
@@ -257,6 +264,7 @@ function DateField({ field, control, errors }: FieldProps) {
           <div className="relative">
             <Input
               {...formField}
+              value={formField.value as string || ''}
               type="date"
               id={field.name}
               className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
@@ -315,6 +323,7 @@ function ImageField({ field, control, errors }: FieldProps) {
           <div className="space-y-2">
             <Input
               {...formField}
+              value={formField.value as string || ''}
               type="url"
               id={field.name}
               placeholder="Enter image URL (https://...)"
@@ -327,10 +336,10 @@ function ImageField({ field, control, errors }: FieldProps) {
               aria-invalid={!!errors[field.name] || !!urlError}
               aria-describedby={`${field.helpText ? helpId : ''} ${errors[field.name] || urlError ? errorId : ''}`.trim()}
             />
-            {formField.value && !urlError && (
+            {(formField.value as string) && !urlError && (
               <div className="relative w-full h-32 bg-gray-800 rounded-md overflow-hidden" role="img" aria-label="Image preview">
                 <img
-                  src={formField.value}
+                  src={formField.value as string}
                   alt="Preview of uploaded image"
                   className="w-full h-full object-cover"
                   loading="lazy"
@@ -373,7 +382,7 @@ function ReferenceField({ field, control, errors }: FieldProps) {
         defaultValue={field.defaultValue || ''}
         render={({ field: formField }) => (
           <Select 
-            value={formField.value} 
+            value={formField.value as string || ''} 
             onValueChange={formField.onChange}
             aria-required={field.required}
             aria-invalid={!!errors[field.name]}
@@ -404,7 +413,7 @@ function ReferenceField({ field, control, errors }: FieldProps) {
 }
 
 // Field renderer based on type
-function renderField(field: Field, control: any, errors: Record<string, { message?: string }>) {
+function renderField(field: Field, control: Control<Record<string, unknown>>, errors: Record<string, { message?: string }>) {
   const props = { field, control, errors };
   
   switch (field.type) {
@@ -435,7 +444,7 @@ export function FormGenerator({ contentType, contentItem, onSubmit }: FormGenera
     handleSubmit,
     formState: { errors },
     reset,
-  } = useForm({
+  } = useForm<Record<string, unknown>>({
     resolver: zodResolver(schema),
     defaultValues: contentItem?.data || {},
   });
@@ -470,9 +479,18 @@ export function FormGenerator({ contentType, contentItem, onSubmit }: FormGenera
   // Sort fields by order
   const sortedFields = [...contentType.fields].sort((a, b) => a.order - b.order);
   
+  // Convert FieldErrors to our expected format
+  const formattedErrors: Record<string, { message?: string }> = {};
+  Object.keys(errors).forEach((key) => {
+    const error = errors[key];
+    if (error) {
+      formattedErrors[key] = { message: error.message };
+    }
+  });
+
   return (
     <form id="content-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {sortedFields.map((field) => renderField(field, control, errors))}
+      {sortedFields.map((field) => renderField(field, control, formattedErrors))}
     </form>
   );
 }
