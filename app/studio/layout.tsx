@@ -17,6 +17,9 @@ const ViewComponents = {
   '/studio/content': dynamic(() => import('../(dashboard)/content/page')),
   '/studio/content-builder': dynamic(() => import('../content-builder/page')),
   '/studio/development': dynamic(() => import('../(dashboard)/development/page')),
+  '/studio/deployment': dynamic(() => import('./deployment/page'), { 
+    loading: () => <div className="p-6"><h1 className="text-2xl font-bold text-white">Loading CMS Deployment...</h1></div> 
+  }),
   '/studio/integrations': dynamic(() => import('../(dashboard)/integrations/page')),
   '/studio/analytics': dynamic(() => import('../(dashboard)/analytics/page')),
   '/studio/preview': dynamic(() => import('../preview/page')),
