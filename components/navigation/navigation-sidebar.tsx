@@ -23,6 +23,7 @@ import {
   Plug2,
   FolderOpen,
   Settings,
+  Rocket,
 } from 'lucide-react';
 
 interface DirectLinkItem {
@@ -81,6 +82,12 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
           label: 'Source Code',
           href: '/studio/development',
           icon: <Code2 className="h-4 w-4" />,
+        },
+        {
+          label: 'CMS Deployment',
+          href: '/studio/deployment',
+          icon: <Rocket className="h-4 w-4" />,
+          tooltip: 'Deploy your website to CMS platforms',
         },
       ]
     },
