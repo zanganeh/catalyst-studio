@@ -1,23 +1,14 @@
 /**
  * Component Tests
- * Tests layout components and feature flag integration
+ * Tests layout components with all features permanently enabled
  */
 
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import { FeatureFlagProvider } from '@/contexts/feature-flag-context';
 import { LayoutContainer, ChatPanel, NavigationPanel, MainContentPanel } from '@/components/layout/layout-container';
 import { CatalystBranding } from '@/components/catalyst-branding';
 import { ErrorBoundary, IsolatedErrorBoundary } from '@/components/error-boundary';
-
-// Mock the feature config
-jest.mock('@/config/features', () => ({
-  isFeatureEnabled: jest.fn((name: string) => false),
-  enableFeature: jest.fn(),
-  disableFeature: jest.fn(),
-  clearFeatureCache: jest.fn()
-}));
 
 // Mock Framer Motion to avoid animation issues in tests
 jest.mock('framer-motion', () => ({
@@ -29,175 +20,88 @@ jest.mock('framer-motion', () => ({
 
 describe('Layout Components', () => {
   describe('LayoutContainer', () => {
-    it('should render children when feature is disabled', () => {
+    it('should render children with grid layout (feature permanently enabled)', () => {
       render(
-        <FeatureFlagProvider>
-          <LayoutContainer>
-            <div data-testid="child">Test Content</div>
-          </LayoutContainer>
-        </FeatureFlagProvider>
+        <LayoutContainer>
+          <div data-testid="child">Test Content</div>
+        </LayoutContainer>
       );
       
       expect(screen.getByTestId('child')).toBeInTheDocument();
-      expect(screen.getByTestId('child').parentElement?.className).not.toContain('grid');
-    });
-
-    it('should apply grid layout when feature is enabled', async () => {
-      const { isFeatureEnabled } = require('@/config/features');
-      isFeatureEnabled.mockImplementation((name: string) => 
-        name === 'threeColumnLayout'
-      );
-      
-      render(
-        <FeatureFlagProvider>
-          <LayoutContainer>
-            <div data-testid="child">Test Content</div>
-          </LayoutContainer>
-        </FeatureFlagProvider>
-      );
-      
-      await waitFor(() => {
-        const container = screen.getByTestId('child').parentElement;
-        expect(container?.className).toContain('grid');
-        expect(container?.className).toContain('grid-cols-[360px_260px_1fr]');
-      });
+      const container = screen.getByTestId('child').parentElement;
+      expect(container?.className).toContain('grid');
+      expect(container?.className).toContain('grid-cols-[360px_260px_1fr]');
     });
   });
 
   describe('ChatPanel', () => {
-    it('should render children without modifications when disabled', () => {
+    it('should render children with styling (all features permanently enabled)', () => {
       render(
-        <FeatureFlagProvider>
-          <ChatPanel>
-            <div data-testid="chat">Chat Content</div>
-          </ChatPanel>
-        </FeatureFlagProvider>
+        <ChatPanel>
+          <div data-testid="chat">Chat Content</div>
+        </ChatPanel>
       );
       
       expect(screen.getByTestId('chat')).toBeInTheDocument();
-    });
-
-    it('should apply styling when features are enabled', async () => {
-      const { isFeatureEnabled } = require('@/config/features');
-      isFeatureEnabled.mockImplementation((name: string) => 
-        ['threeColumnLayout', 'catalystBranding', 'glassMorphism'].includes(name)
-      );
-      
-      render(
-        <FeatureFlagProvider>
-          <ChatPanel>
-            <div data-testid="chat">Chat Content</div>
-          </ChatPanel>
-        </FeatureFlagProvider>
-      );
-      
-      await waitFor(() => {
-        const panel = screen.getByTestId('chat').parentElement;
-        expect(panel?.className).toContain('border-r');
-        expect(panel?.className).toContain('backdrop-blur-md');
-      });
+      const panel = screen.getByTestId('chat').parentElement;
+      expect(panel?.className).toContain('border-r');
+      expect(panel?.className).toContain('backdrop-blur-md');
     });
   });
 
   describe('NavigationPanel', () => {
-    it('should not render when layout is disabled', () => {
+    it('should render with children (feature permanently enabled)', () => {
       render(
-        <FeatureFlagProvider>
-          <NavigationPanel>
-            <div data-testid="nav">Navigation</div>
-          </NavigationPanel>
-        </FeatureFlagProvider>
+        <NavigationPanel>
+          <div data-testid="nav">Navigation</div>
+        </NavigationPanel>
       );
       
-      expect(screen.queryByTestId('nav')).not.toBeInTheDocument();
+      expect(screen.getByTestId('nav')).toBeInTheDocument();
     });
 
-    it('should render with placeholder when enabled without children', async () => {
-      const { isFeatureEnabled } = require('@/config/features');
-      isFeatureEnabled.mockImplementation((name: string) => 
-        name === 'threeColumnLayout'
-      );
-      
+    it('should render with placeholder when no children provided', () => {
       render(
-        <FeatureFlagProvider>
-          <NavigationPanel />
-        </FeatureFlagProvider>
+        <NavigationPanel />
       );
       
-      await waitFor(() => {
-        expect(screen.getByText('Navigation (Coming Soon)')).toBeInTheDocument();
-      });
+      expect(screen.getByText('Navigation (Coming Soon)')).toBeInTheDocument();
     });
   });
 
   describe('MainContentPanel', () => {
-    it('should not render when layout is disabled', () => {
+    it('should render with glass morphism (all features permanently enabled)', () => {
       render(
-        <FeatureFlagProvider>
-          <MainContentPanel>
-            <div data-testid="main">Main Content</div>
-          </MainContentPanel>
-        </FeatureFlagProvider>
+        <MainContentPanel>
+          <div data-testid="main">Main Content</div>
+        </MainContentPanel>
       );
       
-      expect(screen.queryByTestId('main')).not.toBeInTheDocument();
-    });
-
-    it('should render with glass morphism when enabled', async () => {
-      const { isFeatureEnabled } = require('@/config/features');
-      isFeatureEnabled.mockImplementation((name: string) => 
-        ['threeColumnLayout', 'glassMorphism', 'catalystBranding'].includes(name)
-      );
-      
-      render(
-        <FeatureFlagProvider>
-          <MainContentPanel>
-            <div data-testid="main">Main Content</div>
-          </MainContentPanel>
-        </FeatureFlagProvider>
-      );
-      
-      await waitFor(() => {
-        const panel = screen.getByTestId('main').parentElement;
-        expect(panel?.className).toContain('backdrop-blur-sm');
-        expect(panel?.className).toContain('bg-gray-950/80');
-      });
+      expect(screen.getByTestId('main')).toBeInTheDocument();
+      const panel = screen.getByTestId('main').parentElement;
+      expect(panel?.className).toContain('backdrop-blur-sm');
+      expect(panel?.className).toContain('bg-gray-950/80');
     });
   });
 });
 
 describe('CatalystBranding', () => {
-  it('should apply classes to body when enabled', async () => {
-    const { isFeatureEnabled } = require('@/config/features');
-    isFeatureEnabled.mockImplementation((name: string) => 
-      name === 'catalystBranding'
-    );
-    
+  it('should apply classes to body (feature permanently enabled)', () => {
     render(
-      <FeatureFlagProvider>
-        <CatalystBranding />
-      </FeatureFlagProvider>
+      <CatalystBranding />
     );
     
-    await waitFor(() => {
-      expect(document.body.classList.contains('catalyst-branding')).toBe(true);
-      expect(document.body.classList.contains('catalyst-dark')).toBe(true);
-    });
+    expect(document.body.classList.contains('catalyst-branding')).toBe(true);
+    expect(document.body.classList.contains('catalyst-dark')).toBe(true);
   });
 
-  it('should cleanup classes on unmount', async () => {
-    const { isFeatureEnabled } = require('@/config/features');
-    isFeatureEnabled.mockImplementation(() => true);
-    
+  it('should cleanup classes on unmount', () => {
     const { unmount } = render(
-      <FeatureFlagProvider>
-        <CatalystBranding />
-      </FeatureFlagProvider>
+      <CatalystBranding />
     );
     
-    await waitFor(() => {
-      expect(document.body.classList.contains('catalyst-branding')).toBe(true);
-    });
+    expect(document.body.classList.contains('catalyst-branding')).toBe(true);
+    expect(document.body.classList.contains('catalyst-dark')).toBe(true);
     
     unmount();
     

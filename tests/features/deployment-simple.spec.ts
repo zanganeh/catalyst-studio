@@ -1,14 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('CMS Deployment Feature - Simple Tests', () => {
-  test('deployment link appears in navigation when feature flag is enabled', async ({ page }) => {
-    // Set feature flag
-    await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.setItem('featureFlags', JSON.stringify({ cmsIntegration: true }));
-    });
-    
-    // Navigate to studio
+test.describe('CMS Deployment Feature - Permanently Enabled', () => {
+  test('deployment link appears in navigation', async ({ page }) => {
+    // Navigate to studio (feature is permanently enabled, no flags needed)
     await page.goto('/studio');
     await page.waitForLoadState('networkidle');
     
@@ -18,13 +12,7 @@ test.describe('CMS Deployment Feature - Simple Tests', () => {
   });
 
   test('deployment page loads when accessed directly', async ({ page }) => {
-    // Set feature flag
-    await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.setItem('featureFlags', JSON.stringify({ cmsIntegration: true }));
-    });
-    
-    // Navigate directly to deployment page
+    // Navigate directly to deployment page (feature is permanently enabled)
     await page.goto('/studio/deployment');
     await page.waitForLoadState('networkidle');
     
@@ -43,12 +31,7 @@ test.describe('CMS Deployment Feature - Simple Tests', () => {
   });
 
   test('deployment functionality is accessible', async ({ page }) => {
-    // Set feature flag and navigate
-    await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.setItem('featureFlags', JSON.stringify({ cmsIntegration: true }));
-    });
-    
+    // Navigate to studio (feature is permanently enabled)
     await page.goto('/studio');
     await page.waitForLoadState('networkidle');
     

@@ -2,14 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Content Type Builder', () => {
   test.beforeEach(async ({ page }) => {
-    // Enable feature flags
+    // Features are permanently enabled, no flags needed
     await page.goto('http://localhost:3000');
     await page.evaluate(() => {
-      localStorage.setItem('featureFlags', JSON.stringify({
-        contentTypeBuilder: true,
-        threeColumnLayout: true,
-        catalystBranding: true
-      }));
       // Clear any existing content types
       localStorage.removeItem('contentTypes');
     });
@@ -202,13 +197,9 @@ test.describe('Content Type Builder', () => {
 
 test.describe('Content Type Builder - Edge Cases', () => {
   test.beforeEach(async ({ page }) => {
+    // Features are permanently enabled, no flags needed
     await page.goto('http://localhost:3000');
     await page.evaluate(() => {
-      localStorage.setItem('featureFlags', JSON.stringify({
-        contentTypeBuilder: true,
-        threeColumnLayout: true,
-        catalystBranding: true
-      }));
       localStorage.removeItem('contentTypes');
     });
     await page.goto('http://localhost:3000/content-builder');

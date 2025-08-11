@@ -1,18 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Chat Persistence', () => {
-  test.beforeEach(async ({ page }) => {
-    // Enable the projectPersistence feature flag and other required flags
-    await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.setItem('featureFlags', JSON.stringify({ 
-        projectPersistence: true,
-        contentTypeBuilder: true,
-        threeColumnLayout: true,
-        catalystBranding: true
-      }));
-    });
-  });
+  // Features are now permanently enabled, no flags needed
 
   test('should persist messages across page refresh', async ({ page }) => {
     // Navigate to chat page
@@ -82,32 +71,7 @@ test.describe('Chat Persistence', () => {
     await expect(page.locator(`text="${testMessage}"`)).not.toBeVisible();
   });
 
-  test('should work when feature flag is disabled', async ({ page }) => {
-    // Disable the feature flag
-    await page.evaluate(() => {
-      localStorage.setItem('featureFlags', JSON.stringify({ projectPersistence: false }));
-    });
-    
-    // Navigate to chat
-    await page.goto('/chat');
-    await page.waitForSelector('[data-testid="chat-input"], textarea[placeholder*="Message"], input[placeholder*="Message"]');
-    
-    // Send a message
-    const testMessage = 'Non-persisted message';
-    const chatInput = await page.locator('[data-testid="chat-input"], textarea[placeholder*="Message"], input[placeholder*="Message"]').first();
-    await chatInput.fill(testMessage);
-    await chatInput.press('Enter');
-    
-    // Wait for message
-    await page.waitForSelector(`text="${testMessage}"`);
-    
-    // Refresh page
-    await page.reload();
-    await page.waitForSelector('[data-testid="chat-input"], textarea[placeholder*="Message"], input[placeholder*="Message"]');
-    
-    // Message should NOT be present (no persistence)
-    await expect(page.locator(`text="${testMessage}"`)).not.toBeVisible();
-  });
+  // Test removed - persistence is now permanently enabled, cannot be disabled
 
   test('should handle storage quota exceeded gracefully', async ({ page }) => {
     await page.goto('/chat');
@@ -206,13 +170,7 @@ test.describe('Chat Persistence', () => {
 // Performance tests
 test.describe('Persistence Performance', () => {
   test('should save messages within 100ms', async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.setItem('featureFlags', JSON.stringify({ 
-        projectPersistence: true,
-        debugMode: true 
-      }));
-    });
+    // Features are permanently enabled, no flags needed
     
     await page.goto('/chat');
     await page.waitForSelector('[data-testid="chat-input"], textarea[placeholder*="Message"], input[placeholder*="Message"]');
@@ -241,10 +199,7 @@ test.describe('Persistence Performance', () => {
   });
 
   test('should handle rapid message sending', async ({ page }) => {
-    await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.setItem('featureFlags', JSON.stringify({ projectPersistence: true }));
-    });
+    // Features are permanently enabled, no flags needed
     
     await page.goto('/chat');
     await page.waitForSelector('[data-testid="chat-input"], textarea[placeholder*="Message"], input[placeholder*="Message"]');

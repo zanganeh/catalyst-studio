@@ -1,16 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Preview System', () => {
-  test.beforeEach(async ({ page }) => {
-    // Enable the preview system feature flag
-    await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.setItem('featureFlags', JSON.stringify({
-        previewSystem: true,
-        contentTypeBuilder: true
-      }));
-    });
-  });
+  // Features are now permanently enabled, no flags needed
 
   test('should navigate to preview page', async ({ page }) => {
     await page.goto('/preview');
