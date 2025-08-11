@@ -208,7 +208,7 @@ function DeploymentPageContent() {
                   
                   <CMSProviderSelector
                     onProviderSelect={(provider) => {
-                      console.log('Provider configured:', provider);
+                      // Provider configuration handled internally
                     }}
                   />
                 </div>
