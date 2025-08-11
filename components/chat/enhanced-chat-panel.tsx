@@ -47,7 +47,7 @@ export default function EnhancedChatPanel({ className }: EnhancedChatPanelProps)
     <ErrorBoundary fallback={<div>Chat temporarily unavailable</div>}>
       <ProjectContextProvider>
         <EnhancedChatProvider>
-          <div className={`enhanced-chat-panel ${className || ''}`}>
+          <div className={`enhanced-chat-panel h-full ${className || ''}`}>
             {/* Original chat remains the core */}
             <BaseChat />
             

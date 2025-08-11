@@ -37,8 +37,6 @@ interface PreviewContextType {
   refresh: () => void
   toggleDeviceFrame: () => void
   clearCache: () => void
-  // Utility
-  isFeatureEnabled: () => boolean
 }
 
 const PreviewContext = createContext<PreviewContextType | undefined>(undefined)
@@ -53,10 +51,9 @@ export function usePreviewContext() {
 
 interface PreviewProviderProps {
   children: React.ReactNode
-  featureFlag?: boolean
 }
 
-export function PreviewProvider({ children, featureFlag = true }: PreviewProviderProps) {
+export function PreviewProvider({ children }: PreviewProviderProps) {
   const [state, setState] = useState<PreviewState>(INITIAL_PREVIEW_STATE)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -64,11 +61,6 @@ export function PreviewProvider({ children, featureFlag = true }: PreviewProvide
   // Integration with existing contexts from Stories 1.2 and 1.3
   // These contexts may not be available in all environments
   // Note: Hooks must be called unconditionally, so we'll handle missing providers differently
-
-  // Check if feature is enabled
-  const isFeatureEnabled = useCallback(() => {
-    return featureFlag
-  }, [featureFlag])
 
   // Send message to preview iframe - defined early to avoid dependency issues
   const sendMessageToPreview = useCallback((message: PreviewMessage) => {
@@ -354,8 +346,7 @@ export function PreviewProvider({ children, featureFlag = true }: PreviewProvide
     updateZoom,
     refresh,
     toggleDeviceFrame,
-    clearCache,
-    isFeatureEnabled
+    clearCache
   }
 
   // Watch for iframe ref from PreviewFrame component
@@ -378,7 +369,7 @@ export function PreviewProvider({ children, featureFlag = true }: PreviewProvide
 }
 
 // Hook to check if preview feature is enabled
+// Note: Preview feature is now permanently enabled (Epic 2 completion)
 export function usePreviewFeature() {
-  const context = useContext(PreviewContext)
-  return context?.isFeatureEnabled() ?? false
+  return true
 }
