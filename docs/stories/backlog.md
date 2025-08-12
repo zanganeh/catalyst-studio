@@ -145,8 +145,89 @@ This backlog contains enhancement features for the Content Type Builder that wer
 - Items can be promoted to active stories based on user feedback and priorities
 - E2E tests exist for current functionality; unit tests deemed unnecessary given coverage
 
+---
+
+### 7. Multi-Website Dashboard UI Components
+**Priority**: High  
+**Story Points**: 5  
+**Description**: Implement missing dashboard UI components for multi-website support identified during Story 3.6 E2E testing.
+
+**Tasks:**
+- [ ] Create Dashboard layout components (DashboardLayout, DashboardHeader)
+- [ ] Implement WebsiteCreator component with AI prompt input
+- [ ] Build RecentApps component with website grid display
+- [ ] Add website card components with metadata display
+- [ ] Implement AI panel for website creation context
+- [ ] Create storage warning UI component
+- [ ] Build migration prompt component for legacy users
+
+**Acceptance Criteria:**
+- Dashboard page displays with proper layout and header
+- Users can input AI prompts for website creation
+- Recent websites display in a grid format
+- Website cards show name, thumbnail, and last modified date
+- AI panel shows context from website creation prompts
+- Storage warnings appear when quota exceeds 90%
+- Migration prompt appears for users with legacy data
+
+**Technical Details:**
+- Components needed in `components/dashboard/`:
+  - `dashboard-layout.tsx`
+  - `dashboard-header.tsx`
+  - `website-creator.tsx`
+  - `recent-apps.tsx`
+  - `website-card.tsx`
+- AI panel needed in studio pages
+- Storage service integration for quota warnings
+- Migration UI for legacy data upgrade
+
+---
+
+### 8. Website Context and State Management
+**Priority**: High  
+**Story Points**: 3  
+**Description**: Implement proper website context switching and state isolation.
+
+**Tasks:**
+- [ ] Create WebsiteContext provider for current website state
+- [ ] Implement website switching mechanism
+- [ ] Add state preservation when switching between websites
+- [ ] Create website selection UI in dashboard
+- [ ] Implement data isolation verification
+
+**Acceptance Criteria:**
+- Each website maintains separate state
+- Switching websites preserves unsaved changes
+- Website context is available throughout studio pages
+- Data from one website doesn't leak to another
+- Website selection persists across sessions
+
+---
+
+### 9. Migration Tools Implementation
+**Priority**: Medium  
+**Story Points**: 3  
+**Description**: Create automated migration tools for upgrading from single to multi-website mode.
+
+**Tasks:**
+- [ ] Create migration script (`npm run migrate:multi-website`)
+- [ ] Implement backup functionality before migration
+- [ ] Add data integrity verification
+- [ ] Create rollback capability
+- [ ] Add progress reporting during migration
+
+**Acceptance Criteria:**
+- Migration script successfully converts legacy data
+- Backup is created before any changes
+- Data integrity is verified post-migration
+- Rollback restores original state if needed
+- Progress is reported to user during migration
+
+---
+
 ## Change Log
 | Date | Version | Description | Author |
 |------|---------|-------------|--------|
 | 2025-01-09 | 1.0 | Initial backlog created from Story 1.3 remaining items | James (Dev) |
 | 2025-01-09 | 1.1 | Added TypeScript type safety improvements from code review | James (Dev) |
+| 2025-08-12 | 1.2 | Added missing UI components for multi-website support from Story 3.6 | James (Dev) |

@@ -12,14 +12,36 @@ export default function Home() {
     const multiWebsiteEnabled = flagService.isEnabled(FeatureFlag.MULTI_WEBSITE_SUPPORT);
     const dashboardEnabled = flagService.isEnabled(FeatureFlag.DASHBOARD_VIEW);
     
+    // Debug logging in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Feature flags:', {
+        multiWebsite: multiWebsiteEnabled,
+        dashboard: dashboardEnabled,
+        env: {
+          NEXT_PUBLIC_MULTI_WEBSITE: process.env.NEXT_PUBLIC_MULTI_WEBSITE,
+          NEXT_PUBLIC_DASHBOARD: process.env.NEXT_PUBLIC_DASHBOARD
+        }
+      });
+    }
+    
     if (multiWebsiteEnabled && dashboardEnabled) {
       // New multi-website experience
       router.push('/dashboard');
     } else {
-      // Legacy single-website experience
-      router.push('/studio');
+      // Legacy single-website experience - redirect to default studio
+      router.push('/studio/default');
     }
   }, [router]);
 
-  return null;
+  // Show a loading state while redirecting
+  return (
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center', 
+      height: '100vh' 
+    }}>
+      <p>Loading...</p>
+    </div>
+  );
 }

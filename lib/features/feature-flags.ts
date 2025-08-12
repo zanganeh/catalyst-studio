@@ -21,21 +21,31 @@ export class FeatureFlagService {
   private flags: Map<FeatureFlag, FeatureFlagConfig>;
   
   private constructor() {
+    // Check for runtime overrides (useful for testing)
+    const getFeatureFlagValue = (envKey: string): boolean => {
+      // First check if we're in browser and have window overrides
+      if (typeof window !== 'undefined' && (window as any)[envKey]) {
+        return (window as any)[envKey] === 'true';
+      }
+      // Fall back to environment variable
+      return process.env[envKey] === 'true';
+    };
+
     this.flags = new Map([
       [FeatureFlag.MULTI_WEBSITE_SUPPORT, {
-        enabled: process.env.NEXT_PUBLIC_MULTI_WEBSITE === 'true',
+        enabled: getFeatureFlagValue('NEXT_PUBLIC_MULTI_WEBSITE'),
         rolloutPercentage: this.parseRolloutPercentage(process.env.NEXT_PUBLIC_ROLLOUT_PERCENTAGE),
         description: 'Enables multi-website management capabilities',
         startDate: new Date('2025-02-01'),
         allowedUsers: this.parseUserList(process.env.NEXT_PUBLIC_BETA_USERS)
       }],
       [FeatureFlag.AI_WEBSITE_CREATION, {
-        enabled: process.env.NEXT_PUBLIC_AI_CREATION === 'true',
+        enabled: getFeatureFlagValue('NEXT_PUBLIC_AI_CREATION'),
         rolloutPercentage: 100,
         description: 'AI-powered website creation from natural language'
       }],
       [FeatureFlag.DASHBOARD_VIEW, {
-        enabled: process.env.NEXT_PUBLIC_DASHBOARD === 'true',
+        enabled: getFeatureFlagValue('NEXT_PUBLIC_DASHBOARD'),
         rolloutPercentage: 100,
         description: 'New dashboard interface for website management'
       }]
@@ -57,6 +67,26 @@ export class FeatureFlagService {
       FeatureFlagService.instance = new FeatureFlagService();
     }
     return FeatureFlagService.instance;
+  }
+
+  /**
+   * Override a feature flag configuration (useful for testing)
+   * @param flag The feature flag to override
+   * @param config The new configuration
+   */
+  public override(flag: FeatureFlag, config: Partial<FeatureFlagConfig>): void {
+    const existing = this.flags.get(flag);
+    if (existing) {
+      this.flags.set(flag, { ...existing, ...config });
+    }
+  }
+
+  /**
+   * Reset all flags to their default configuration
+   */
+  public reset(): void {
+    // Reset the singleton instance
+    FeatureFlagService.instance = new FeatureFlagService();
   }
   
   isEnabled(flag: FeatureFlag, userId?: string): boolean {
