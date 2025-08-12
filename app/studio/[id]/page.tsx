@@ -1,6 +1,8 @@
 'use client';
 
 import { useWebsiteContext } from '@/lib/context/website-context';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 // Dynamically import the overview page
@@ -17,6 +19,14 @@ const OverviewPage = dynamic(() => import('../../(dashboard)/overview/page'), {
 
 export default function StudioPage() {
   const { website, websiteMetadata, isLoading, error } = useWebsiteContext();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Redirect to dashboard if website doesn't exist
+    if (error && error.message.includes('not found')) {
+      router.push('/dashboard');
+    }
+  }, [error, router]);
 
   if (isLoading) {
     return (
@@ -31,9 +41,8 @@ export default function StudioPage() {
   if (error) {
     return (
       <div className="p-6">
-        <div className="text-red-500">
-          <h2 className="text-xl font-bold mb-2">Error Loading Website</h2>
-          <p>{error.message}</p>
+        <div className="text-gray-400">
+          <p>Redirecting to dashboard...</p>
         </div>
       </div>
     );

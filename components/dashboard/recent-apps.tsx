@@ -116,11 +116,11 @@ export function RecentApps({ maxItems = 12, className = '' }: RecentAppsProps) {
             Recent Apps
           </h2>
         </div>
-        <div className="text-center py-8 text-muted-foreground">
+        <div className="text-center py-8 text-gray-400">
           <p>Unable to load recent apps</p>
           <button
             onClick={loadRecentWebsites}
-            className="mt-2 text-primary hover:underline"
+            className="mt-2 text-catalyst-orange hover:text-catalyst-orange-dark hover:underline"
           >
             Try again
           </button>
@@ -138,8 +138,8 @@ export function RecentApps({ maxItems = 12, className = '' }: RecentAppsProps) {
             Recent Apps
           </h2>
         </div>
-        <div className="text-center py-12 text-muted-foreground">
-          <Globe className="w-12 h-12 mx-auto mb-4 opacity-50" />
+        <div className="text-center py-12 text-gray-400">
+          <Globe className="w-12 h-12 mx-auto mb-4 opacity-50 text-gray-600" />
           <p>No websites yet. Create your first one above!</p>
         </div>
       </div>
@@ -149,14 +149,14 @@ export function RecentApps({ maxItems = 12, className = '' }: RecentAppsProps) {
   return (
     <div className={`${className}`}>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-semibold flex items-center gap-2">
-          <Clock className="w-6 h-6" />
+        <h2 className="text-2xl font-semibold flex items-center gap-2 text-white">
+          <Clock className="w-6 h-6 text-catalyst-orange" />
           Recent Apps
         </h2>
         {hasMoreWebsites && !showAll && (
           <button
             onClick={() => setShowAll(true)}
-            className="text-primary hover:underline flex items-center gap-1"
+            className="text-catalyst-orange hover:text-catalyst-orange-dark flex items-center gap-1"
           >
             View All ({websites.length})
             <ChevronRight className="w-4 h-4" />
@@ -165,7 +165,7 @@ export function RecentApps({ maxItems = 12, className = '' }: RecentAppsProps) {
         {showAll && (
           <button
             onClick={() => setShowAll(false)}
-            className="text-primary hover:underline"
+            className="text-catalyst-orange hover:text-catalyst-orange-dark"
           >
             Show Less
           </button>
@@ -177,34 +177,34 @@ export function RecentApps({ maxItems = 12, className = '' }: RecentAppsProps) {
           <button
             key={website.id}
             onClick={() => handleWebsiteClick(website.id)}
-            className="group relative bg-card hover:bg-accent rounded-lg p-4 text-left transition-all hover:shadow-lg hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-primary"
+            className="group relative bg-gray-900 hover:bg-gray-800 rounded-lg p-4 text-left transition-all hover:shadow-lg hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-catalyst-orange border border-gray-700"
           >
             {/* Icon or Thumbnail */}
             <div className="flex items-start justify-between mb-3">
-              <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center">
                 {website.icon ? (
                   <span className="text-2xl">{website.icon}</span>
                 ) : (
-                  <Globe className="w-5 h-5 text-primary" />
+                  <Globe className="w-5 h-5 text-catalyst-orange" />
                 )}
               </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-catalyst-orange transition-colors" />
             </div>
 
             {/* Website Name */}
-            <h3 className="font-semibold text-base mb-1 line-clamp-1">
+            <h3 className="font-semibold text-base mb-1 line-clamp-1 text-white">
               {website.name}
             </h3>
 
             {/* Description */}
             {website.description && (
-              <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+              <p className="text-sm text-gray-400 line-clamp-2 mb-2">
                 {website.description}
               </p>
             )}
 
             {/* Last Modified */}
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1 text-xs text-gray-500">
               <Clock className="w-3 h-3" />
               <span>
                 {formatDistanceToNow(new Date(website.lastModified || website.createdAt), {

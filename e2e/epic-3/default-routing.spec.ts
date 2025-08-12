@@ -1,15 +1,15 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Default Routing Without Feature Flags', () => {
-  test('should redirect to /studio/default by default', async ({ page }) => {
-    // Navigate to root without any feature flags
+test.describe('Default Routing With Dashboard Enabled', () => {
+  test('should redirect to /dashboard by default', async ({ page }) => {
+    // Navigate to root - dashboard is now enabled by default
     await page.goto('/');
     
-    // Wait for redirect to complete (either see loading or direct redirect)
-    await page.waitForURL('/studio/default', { timeout: 10000 });
+    // Wait for redirect to complete
+    await page.waitForURL('/dashboard', { timeout: 10000 });
     
-    // Verify we're on the studio page
-    await expect(page).toHaveURL('/studio/default');
+    // Verify we're on the dashboard page
+    await expect(page).toHaveURL('/dashboard');
   });
 
   test('studio page should redirect to /studio/default', async ({ page }) => {

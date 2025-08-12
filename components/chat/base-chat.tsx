@@ -1,14 +1,37 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Bot, User } from 'lucide-react';
 import { ChatPersistence } from './chat-persistence';
 
-export default function BaseChat() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat();
+interface BaseChatProps {
+  initialMessage?: string;
+  onInitialMessageSent?: () => void;
+}
+
+export default function BaseChat({ initialMessage, onInitialMessageSent }: BaseChatProps = {}) {
+  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages, append } = useChat();
+  const hasInitialized = useRef(false);
+
+  // Send initial message if provided
+  useEffect(() => {
+    if (initialMessage && !hasInitialized.current && messages.length === 0) {
+      hasInitialized.current = true;
+      // Append the initial message as a user message
+      append({
+        role: 'user',
+        content: initialMessage
+      }).then(() => {
+        if (onInitialMessageSent) {
+          onInitialMessageSent();
+        }
+      });
+    }
+  }, [initialMessage, messages.length, append, onInitialMessageSent]);
 
   return (
     <ChatPersistence
@@ -16,9 +39,9 @@ export default function BaseChat() {
       setMessages={setMessages}
       sessionId="default"
     >
-      <div className="h-full flex flex-col bg-dark-secondary">
+      <div className="h-full flex flex-col bg-gray-900">
         <div className="h-full flex flex-col">
-          <div className="px-4 py-4 border-b border-gray-800">
+          <div className="px-4 py-4 border-b border-gray-700">
             <h3 className="flex items-center gap-2 text-white font-semibold">
               <Bot className="h-5 w-5 text-catalyst-orange" />
               AI Assistant
@@ -55,7 +78,7 @@ export default function BaseChat() {
                             <User className="h-4 w-4 text-white" />
                           </div>
                         ) : (
-                          <div className="h-8 w-8 rounded-full bg-surface-dark flex items-center justify-center">
+                          <div className="h-8 w-8 rounded-full bg-gray-800 flex items-center justify-center">
                             <Bot className="h-4 w-4 text-catalyst-orange" />
                           </div>
                         )}
@@ -65,7 +88,7 @@ export default function BaseChat() {
                         className={`rounded-lg px-4 py-2 ${
                           message.role === 'user'
                             ? 'bg-catalyst-orange text-white'
-                            : 'bg-surface-dark text-gray-100'
+                            : 'bg-gray-800 text-gray-100'
                         }`}
                       >
                         <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -77,10 +100,10 @@ export default function BaseChat() {
                 {isLoading && (
                   <div className="flex gap-3 justify-start">
                     <div className="flex gap-3 max-w-[70%]">
-                      <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center">
-                        <Bot className="h-4 w-4" />
+                      <div className="h-8 w-8 rounded-full bg-gray-800 flex items-center justify-center">
+                        <Bot className="h-4 w-4 text-catalyst-orange" />
                       </div>
-                      <div className="rounded-lg px-4 py-2 bg-secondary">
+                      <div className="rounded-lg px-4 py-2 bg-gray-800">
                         <div className="flex space-x-1">
                           <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                           <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>

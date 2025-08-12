@@ -20,45 +20,45 @@ interface CategoryTag {
 
 const CATEGORY_TAGS: CategoryTag[] = [
   {
-    id: 'crm',
-    label: 'CRM',
-    prompt: 'A customer relationship management system with contact tracking, deal pipeline, and analytics',
-    icon: Users,
+    id: 'cms-migration',
+    label: 'CMS Migration',
+    prompt: 'Migrate my Sitecore website to Optimizely SaaS CMS with content modeling, personalization rules, and SEO preservation',
+    icon: Cloud,
     color: 'blue'
   },
   {
-    id: 'dev-tools',
-    label: 'Dev Productivity',
-    prompt: 'A developer productivity tool with code snippets, project management, and collaboration features',
-    icon: Code2,
+    id: 'university-catalog',
+    label: 'Course Catalog',
+    prompt: 'Create a course catalog site for our university with program details, prerequisites, enrollment system, and student portal',
+    icon: GraduationCap,
     color: 'purple'
   },
   {
-    id: 'education',
-    label: 'Educational',
-    prompt: 'An educational platform with course management, student tracking, and interactive learning',
-    icon: GraduationCap,
+    id: 'customer-portal',
+    label: 'Customer Portal',
+    prompt: 'Build a B2B customer portal with order tracking, invoice management, support tickets, and document library',
+    icon: Users,
     color: 'green'
   },
   {
-    id: 'ecommerce',
-    label: 'E-Commerce',
-    prompt: 'An online store with product catalog, shopping cart, and payment processing',
-    icon: ShoppingBag,
+    id: 'hr-platform',
+    label: 'HR Platform',
+    prompt: 'Design an employee self-service HR platform with benefits enrollment, time tracking, and performance reviews',
+    icon: Briefcase,
     color: 'orange'
   },
   {
-    id: 'portfolio',
-    label: 'Portfolio',
-    prompt: 'A professional portfolio website showcasing projects, skills, and contact information',
-    icon: Briefcase,
+    id: 'vendor-marketplace',
+    label: 'Vendor Marketplace',
+    prompt: 'Create a vendor management marketplace with RFP submissions, contract management, and compliance tracking',
+    icon: ShoppingBag,
     color: 'indigo'
   },
   {
-    id: 'saas',
-    label: 'SaaS Platform',
-    prompt: 'A software-as-a-service platform with user authentication, subscription billing, and dashboard',
-    icon: Cloud,
+    id: 'knowledge-base',
+    label: 'Knowledge Base',
+    prompt: 'Develop an internal knowledge base with AI-powered search, article versioning, and department-specific access controls',
+    icon: Code2,
     color: 'cyan'
   }
 ];
@@ -68,12 +68,12 @@ interface QuickCategoryTagsProps {
 }
 
 const colorClasses = {
-  blue: 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50',
-  purple: 'bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50',
-  green: 'bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50',
-  orange: 'bg-orange-100 text-orange-700 hover:bg-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:hover:bg-orange-900/50',
-  indigo: 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-400 dark:hover:bg-indigo-900/50',
-  cyan: 'bg-cyan-100 text-cyan-700 hover:bg-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-400 dark:hover:bg-cyan-900/50'
+  blue: 'bg-gray-800 text-blue-400 hover:bg-gray-700 border border-gray-700',
+  purple: 'bg-gray-800 text-purple-400 hover:bg-gray-700 border border-gray-700',
+  green: 'bg-gray-800 text-green-400 hover:bg-gray-700 border border-gray-700',
+  orange: 'bg-gray-800 text-catalyst-orange hover:bg-gray-700 border border-gray-700',
+  indigo: 'bg-gray-800 text-indigo-400 hover:bg-gray-700 border border-gray-700',
+  cyan: 'bg-gray-800 text-cyan-400 hover:bg-gray-700 border border-gray-700'
 };
 
 export function QuickCategoryTags({ onTagClick }: QuickCategoryTagsProps) {

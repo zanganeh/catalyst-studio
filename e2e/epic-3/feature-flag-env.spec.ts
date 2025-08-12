@@ -28,12 +28,12 @@ test.describe('Feature Flag Environment Test', () => {
     await expect(page).toHaveTitle(/Dashboard/);
   });
 
-  test('feature flags default to disabled without overrides', async ({ page }) => {
+  test('feature flags default to enabled', async ({ page }) => {
     // Navigate without setting any overrides
     await page.goto('/');
     
-    // Should go to studio/default (legacy mode)
-    await page.waitForURL('/studio/default', { timeout: 10000 });
-    await expect(page).toHaveURL('/studio/default');
+    // Should go to dashboard (new default behavior)
+    await page.waitForURL('/dashboard', { timeout: 10000 });
+    await expect(page).toHaveURL('/dashboard');
   });
 });

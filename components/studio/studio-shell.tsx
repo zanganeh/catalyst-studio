@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { usePathname } from 'next/navigation';
 import { LayoutContainer, ChatPanel, NavigationPanel, MainContentPanel } from '@/components/layout/layout-container';
 import { NavigationSidebar } from '@/components/navigation/navigation-sidebar';
 import { MobileNavigation } from '@/components/navigation/mobile-navigation';
 import { Breadcrumb } from '@/components/navigation/breadcrumb';
 import { IsolatedErrorBoundary } from '@/components/error-boundary';
+import { StudioChatWrapper } from './studio-chat-wrapper';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const pageVariants = {
@@ -23,17 +24,6 @@ const pageTransition = {
 
 export function StudioShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [chatContent, setChatContent] = useState<React.ReactNode>(null);
-
-  // Load chat component once and preserve it
-  useEffect(() => {
-    if (!chatContent) {
-      import('../../app/chat/page').then((module) => {
-        const ChatPage = module.default;
-        setChatContent(<ChatPage />);
-      });
-    }
-  }, [chatContent]);
 
   return (
     <>
@@ -43,13 +33,7 @@ export function StudioShell({ children }: { children: React.ReactNode }) {
       <LayoutContainer>
         {/* Chat Panel - Always visible on left */}
         <ChatPanel>
-          {chatContent || (
-            <div className="p-4 h-full flex items-center justify-center">
-              <div className="text-gray-500 text-center">
-                <p className="text-sm">Loading chat...</p>
-              </div>
-            </div>
-          )}
+          <StudioChatWrapper />
         </ChatPanel>
         
         {/* Navigation Panel - Always visible in middle */}

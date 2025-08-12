@@ -53,10 +53,11 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
   // Direct link items (not expandable)
   const directLinks: DirectLinkItem[] = [
     {
-      id: 'overview',
-      label: 'Overview',
-      href: `/studio/${websiteId}`,
+      id: 'home',
+      label: 'Dashboard',
+      href: '/dashboard',
       icon: <Home className="h-4 w-4" />,
+      tooltip: 'Return to main dashboard',
     },
   ];
 
