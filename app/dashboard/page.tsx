@@ -1,8 +1,8 @@
 import { Metadata } from 'next';
 import { DashboardLayout } from '@/components/dashboard/dashboard-layout';
-import { WebsiteGrid } from '@/components/dashboard/website-grid';
 import { DashboardHeader } from '@/components/dashboard/dashboard-header';
 import { WebsiteCreator } from '@/components/dashboard/website-creator';
+import { RecentApps } from '@/components/dashboard/recent-apps';
 
 export const metadata: Metadata = {
   title: 'Dashboard - Catalyst Studio',
@@ -19,9 +19,9 @@ export default function DashboardPage() {
           <WebsiteCreator />
         </div>
         
-        {/* Website Grid */}
-        <section aria-label="Your websites">
-          <WebsiteGrid />
+        {/* Recent Apps Section */}
+        <section aria-label="Recent applications">
+          <RecentApps className="mb-12" />
         </section>
       </main>
     </DashboardLayout>
