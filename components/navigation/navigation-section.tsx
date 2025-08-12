@@ -27,7 +27,13 @@ export const NavigationSection = memo(function NavigationSection({
   const { navigationState, toggleSection } = useNavigation()
   const pathname = usePathname()
   
-  const isExpanded = navigationState.expandedSections.includes(section.id)
+  // Use useState to handle hydration mismatch
+  const [isExpanded, setIsExpanded] = React.useState(false)
+  
+  // Update isExpanded after hydration
+  React.useEffect(() => {
+    setIsExpanded(navigationState.expandedSections.includes(section.id))
+  }, [navigationState.expandedSections, section.id])
   
   // All items are now visible
   const visibleItems = section.items

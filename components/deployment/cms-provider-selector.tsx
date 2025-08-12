@@ -171,10 +171,18 @@ export function CMSProviderSelector({ onProviderSelect, selectedProviderId }: CM
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <button
+            <div
               onClick={() => handleProviderClick(provider.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  handleProviderClick(provider.id);
+                }
+              }}
               className={cn(
-                'relative w-full p-6 rounded-xl border transition-all duration-200',
+                'relative w-full p-6 rounded-xl border transition-all duration-200 cursor-pointer',
                 'bg-gradient-to-br from-white/5 to-white/10',
                 'backdrop-blur-md shadow-lg',
                 'hover:from-white/10 hover:to-white/15',
@@ -227,7 +235,7 @@ export function CMSProviderSelector({ onProviderSelect, selectedProviderId }: CM
               {provider.connectionStatus === 'disconnected' && (
                 <span className="text-xs text-white/40">Click to configure</span>
               )}
-            </button>
+            </div>
           </motion.div>
         ))}
       </div>

@@ -27,19 +27,24 @@ export function NavigationProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   useProject() // Just to ensure the context is available
   
-  const [navigationState, setNavigationState] = useState<NavigationState>(() => {
-    if (typeof window !== 'undefined') {
+  // Always use default state initially to avoid hydration mismatch
+  const [navigationState, setNavigationState] = useState<NavigationState>(defaultNavigationState)
+  const [isHydrated, setIsHydrated] = useState(false)
+  
+  // Load saved state after hydration
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !isHydrated) {
       const stored = localStorage.getItem(NAVIGATION_STORAGE_KEY)
       if (stored) {
         try {
-          return { ...defaultNavigationState, ...JSON.parse(stored) }
+          setNavigationState({ ...defaultNavigationState, ...JSON.parse(stored) })
         } catch {
-          return defaultNavigationState
+          // Keep default state on error
         }
       }
+      setIsHydrated(true)
     }
-    return defaultNavigationState
-  })
+  }, [isHydrated])
 
   // Detect active view from pathname
   useEffect(() => {
