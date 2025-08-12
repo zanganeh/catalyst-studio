@@ -9,7 +9,7 @@ test.describe('CMS Deployment Basic Tests', () => {
     // Look for CMS Deployment in navigation
     const deploymentLink = page.locator('text=CMS Deployment').first();
     
-    // Check if link exists (feature flag removed, should always be visible)
+    // Check if link exists (should always be visible)
     const linkCount = await deploymentLink.count();
     console.log('CMS Deployment links found:', linkCount);
     

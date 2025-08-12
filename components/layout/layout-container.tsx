@@ -12,7 +12,6 @@ interface LayoutContainerProps {
  * Uses centralized FeatureFlagContext to eliminate duplication
  * Story 1.1a: Basic structure
  * Story 1.1b: Catalyst X branding  
- * Protected by feature flags: threeColumnLayout, catalystBranding
  */
 export function LayoutContainer({ children }: LayoutContainerProps) {
   // Three-column layout and catalyst branding are always enabled

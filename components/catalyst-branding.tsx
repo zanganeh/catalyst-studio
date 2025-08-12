@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 /**
  * Catalyst X Branding Component (REFACTORED)
  * Uses centralized FeatureFlagContext
- * Story 1.1b - Applies visual identity when feature flag is enabled
  * PERFORMANCE: Optimized DOM manipulation with cleanup
  */
 export function CatalystBranding() {

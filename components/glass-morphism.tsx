@@ -11,7 +11,6 @@ interface GlassCardProps {
 
 /**
  * Glass Morphism Card Component
- * Story 1.1c - Provides glass effect when feature flags are enabled
  */
 export function GlassCard({ 
   children, 

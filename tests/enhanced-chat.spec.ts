@@ -87,8 +87,6 @@ test.describe('Enhanced Chat Features', () => {
   });
 });
 
-// Feature flag tests removed - Story 2.3 permanently enabled all features
-
 test.describe('Error Handling', () => {
   test('should handle network errors gracefully', async ({ page }) => {
     // Block API requests to simulate network error
