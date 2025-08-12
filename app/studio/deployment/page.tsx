@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { 
@@ -21,10 +21,22 @@ import {
   DeploymentMetrics,
 } from '@/lib/deployment/deployment-types';
 import { mockDeploymentService } from '@/lib/deployment/mock-deployment-service';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams, usePathname } from 'next/navigation';
 
 function DeploymentPageContent() {
   const router = useRouter();
+  const params = useParams();
+  const pathname = usePathname();
+  
+  // Extract website ID from params or pathname
+  const websiteId = useMemo(() => {
+    if (params?.id && typeof params.id === 'string') {
+      return params.id;
+    }
+    // Extract ID from pathname if params not available
+    const match = pathname.match(/\/studio\/([^\/]+)/);
+    return match ? match[1] : 'default';
+  }, [params, pathname]);
   const [activeTab, setActiveTab] = useState('deploy');
   const [lastDeployment, setLastDeployment] = useState<{
     job: DeploymentJob;
@@ -114,7 +126,7 @@ function DeploymentPageContent() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => router.push('/studio/development')}
+            onClick={() => router.push(`/studio/${websiteId}/development`)}
             className="bg-white/5 border-white/10 text-white hover:bg-white/10"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -186,7 +198,7 @@ function DeploymentPageContent() {
             <TabsContent value="deploy" className="mt-8">
               <DeploymentWizard
                 onComplete={handleDeploymentComplete}
-                onCancel={() => router.push('/studio/development')}
+                onCancel={() => router.push(`/studio/${websiteId}/development`)}
               />
             </TabsContent>
 

@@ -254,7 +254,7 @@ so that **I can view and access all my projects from one place**.
 
 ---
 
-### Story 4.4: AI-Powered Website Creation
+### Story 3.4: AI-Powered Website Creation
 
 As a **user**,  
 I want **to create new websites by describing them in natural language**,  
@@ -276,7 +276,7 @@ so that **I can quickly start new projects without manual configuration**.
 
 ---
 
-### Story 5.5: Recent Apps and Website Selection
+### Story 3.5: Recent Apps and Website Selection
 
 As a **user**,  
 I want **to see and access my recently created websites**,  

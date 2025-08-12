@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { NavigationSection } from './navigation-section';
 import { NavigationSection as NavigationSectionType } from '@/lib/navigation/types';
@@ -34,13 +34,28 @@ interface DirectLinkItem {
 
 export const NavigationSidebar = React.memo(function NavigationSidebar() {
   const pathname = usePathname();
+  const params = useParams();
+  
+  // Extract website ID from params, defaulting to 'default' if not present
+  const websiteId = useMemo(() => {
+    if (params?.id && typeof params.id === 'string') {
+      return params.id;
+    }
+    // Check if we're on a legacy /studio route
+    if (pathname.startsWith('/studio') && !pathname.includes('/studio/')) {
+      return 'default';
+    }
+    // Extract ID from pathname if params not available
+    const match = pathname.match(/\/studio\/([^\/]+)/);
+    return match ? match[1] : 'default';
+  }, [params, pathname]);
 
   // Direct link items (not expandable)
   const directLinks: DirectLinkItem[] = [
     {
       id: 'overview',
       label: 'Overview',
-      href: '/studio/overview',
+      href: `/studio/${websiteId}`,
       icon: <Home className="h-4 w-4" />,
     },
   ];
@@ -55,13 +70,13 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
       items: [
         {
           label: 'Content Items',
-          href: '/studio/content',
+          href: `/studio/${websiteId}/content`,
           icon: <FolderOpen className="h-4 w-4" />,
           tooltip: 'Browse and manage your content entries',
         },
         {
           label: 'Content Modeling',
-          href: '/studio/content-builder',
+          href: `/studio/${websiteId}/content-builder`,
           icon: <Database className="h-4 w-4" />,
           tooltip: 'Design content schemas and data structures',
         },
@@ -75,12 +90,12 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
       items: [
         {
           label: 'Source Code',
-          href: '/studio/development',
+          href: `/studio/${websiteId}/development`,
           icon: <Code2 className="h-4 w-4" />,
         },
         {
           label: 'CMS Deployment',
-          href: '/studio/deployment',
+          href: `/studio/${websiteId}/deployment`,
           icon: <Rocket className="h-4 w-4" />,
           tooltip: 'Deploy your website to CMS platforms',
         },
@@ -94,7 +109,7 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
       items: [
         {
           label: 'CMS Connections',
-          href: '/studio/integrations',
+          href: `/studio/${websiteId}/integrations`,
           icon: <Plug2 className="h-4 w-4" />,
         },
       ]
@@ -106,14 +121,14 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
     {
       id: 'preview',
       label: 'Preview',
-      href: '/studio/preview',
+      href: `/studio/${websiteId}/preview`,
       icon: <Eye className="h-4 w-4" />,
       tooltip: 'Preview your website across different devices and screen sizes',
     },
     {
       id: 'analytics',
       label: 'Analytics',
-      href: '/studio/analytics',
+      href: `/studio/${websiteId}/analytics`,
       icon: <BarChart3 className="h-4 w-4" />,
       tooltip: 'Track and analyze your project performance',
     },
@@ -124,7 +139,7 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
     {
       id: 'settings',
       label: 'Settings',
-      href: '/studio/settings',
+      href: `/studio/${websiteId}/settings`,
       icon: <Settings className="h-4 w-4" />,
     },
   ];
