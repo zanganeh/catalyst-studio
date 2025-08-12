@@ -1,16 +1,6 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Multi-Website Support', () => {
-  test.beforeEach(async ({ page }) => {
-    // Enable feature flags
-    await page.addInitScript(() => {
-      localStorage.setItem('feature_flags', JSON.stringify({
-        multi_website_support: true,
-        dashboard_view: true,
-        ai_website_creation: true
-      }));
-    });
-  });
   
   test.skip('Complete multi-website user flow', async ({ page }) => {
     // SKIPPED: Dashboard and AI panel UI components not yet implemented
@@ -85,19 +75,13 @@ test.describe('Multi-Website Support', () => {
     await expect(page.locator('h1')).toContainText('Blog');
   });
   
-  test.skip('Feature flag disabled experience', async ({ page }) => {
-    // SKIPPED: Legacy studio redirect not working as expected
-    // Disable feature flags
-    await page.addInitScript(() => {
-      localStorage.setItem('feature_flags', JSON.stringify({
-        multi_website_support: false
-      }));
-    });
+  test.skip('Invalid studio ID handling', async ({ page }) => {
+    // SKIPPED: Studio ID validation not fully implemented
     
-    await page.goto('/');
+    await page.goto('/studio/invalid-id-123');
     
-    // Should redirect to legacy studio
-    await expect(page).toHaveURL('/studio');
+    // Should redirect to dashboard for invalid IDs
+    await expect(page).toHaveURL('/dashboard');
     
     // No dashboard link visible
     await expect(page.locator('a[href="/dashboard"]')).toHaveCount(0);
