@@ -6,6 +6,7 @@ export interface WebsiteMetadata {
   lastModified: Date;
   storageQuota: number;
   category?: string;
+  description?: string;
 }
 
 export interface GlobalSettings {
