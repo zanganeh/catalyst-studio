@@ -10,6 +10,7 @@ import {
 } from './types';
 import { QuotaMonitor } from './quota-monitor';
 import { MigrationUtility } from './migration';
+import { Logger } from './logger';
 
 export class WebsiteStorageService {
   private db: IDBDatabase | null = null;
@@ -30,7 +31,7 @@ export class WebsiteStorageService {
         // Check for migration needs
         const needsMigration = await this.migrationUtility.detectSingleWebsiteData();
         if (needsMigration) {
-          console.log('Legacy data detected, starting migration...');
+          Logger.log('Legacy data detected, starting migration...');
           await this.migrationUtility.migrateFromSingleWebsite();
           const isValid = await this.migrationUtility.validateMigration();
           if (!isValid) {
@@ -44,10 +45,10 @@ export class WebsiteStorageService {
         // Initialize quota monitoring
         await this.quotaMonitor.checkQuota();
 
-        console.log('WebsiteStorageService initialized successfully');
+        Logger.log('WebsiteStorageService initialized successfully');
       }
     } catch (error) {
-      console.error('Failed to initialize WebsiteStorageService:', error);
+      Logger.error('Failed to initialize WebsiteStorageService:', error);
       throw error;
     }
   }
@@ -70,7 +71,7 @@ export class WebsiteStorageService {
         aiContext: aiContext || this.getDefaultAIContext()
       };
     } catch (error) {
-      console.error(`Failed to get website data for ${websiteId}:`, error);
+      Logger.error(`Failed to get website data for ${websiteId}:`, error);
       throw error;
     }
   }
@@ -102,7 +103,7 @@ export class WebsiteStorageService {
       // Check quota after save
       await this.quotaMonitor.checkQuota();
     } catch (error) {
-      console.error(`Failed to save website data for ${websiteId}:`, error);
+      Logger.error(`Failed to save website data for ${websiteId}:`, error);
       throw error;
     }
   }
@@ -122,9 +123,9 @@ export class WebsiteStorageService {
       // Remove from global metadata
       await this.removeWebsiteFromMetadata(websiteId);
 
-      console.log(`Website ${websiteId} deleted successfully`);
+      Logger.log(`Website ${websiteId} deleted successfully`);
     } catch (error) {
-      console.error(`Failed to delete website ${websiteId}:`, error);
+      Logger.error(`Failed to delete website ${websiteId}:`, error);
       throw error;
     }
   }
@@ -144,7 +145,7 @@ export class WebsiteStorageService {
         request.onerror = () => reject(request.error);
       });
     } catch (error) {
-      console.error('Failed to list websites:', error);
+      Logger.error('Failed to list websites:', error);
       throw error;
     }
   }
@@ -168,10 +169,10 @@ export class WebsiteStorageService {
       // Initialize empty stores for the website
       await this.initializeWebsiteStores(id);
 
-      console.log(`Website ${id} created successfully`);
+      Logger.log(`Website ${id} created successfully`);
       return id;
     } catch (error) {
-      console.error('Failed to create website:', error);
+      Logger.error('Failed to create website:', error);
       throw error;
     }
   }
@@ -212,7 +213,7 @@ export class WebsiteStorageService {
         request.onerror = () => reject(request.error);
       });
     } catch (error) {
-      console.error(`Failed to update website metadata for ${id}:`, error);
+      Logger.error(`Failed to update website metadata for ${id}:`, error);
       throw error;
     }
   }
@@ -235,7 +236,7 @@ export class WebsiteStorageService {
         type: 'application/json' 
       });
     } catch (error) {
-      console.error(`Failed to export website ${websiteId}:`, error);
+      Logger.error(`Failed to export website ${websiteId}:`, error);
       throw error;
     }
   }
@@ -262,10 +263,10 @@ export class WebsiteStorageService {
       // Import website data
       await this.saveWebsiteData(newId, importData.data);
 
-      console.log(`Website imported successfully with ID: ${newId}`);
+      Logger.log(`Website imported successfully with ID: ${newId}`);
       return newId;
     } catch (error) {
-      console.error('Failed to import website:', error);
+      Logger.error('Failed to import website:', error);
       throw error;
     }
   }
@@ -292,7 +293,7 @@ export class WebsiteStorageService {
 
       return totalSize;
     } catch (error) {
-      console.error(`Failed to get storage size for website ${websiteId}:`, error);
+      Logger.error(`Failed to get storage size for website ${websiteId}:`, error);
       return 0;
     }
   }
@@ -316,9 +317,9 @@ export class WebsiteStorageService {
         await this.cleanupOldContentVersions(websiteId);
       }
 
-      console.log(`Cleanup completed for website ${websiteId}`);
+      Logger.log(`Cleanup completed for website ${websiteId}`);
     } catch (error) {
-      console.error(`Failed to cleanup data for website ${websiteId}:`, error);
+      Logger.error(`Failed to cleanup data for website ${websiteId}:`, error);
       throw error;
     }
   }
@@ -499,12 +500,12 @@ export class WebsiteStorageService {
   private async cleanupUnreferencedAssets(websiteId: string): Promise<void> {
     // Implementation would check content for asset references
     // and remove unreferenced ones
-    console.log(`Cleaning up unreferenced assets for website ${websiteId}`);
+    Logger.log(`Cleaning up unreferenced assets for website ${websiteId}`);
   }
 
   private async cleanupOldContentVersions(websiteId: string): Promise<void> {
     // Implementation would remove old content versions
-    console.log(`Cleaning up old content versions for website ${websiteId}`);
+    Logger.log(`Cleaning up old content versions for website ${websiteId}`);
   }
 
   private validateWebsiteId(id: string): void {
@@ -548,9 +549,9 @@ export class WebsiteStorageService {
 
   private getDefaultAIContext(): AIContext {
     return {
-      brandIdentity: null,
-      visualIdentity: null,
-      contentStrategy: null,
+      brandIdentity: undefined,
+      visualIdentity: undefined,
+      contentStrategy: undefined,
       history: []
     };
   }

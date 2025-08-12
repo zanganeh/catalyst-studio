@@ -21,10 +21,36 @@ export interface WebsiteConfig {
   metadata?: Record<string, unknown>;
 }
 
+export interface Page {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  metadata?: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Component {
+  id: string;
+  name: string;
+  type: string;
+  props: Record<string, unknown>;
+  children?: Component[];
+}
+
+export interface Template {
+  id: string;
+  name: string;
+  description?: string;
+  structure: Record<string, unknown>;
+  variables: string[];
+}
+
 export interface ContentData {
-  pages?: unknown[];
-  components?: unknown[];
-  templates?: unknown[];
+  pages?: Page[];
+  components?: Component[];
+  templates?: Template[];
 }
 
 export interface AssetReferences {
@@ -33,11 +59,50 @@ export interface AssetReferences {
   documents?: string[];
 }
 
+export interface BrandIdentity {
+  name: string;
+  tagline?: string;
+  mission?: string;
+  vision?: string;
+  values?: string[];
+  personality?: string[];
+}
+
+export interface VisualIdentity {
+  colors?: {
+    primary: string;
+    secondary?: string;
+    accent?: string;
+    [key: string]: string | undefined;
+  };
+  typography?: {
+    heading: string;
+    body: string;
+    [key: string]: string;
+  };
+  logoUrl?: string;
+}
+
+export interface ContentStrategy {
+  tone?: string;
+  targetAudience?: string;
+  keywords?: string[];
+  topics?: string[];
+}
+
+export interface AIHistoryEntry {
+  id: string;
+  timestamp: Date;
+  prompt: string;
+  response: string;
+  context?: Record<string, unknown>;
+}
+
 export interface AIContext {
-  brandIdentity?: unknown;
-  visualIdentity?: unknown;
-  contentStrategy?: unknown;
-  history?: unknown[];
+  brandIdentity?: BrandIdentity;
+  visualIdentity?: VisualIdentity;
+  contentStrategy?: ContentStrategy;
+  history?: AIHistoryEntry[];
 }
 
 export interface WebsiteData {

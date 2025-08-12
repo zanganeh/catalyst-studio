@@ -151,6 +151,14 @@ export class MigrationUtility {
       const backup = JSON.parse(backupInfo);
       console.log('Rolling back migration from backup:', backup.timestamp);
 
+      // Clear all new format data first
+      const databases = await (indexedDB as any).databases?.() || [];
+      for (const dbInfo of databases) {
+        if (dbInfo.name.startsWith('website_') || dbInfo.name === 'catalyst_global') {
+          await this.deleteDatabase(dbInfo.name);
+        }
+      }
+
       // Restore localStorage items
       Object.keys(localStorage).forEach(key => {
         if (key.startsWith('catalyst_') && key !== this.BACKUP_KEY) {
@@ -158,13 +166,53 @@ export class MigrationUtility {
         }
       });
 
-      // TODO: Implement full rollback from backup blob
-      console.warn('Full rollback implementation pending');
+      // Restore backup data
+      const response = await fetch(backup.url);
+      const backupData = await response.json();
+
+      // Restore localStorage data
+      Object.keys(backupData).forEach(key => {
+        if (key.startsWith('catalyst_') && !key.startsWith('db_')) {
+          localStorage.setItem(key, backupData[key]);
+        }
+      });
+
+      // Restore IndexedDB databases
+      for (const key of Object.keys(backupData)) {
+        if (key.startsWith('db_')) {
+          const dbName = key.replace('db_', '');
+          await this.restoreDatabase(dbName, backupData[key]);
+        }
+      }
+
+      // Clean up backup
+      localStorage.removeItem(this.BACKUP_KEY);
+      URL.revokeObjectURL(backup.url);
       
+      console.log('Rollback completed successfully');
     } catch (error) {
       console.error('Rollback failed:', error);
       throw new Error('Critical: Rollback failed - manual intervention required');
     }
+  }
+
+  private async restoreDatabase(dbName: string, data: any): Promise<void> {
+    const db = await this.openDatabase(dbName);
+    
+    for (const storeName of Object.keys(data)) {
+      const transaction = db.transaction([storeName], 'readwrite');
+      const store = transaction.objectStore(storeName);
+      
+      for (const item of data[storeName]) {
+        await new Promise<void>((resolve, reject) => {
+          const request = store.put(item);
+          request.onsuccess = () => resolve();
+          request.onerror = () => reject(request.error);
+        });
+      }
+    }
+    
+    db.close();
   }
 
   private async extractLegacyData(): Promise<WebsiteData> {
@@ -185,9 +233,9 @@ export class MigrationUtility {
         documents: []
       },
       aiContext: {
-        brandIdentity: null,
-        visualIdentity: null,
-        contentStrategy: null,
+        brandIdentity: undefined,
+        visualIdentity: undefined,
+        contentStrategy: undefined,
         history: []
       }
     };
