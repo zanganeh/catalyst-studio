@@ -1,0 +1,51 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Website {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String
+  metadata    String?  // Using String for SQLite instead of Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  contentTypes ContentType[]
+  contentItems ContentItem[]
+}
+
+model ContentType {
+  id        String   @id @default(cuid())
+  websiteId String
+  name      String
+  fields    String   // Using String for SQLite instead of Json
+  settings  String?  // Using String for SQLite instead of Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  website      Website       @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  contentItems ContentItem[]
+}
+
+model ContentItem {
+  id            String   @id @default(cuid())
+  contentTypeId String
+  websiteId     String
+  data          String   // Using String for SQLite instead of Json
+  status        String   @default("draft")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  contentType ContentType @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
+  website     Website     @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+}

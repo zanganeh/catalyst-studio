@@ -28,7 +28,7 @@ const customJestConfig = {
     '**/?(*.)+(spec|test).{js,jsx,ts,tsx}'
   ],
   moduleDirectories: ['node_modules', '<rootDir>/'],
-  testPathIgnorePatterns: ['/node_modules/', '/.next/', '/tests/'],
+  testPathIgnorePatterns: ['/node_modules/', '/.next/', '/tests/', '/e2e/'],
   transformIgnorePatterns: [
     '/node_modules/',
     '^.+\\.module\\.(css|sass|scss)$',

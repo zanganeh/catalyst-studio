@@ -1,8 +1,17 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom'
+import dotenv from 'dotenv'
 
-// Mock environment variables
+// Load test environment variables from .env.test
+dotenv.config({ path: '.env.test' })
+
+// Ensure test environment is set
 process.env.NODE_ENV = 'test'
+
+// Add setImmediate polyfill for Prisma compatibility
+if (typeof setImmediate === 'undefined') {
+  global.setImmediate = (fn, ...args) => setTimeout(fn, 0, ...args);
+}
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {

@@ -54,3 +54,5 @@ prisma/dev.db
 .b*/**
 test-results/**
 playwright-report/**
+
+/lib/generated/prisma
