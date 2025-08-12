@@ -5,7 +5,7 @@ import { defineConfig, devices } from '@playwright/test';
  * Focused on protecting existing chat functionality during brownfield enhancement
  */
 export default defineConfig({
-  testDir: './tests',
+  testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
