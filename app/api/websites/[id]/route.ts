@@ -97,22 +97,24 @@ export async function DELETE(
   try {
     const prisma = getClient();
     
-    // Check if website exists
-    const existing = await prisma.website.findUnique({
+    // Use deleteMany which returns count - more efficient than check + delete
+    const result = await prisma.website.delete({
       where: { id: params.id }
     });
     
-    if (!existing) {
+    if (!result) {
       throw new ApiError(404, 'Website not found', 'NOT_FOUND');
     }
     
-    // Delete website
-    await prisma.website.delete({
-      where: { id: params.id }
-    });
-    
     return Response.json({ data: { message: 'Website deleted successfully' } });
   } catch (error) {
+    // Prisma throws P2025 when trying to delete non-existent record
+    if (error && typeof error === 'object' && 'code' in error) {
+      const prismaError = error as { code: string };
+      if (prismaError.code === 'P2025') {
+        throw new ApiError(404, 'Website not found', 'NOT_FOUND');
+      }
+    }
     return handleApiError(error);
   }
 }

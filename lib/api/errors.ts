@@ -33,7 +33,7 @@ export function handleApiError(error: unknown): Response {
   
   // Handle Prisma errors
   if (error && typeof error === 'object' && 'code' in error) {
-    const prismaError = error as any;
+    const prismaError = error as { code: string; meta?: any; message?: string };
     
     // Handle unique constraint violations
     if (prismaError.code === 'P2002') {

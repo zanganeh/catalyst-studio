@@ -365,11 +365,40 @@ When creating new API routes:
 5. Document any deviations from the standard pattern
 6. Test all operations including error cases
 
+## Security Considerations
+
+### Input Validation
+- All string inputs are trimmed to prevent whitespace-only submissions
+- Maximum length constraints prevent buffer overflow attacks
+- Zod validation rejects malformed data before processing
+
+### Rate Limiting (Future Implementation)
+```typescript
+// Example rate limiting middleware
+import rateLimit from 'express-rate-limit';
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100 // limit each IP to 100 requests per windowMs
+});
+```
+
+### SQL Injection Prevention
+- Prisma ORM provides parameterized queries by default
+- Never construct raw SQL from user input
+
+### JSON Metadata Security
+- Validate metadata structure before JSON.parse()
+- Consider size limits for metadata field
+- Sanitize metadata values if used in UI
+
 ## Future Enhancements
 
 - Authentication middleware integration
-- Rate limiting
-- API versioning strategy
+- Rate limiting implementation
+- API versioning strategy (e.g., /api/v1/websites)
 - OpenAPI/Swagger documentation generation
 - Automated testing framework
 - Request/response logging middleware
+- API key management
+- Request signing for sensitive operations
