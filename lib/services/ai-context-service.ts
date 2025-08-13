@@ -71,7 +71,7 @@ export class AIContextService {
     const messages: AIMessage[] = initialMessage ? [initialMessage] : [];
     const metadata: AIMetadata = {
       totalMessages: messages.length,
-      tokens: this.estimateTokens(messages)
+      tokens: await this.estimateTokens(messages)
     };
     
     const context = await prisma.aIContext.create({
@@ -110,7 +110,7 @@ export class AIContextService {
     
     // Prune if needed
     if (pruneIfNeeded) {
-      const tokens = this.estimateTokens(messages);
+      const tokens = await this.estimateTokens(messages);
       if (messages.length > MAX_MESSAGES || tokens > MAX_TOKENS) {
         messages = await this.pruneContext(messages, context.summary);
       }
@@ -119,7 +119,7 @@ export class AIContextService {
     const metadata: AIMetadata = {
       ...context.metadata,
       totalMessages: messages.length,
-      tokens: this.estimateTokens(messages)
+      tokens: await this.estimateTokens(messages)
     };
     
     const updated = await prisma.aIContext.update({
@@ -266,10 +266,10 @@ export class AIContextService {
   /**
    * Estimate token count for messages
    */
-  private static estimateTokens(messages: AIMessage[]): number {
-    // Rough estimation: 1 token ~= 4 characters
-    const totalChars = messages.reduce((sum, msg) => sum + msg.content.length, 0);
-    return Math.ceil(totalChars / 4);
+  private static async estimateTokens(messages: AIMessage[]): Promise<number> {
+    // Use the improved estimation from pruning utility
+    const { estimateTokenCount } = await import('@/lib/utils/ai-context-pruning');
+    return estimateTokenCount(messages);
   }
   
   /**

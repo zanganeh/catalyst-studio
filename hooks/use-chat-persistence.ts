@@ -31,10 +31,12 @@ interface UseChatPersistenceReturn {
   storageUsage: { usage: number; quota: number; percentage: number } | null;
   error: Error | null;
   saveMessages: (messages: AIMessage[]) => Promise<void>;
+  saveMessagesImmediate: (messages: AIMessage[]) => Promise<void>;
   loadMessages: () => Promise<ContextAIMessage[]>;
   clearMessages: () => Promise<void>;
   exportMessages: () => Promise<string>;
   importMessages: (jsonData: string) => Promise<void>;
+  contextData?: any;
 }
 
 export function useChatPersistence({
@@ -59,6 +61,7 @@ export function useChatPersistence({
   const lastMessagesRef = useRef<string>('');
   const isInitializedRef = useRef(false);
   const hasCreatedContextRef = useRef(false);
+  const isCreatingContextRef = useRef(false); // Mutex for context creation
 
   // Use the new AI Context API hooks
   const { data: contextData, isLoading: isContextLoading, error: contextError } = useAIContext(
@@ -73,9 +76,13 @@ export function useChatPersistence({
 
   // Initialize context if needed
   useEffect(() => {
-    if (!enabled || !websiteId || !sessionId || hasCreatedContextRef.current) return;
+    if (!enabled || !websiteId || !sessionId || hasCreatedContextRef.current || isCreatingContextRef.current) return;
     
     const initContext = async () => {
+      // Prevent concurrent creation attempts
+      if (isCreatingContextRef.current) return;
+      isCreatingContextRef.current = true;
+      
       try {
         // Check if context exists, if not create it
         // Only create if we have loaded and there's no context
@@ -102,6 +109,8 @@ export function useChatPersistence({
           console.error('Failed to initialize AI context:', err);
           setError(err as Error);
         }
+      } finally {
+        isCreatingContextRef.current = false;
       }
     };
 
@@ -127,6 +136,107 @@ export function useChatPersistence({
     }));
   }, []);
 
+  // Save messages immediately (for critical paths like unmount)
+  const saveMessagesImmediate = useCallback(async (messages: AIMessage[]) => {
+    if (!enabled || !websiteId || !sessionId) return;
+
+    // Clear any pending saves
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+
+    const messagesString = JSON.stringify(messages);
+    if (messagesString === lastMessagesRef.current) {
+      return; // No changes, skip save
+    }
+
+    setIsSaving(true);
+    setError(null);
+    onSaveStart?.();
+
+    try {
+      const convertedMessages = convertMessages(messages);
+      
+      // If context doesn't exist yet, create it with the first message
+      if (!hasCreatedContextRef.current && !contextData && !isCreatingContextRef.current) {
+        const firstMessage = convertedMessages[0];
+        if (firstMessage) {
+          isCreatingContextRef.current = true;
+          try {
+            await createContext.mutateAsync({
+              websiteId,
+              sessionId,
+              initialMessage: firstMessage
+            });
+            hasCreatedContextRef.current = true;
+            
+            // Append remaining messages if any
+            for (let i = 1; i < convertedMessages.length; i++) {
+              await appendMessage.mutateAsync({
+                message: convertedMessages[i]
+              });
+            }
+          } catch (err) {
+            // If context already exists, just mark it as created
+            if (err instanceof Error && err.message.includes('already exists')) {
+              hasCreatedContextRef.current = true;
+              // Fall through to update existing context
+            } else {
+              throw err;
+            }
+          } finally {
+            isCreatingContextRef.current = false;
+          }
+        }
+      }
+      
+      // If context exists, update it
+      if (hasCreatedContextRef.current || contextData) {
+        // Only update if messages have actually changed
+        const existingMessages = contextData?.messages || [];
+        const hasChanges = convertedMessages.length !== existingMessages.length ||
+          JSON.stringify(convertedMessages) !== JSON.stringify(existingMessages);
+        
+        if (hasChanges) {
+          // Clear existing messages and append all new ones
+          // This maintains the full conversation history
+          await clearContext.mutateAsync();
+          
+          // Append all messages
+          for (const msg of convertedMessages) {
+            await appendMessage.mutateAsync({
+              message: msg
+            });
+          }
+        }
+      }
+
+      setLastSaved(new Date());
+      setSaveCount(convertedMessages.length);
+      lastMessagesRef.current = messagesString;
+      onSaveComplete?.();
+    } catch (err) {
+      console.error('Failed to save messages:', err);
+      setError(err as Error);
+      onSaveError?.(err as Error);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [
+    enabled,
+    websiteId,
+    sessionId,
+    convertMessages,
+    createContext,
+    appendMessage,
+    clearContext,
+    contextData,
+    onSaveStart,
+    onSaveComplete,
+    onSaveError
+  ]);
+
   // Save messages with debouncing
   const saveMessages = useCallback(async (messages: AIMessage[]) => {
     if (!enabled || !websiteId || !sessionId) return;
@@ -142,90 +252,16 @@ export function useChatPersistence({
       return; // No changes, skip save
     }
 
-    // Debounce the save operation
-    saveTimeoutRef.current = setTimeout(async () => {
-      setIsSaving(true);
-      setError(null);
-      onSaveStart?.();
-
-      try {
-        const convertedMessages = convertMessages(messages);
-        
-        // If context doesn't exist yet, create it with the first message
-        if (!hasCreatedContextRef.current && !contextData) {
-          const firstMessage = convertedMessages[0];
-          if (firstMessage) {
-            try {
-              await createContext.mutateAsync({
-                websiteId,
-                sessionId,
-                initialMessage: firstMessage
-              });
-              hasCreatedContextRef.current = true;
-              
-              // Append remaining messages if any
-              for (let i = 1; i < convertedMessages.length; i++) {
-                await appendMessage.mutateAsync({
-                  message: convertedMessages[i]
-                });
-              }
-            } catch (err) {
-              // If context already exists, just mark it as created
-              if (err instanceof Error && err.message.includes('already exists')) {
-                hasCreatedContextRef.current = true;
-                // Fall through to update existing context
-              } else {
-                throw err;
-              }
-            }
-          }
-        }
-        
-        // If context exists, update it
-        if (hasCreatedContextRef.current || contextData) {
-          // Only update if messages have actually changed
-          const existingMessages = contextData?.messages || [];
-          const hasChanges = convertedMessages.length !== existingMessages.length ||
-            JSON.stringify(convertedMessages) !== JSON.stringify(existingMessages);
-          
-          if (hasChanges) {
-            // Clear existing messages and append all new ones
-            // This maintains the full conversation history
-            await clearContext.mutateAsync();
-            
-            // Append all messages
-            for (const msg of convertedMessages) {
-              await appendMessage.mutateAsync({
-                message: msg
-              });
-            }
-          }
-        }
-
-        setLastSaved(new Date());
-        setSaveCount(convertedMessages.length);
-        lastMessagesRef.current = messagesString;
-        onSaveComplete?.();
-      } catch (err) {
-        console.error('Failed to save messages:', err);
-        setError(err as Error);
-        onSaveError?.(err as Error);
-      } finally {
-        setIsSaving(false);
-      }
+    // Debounce the save operation - call immediate save after delay
+    saveTimeoutRef.current = setTimeout(() => {
+      saveMessagesImmediate(messages);
     }, autoSaveDelay);
   }, [
     enabled,
     websiteId,
     sessionId,
     autoSaveDelay,
-    convertMessages,
-    createContext,
-    appendMessage,
-    clearContext,
-    onSaveStart,
-    onSaveComplete,
-    onSaveError
+    saveMessagesImmediate
   ]);
 
   // Load messages
@@ -338,14 +374,58 @@ export function useChatPersistence({
     }
   }, [enabled, websiteId, sessionId, clearContext, createContext, appendMessage]);
 
-  // Cleanup on unmount
+  // Store current messages ref for cleanup
+  const currentMessagesRef = useRef<AIMessage[]>([]);
+  
+  // Update current messages ref when contextData changes
   useEffect(() => {
-    return () => {
+    if (contextData?.messages) {
+      currentMessagesRef.current = contextData.messages.map((msg: ContextAIMessage) => ({
+        id: crypto.randomUUID(),
+        role: msg.role,
+        content: msg.content,
+        createdAt: msg.timestamp ? new Date(msg.timestamp) : undefined
+      }));
+    }
+  }, [contextData]);
+
+  // Cleanup on unmount and beforeunload
+  useEffect(() => {
+    // Beforeunload handler to save before page unload
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (saveTimeoutRef.current) {
+        // Clear pending save and save immediately
         clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+        
+        // Use the current messages if available
+        if (currentMessagesRef.current.length > 0) {
+          // Note: This will be async but browser will wait briefly
+          saveMessagesImmediate(currentMessagesRef.current);
+        }
       }
     };
-  }, []);
+
+    // Add event listener
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Cleanup function
+    return () => {
+      // Remove event listener
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      
+      // Save any pending messages on unmount
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
+        
+        // Save immediately if we have messages
+        if (currentMessagesRef.current.length > 0) {
+          saveMessagesImmediate(currentMessagesRef.current);
+        }
+      }
+    };
+  }, [saveMessagesImmediate]);
 
   // Calculate storage usage (using mock values since we're using database now)
   const storageUsage = {
@@ -363,6 +443,7 @@ export function useChatPersistence({
     storageUsage,
     error: error || contextError,
     saveMessages,
+    saveMessagesImmediate,
     loadMessages,
     clearMessages,
     exportMessages,

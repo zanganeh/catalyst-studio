@@ -92,18 +92,62 @@ export function pruneMessages(
 
 /**
  * Estimate token count for messages
- * Using rough approximation: 1 token ≈ 4 characters
+ * More accurate estimation based on content type:
+ * - Regular text: ~1 token per 4 characters
+ * - Code/technical: ~1 token per 2.5 characters (more special chars)
+ * - URLs: ~1 token per 2 characters
+ * - Numbers: ~1 token per 3 characters
  */
 export function estimateTokenCount(messages: AIMessage[]): number {
-  const totalChars = messages.reduce((sum, msg) => {
-    const messageChars = msg.content.length;
-    const metadataChars = msg.metadata 
-      ? JSON.stringify(msg.metadata).length 
-      : 0;
-    return sum + messageChars + metadataChars;
+  const totalTokens = messages.reduce((sum, msg) => {
+    const content = msg.content;
+    let tokens = 0;
+    
+    // Check for code blocks (```...```)
+    const codeBlockMatches = content.match(/```[\s\S]*?```/g) || [];
+    const codeBlockChars = codeBlockMatches.join('').length;
+    tokens += Math.ceil(codeBlockChars / 2.5); // Code is more token-dense
+    
+    // Check for URLs
+    const urlMatches = content.match(/https?:\/\/[^\s]+/g) || [];
+    const urlChars = urlMatches.join('').length;
+    tokens += Math.ceil(urlChars / 2); // URLs have many special chars
+    
+    // Check for inline code (`...`)
+    const inlineCodeMatches = content.match(/`[^`]+`/g) || [];
+    const inlineCodeChars = inlineCodeMatches.join('').length;
+    tokens += Math.ceil(inlineCodeChars / 2.5);
+    
+    // Remove already counted content
+    let remainingContent = content;
+    [...codeBlockMatches, ...urlMatches, ...inlineCodeMatches].forEach(match => {
+      remainingContent = remainingContent.replace(match, '');
+    });
+    
+    // Check for numbers and special characters
+    const numberMatches = remainingContent.match(/\d+\.?\d*/g) || [];
+    const numberChars = numberMatches.join('').length;
+    tokens += Math.ceil(numberChars / 3);
+    
+    // Remove numbers from remaining content
+    numberMatches.forEach(match => {
+      remainingContent = remainingContent.replace(match, '');
+    });
+    
+    // Regular text (what's left)
+    tokens += Math.ceil(remainingContent.length / 4);
+    
+    // Add metadata tokens if present
+    if (msg.metadata) {
+      const metadataStr = JSON.stringify(msg.metadata);
+      tokens += Math.ceil(metadataStr.length / 3); // JSON has more special chars
+    }
+    
+    return sum + tokens;
   }, 0);
   
-  return Math.ceil(totalChars / 4);
+  // Add a small buffer for message formatting overhead (role markers, etc.)
+  return Math.ceil(totalTokens * 1.1);
 }
 
 /**
