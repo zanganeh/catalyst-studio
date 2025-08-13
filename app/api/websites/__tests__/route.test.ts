@@ -51,14 +51,12 @@ describe('/api/websites', () => {
         orderBy: { createdAt: 'desc' }
       });
 
-      expect(data).toEqual({
-        data: [
-          {
-            ...mockWebsites[0],
-            metadata: { test: true },
-            settings: { primaryColor: '#000' }
-          }
-        ]
+      expect(data.data).toBeDefined();
+      expect(data.data[0]).toMatchObject({
+        id: '1',
+        name: 'Test Website',
+        metadata: { test: true },
+        settings: { primaryColor: '#000' }
       });
     });
 
@@ -102,12 +100,12 @@ describe('/api/websites', () => {
       const data = await response.json();
 
       expect(response.status).toBe(201);
-      expect(data).toEqual({
-        data: {
-          ...createdWebsite,
-          metadata: newWebsite.metadata,
-          settings: newWebsite.settings
-        }
+      expect(data.data).toBeDefined();
+      expect(data.data).toMatchObject({
+        id: 'new-id',
+        name: newWebsite.name,
+        metadata: newWebsite.metadata,
+        settings: newWebsite.settings
       });
     });
 

@@ -15,7 +15,10 @@ export function WebsiteCard({ website }: WebsiteCardProps) {
       href={`/studio/${website.id}`}
       aria-label={`Open ${website.name} website${website.category ? ` (${website.category})` : ''}`}
     >
-      <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full group">
+      <Card 
+        data-testid="website-card"
+        className="hover:shadow-lg transition-shadow cursor-pointer h-full group"
+      >
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
