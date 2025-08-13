@@ -5,10 +5,10 @@
 
 // Mock NextRequest for tests
 export class MockNextRequest {
-  private body: any;
+  private body: Record<string, unknown>;
   private _url: string;
   
-  constructor(url: string, init?: { body?: any; method?: string }) {
+  constructor(url: string, init?: { body?: Record<string, unknown>; method?: string }) {
     this._url = url;
     this.body = init?.body;
   }
@@ -23,7 +23,7 @@ export class MockNextRequest {
 }
 
 // Create test request helper
-export function createTestRequest(body?: any, url = 'http://localhost:3000/api/websites') {
+export function createTestRequest(body?: Record<string, unknown>, url = 'http://localhost:3000/api/websites') {
   return new MockNextRequest(url, { body }) as unknown as Request;
 }
 

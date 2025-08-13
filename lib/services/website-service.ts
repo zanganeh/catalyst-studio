@@ -76,7 +76,7 @@ export class WebsiteService {
     }
 
     // Convert JSON fields to strings for storage
-    const dataToUpdate: any = { ...data };
+    const dataToUpdate: Record<string, unknown> = { ...data };
     
     if (data.metadata !== undefined) {
       dataToUpdate.metadata = data.metadata ? JSON.stringify(data.metadata) : null;
@@ -103,8 +103,8 @@ export class WebsiteService {
         where: { id },
         data: { isActive: false }
       });
-    } catch (error: any) {
-      if (error?.code === 'P2025') {
+    } catch (error) {
+      if ((error as { code?: string })?.code === 'P2025') {
         throw new ApiError(404, 'Website not found', 'NOT_FOUND');
       }
       throw error;

@@ -1,6 +1,6 @@
 import { GET, PUT, DELETE } from '../[id]/route';
 import { getClient } from '@/lib/db/client';
-import { createTestRequest, parseTestResponse } from './test-helpers';
+import { createTestRequest } from './test-helpers';
 
 // Mock Prisma client
 jest.mock('@/lib/db/client', () => ({
@@ -8,7 +8,13 @@ jest.mock('@/lib/db/client', () => ({
 }));
 
 describe('/api/websites/[id]', () => {
-  let mockPrisma: any;
+  let mockPrisma: {
+    website: {
+      findUnique: jest.Mock;
+      update: jest.Mock;
+      delete: jest.Mock;
+    };
+  };
   const params = Promise.resolve({ id: 'test-id' });
 
   beforeEach(() => {
@@ -44,7 +50,7 @@ describe('/api/websites/[id]', () => {
       mockPrisma.website.findUnique.mockResolvedValue(mockWebsite);
 
       const request = createTestRequest();
-      const response = await GET(request as any, { params });
+      const response = await GET(request as Request, { params });
       const data = await response.json();
 
       expect(mockPrisma.website.findUnique).toHaveBeenCalledWith({
@@ -66,7 +72,7 @@ describe('/api/websites/[id]', () => {
       mockPrisma.website.findUnique.mockResolvedValue(null);
 
       const request = createTestRequest();
-      const response = await GET(request as any, { params });
+      const response = await GET(request as Request, { params });
       const data = await response.json();
 
       expect(response.status).toBe(404);
@@ -101,7 +107,7 @@ describe('/api/websites/[id]', () => {
 
       const request = createTestRequest(updateData);
 
-      const response = await PUT(request as any, { params });
+      const response = await PUT(request as Request, { params });
       const data = await response.json();
 
       expect(mockPrisma.website.update).toHaveBeenCalledWith({
@@ -128,7 +134,7 @@ describe('/api/websites/[id]', () => {
 
       const request = createTestRequest({ name: 'Updated' });
 
-      const response = await PUT(request as any, { params });
+      const response = await PUT(request as Request, { params });
       const data = await response.json();
 
       expect(response.status).toBe(404);
@@ -147,7 +153,7 @@ describe('/api/websites/[id]', () => {
 
       const request = createTestRequest();
 
-      const response = await DELETE(request as any, { params });
+      const response = await DELETE(request as Request, { params });
       const data = await response.json();
 
       expect(mockPrisma.website.update).toHaveBeenCalledWith({
@@ -165,7 +171,7 @@ describe('/api/websites/[id]', () => {
 
       const request = createTestRequest();
 
-      const response = await DELETE(request as any, { params });
+      const response = await DELETE(request as Request, { params });
       const data = await response.json();
 
       expect(response.status).toBe(404);

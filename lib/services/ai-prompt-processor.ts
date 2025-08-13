@@ -1,5 +1,3 @@
-import { generateWebsiteId } from '@/lib/utils/id-generator';
-
 interface ProcessedPrompt {
   websiteName: string;
   description: string;
@@ -7,25 +5,6 @@ interface ProcessedPrompt {
   suggestedFeatures: string[];
   technicalRequirements: string[];
   targetAudience: string;
-}
-
-interface WebsiteCreationData {
-  id: string;
-  name: string;
-  description?: string;
-  category?: string;
-  createdAt: Date;
-  lastModified: Date;
-  aiContext: {
-    initialPrompt: ProcessedPrompt;
-    suggestedFeatures: string[];
-    technicalStack: string[];
-  };
-  config: {
-    theme: any;
-    features: string[];
-    settings: Record<string, unknown>;
-  };
 }
 
 export class AIPromptProcessor {

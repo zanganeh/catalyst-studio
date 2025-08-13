@@ -2,19 +2,19 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { DeploymentWizard } from './deployment-wizard';
-import { DeploymentJob } from '@/lib/deployment/deployment-types';
+// Import removed - not used in tests
 
 // Mock framer-motion
 jest.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
+    div: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => <div {...props}>{children}</div>,
   },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 // Mock the child components
 jest.mock('./cms-provider-selector', () => ({
-  CMSProviderSelector: ({ onProviderSelect, selectedProviderId }: any) => (
+  CMSProviderSelector: ({ onProviderSelect, selectedProviderId }: { onProviderSelect: (provider: unknown) => void; selectedProviderId?: string }) => (
     <div data-testid="provider-selector">
       <button
         onClick={() => onProviderSelect({
@@ -34,7 +34,7 @@ jest.mock('./cms-provider-selector', () => ({
 }));
 
 jest.mock('./deployment-progress', () => ({
-  DeploymentProgress: ({ job, provider, onComplete }: any) => {
+  DeploymentProgress: ({ job, provider, onComplete }: { job: unknown; provider: { name: string }; onComplete: (job: unknown) => void }) => {
     React.useEffect(() => {
       setTimeout(() => {
         onComplete({
