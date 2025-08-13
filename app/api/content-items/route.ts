@@ -1,23 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { ContentItemsQuery, ContentItemsResponse, CreateContentItemRequest } from '@/types/api';
+import { ContentItemsResponse, CreateContentItemRequest } from '@/types/api';
+import { Prisma } from '@/lib/generated/prisma';
+import { validateContentItemsQuery, validateCreateContentItem } from '@/lib/api/validation/content-item';
 
 // GET /api/content-items - Get paginated content items
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     
-    // Parse query parameters
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20')));
-    const status = searchParams.get('status') || undefined;
-    const contentTypeId = searchParams.get('contentTypeId') || undefined;
-    const websiteId = searchParams.get('websiteId') || undefined;
-    const sortBy = searchParams.get('sortBy') || 'updatedAt';
-    const sortOrder = (searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc';
+    // Validate query parameters
+    const validation = validateContentItemsQuery(searchParams);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: { message: 'Invalid query parameters', details: validation.error.errors } },
+        { status: 400 }
+      );
+    }
     
-    // Build where clause
-    const where: any = {};
+    const { page, limit, status, contentTypeId, websiteId, sortBy, sortOrder } = validation.data;
+    
+    // Build where clause with proper typing
+    const where: Prisma.ContentItemWhereInput = {};
     if (status) where.status = status;
     if (contentTypeId) where.contentTypeId = contentTypeId;
     if (websiteId) where.websiteId = websiteId;
@@ -82,26 +86,29 @@ export async function GET(request: NextRequest) {
 // POST /api/content-items - Create a new content item
 export async function POST(request: NextRequest) {
   try {
-    const body: CreateContentItemRequest = await request.json();
+    const body = await request.json();
     
-    // Validate required fields
-    if (!body.contentTypeId || !body.websiteId || !body.data) {
+    // Validate request body
+    const validation = validateCreateContentItem(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: { message: 'Missing required fields: contentTypeId, websiteId, and data are required' } },
+        { error: { message: 'Invalid request body', details: validation.error.errors } },
         { status: 400 }
       );
     }
     
+    const validatedData = validation.data;
+    
     // Create content item
     const contentItem = await prisma.contentItem.create({
       data: {
-        contentTypeId: body.contentTypeId,
-        websiteId: body.websiteId,
-        slug: body.slug || undefined,
-        data: JSON.stringify(body.data),
-        metadata: body.metadata ? JSON.stringify(body.metadata) : undefined,
-        status: body.status || 'draft',
-        publishedAt: body.publishedAt ? new Date(body.publishedAt) : undefined,
+        contentTypeId: validatedData.contentTypeId,
+        websiteId: validatedData.websiteId,
+        slug: validatedData.slug || undefined,
+        data: JSON.stringify(validatedData.data),
+        metadata: validatedData.metadata ? JSON.stringify(validatedData.metadata) : undefined,
+        status: validatedData.status || 'draft',
+        publishedAt: validatedData.publishedAt ? new Date(validatedData.publishedAt) : undefined,
       },
       include: {
         contentType: true,

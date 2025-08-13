@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { UpdateContentItemRequest } from '@/types/api';
+import { Prisma } from '@/lib/generated/prisma';
+import { validateUpdateContentItem } from '@/lib/api/validation/content-item';
 
 // GET /api/content-items/[id] - Get a single content item
 export async function GET(
@@ -55,7 +57,18 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const body: UpdateContentItemRequest = await request.json();
+    const body = await request.json();
+    
+    // Validate request body
+    const validation = validateUpdateContentItem(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: { message: 'Invalid request body', details: validation.error.errors } },
+        { status: 400 }
+      );
+    }
+    
+    const validatedData = validation.data;
     
     // Check if item exists
     const existing = await prisma.contentItem.findUnique({
@@ -69,14 +82,14 @@ export async function PUT(
       );
     }
     
-    // Prepare update data
-    const updateData: any = {};
-    if (body.slug !== undefined) updateData.slug = body.slug;
-    if (body.data !== undefined) updateData.data = JSON.stringify(body.data);
-    if (body.metadata !== undefined) updateData.metadata = JSON.stringify(body.metadata);
-    if (body.status !== undefined) updateData.status = body.status;
-    if (body.publishedAt !== undefined) {
-      updateData.publishedAt = body.publishedAt ? new Date(body.publishedAt) : null;
+    // Prepare update data with proper typing
+    const updateData: Prisma.ContentItemUpdateInput = {};
+    if (validatedData.slug !== undefined) updateData.slug = validatedData.slug;
+    if (validatedData.data !== undefined) updateData.data = JSON.stringify(validatedData.data);
+    if (validatedData.metadata !== undefined) updateData.metadata = JSON.stringify(validatedData.metadata);
+    if (validatedData.status !== undefined) updateData.status = validatedData.status;
+    if (validatedData.publishedAt !== undefined) {
+      updateData.publishedAt = validatedData.publishedAt ? new Date(validatedData.publishedAt) : null;
     }
     
     // Update content item
