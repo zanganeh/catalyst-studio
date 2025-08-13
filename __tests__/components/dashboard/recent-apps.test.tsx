@@ -1,20 +1,18 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { RecentApps } from '@/components/dashboard/recent-apps';
-import { WebsiteStorageService } from '@/lib/storage/website-storage.service';
+import { useWebsites } from '@/lib/api/hooks/use-websites';
 import { useRouter } from 'next/navigation';
-import { WebsiteMetadata } from '@/lib/storage/types';
+import { Website } from '@/types/api';
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }));
 
-// Mock WebsiteStorageService
-jest.mock('@/lib/storage/website-storage.service', () => ({
-  WebsiteStorageService: jest.fn().mockImplementation(() => ({
-    listWebsites: jest.fn(),
-  })),
+// Mock the API hook
+jest.mock('@/lib/api/hooks/use-websites', () => ({
+  useWebsites: jest.fn(),
 }));
 
 // Mock date-fns
@@ -24,40 +22,42 @@ jest.mock('date-fns', () => ({
 
 describe('RecentApps', () => {
   const mockPush = jest.fn();
-  const mockListWebsites = jest.fn();
 
-  const mockWebsites: WebsiteMetadata[] = [
+  const mockWebsites: Website[] = [
     {
       id: 'site1',
       name: 'Website 1',
       description: 'First test website',
+      category: 'blog',
       icon: '🚀',
-      createdAt: '2024-01-01T10:00:00Z',
-      lastModified: '2024-01-01T12:00:00Z',
+      isActive: true,
+      createdAt: new Date('2024-01-01T10:00:00Z'),
+      updatedAt: new Date('2024-01-01T12:00:00Z'),
     },
     {
       id: 'site2',
       name: 'Website 2',
       description: 'Second test website',
-      createdAt: '2024-01-01T09:00:00Z',
-      lastModified: '2024-01-01T11:00:00Z',
+      category: 'portfolio',
+      isActive: true,
+      createdAt: new Date('2024-01-01T09:00:00Z'),
+      updatedAt: new Date('2024-01-01T11:00:00Z'),
     },
     {
       id: 'site3',
       name: 'Website 3',
       description: 'Third test website',
+      category: 'ecommerce',
       icon: '💡',
-      createdAt: '2024-01-01T08:00:00Z',
-      lastModified: '2024-01-01T10:00:00Z',
+      isActive: true,
+      createdAt: new Date('2024-01-01T08:00:00Z'),
+      updatedAt: new Date('2024-01-01T10:00:00Z'),
     },
   ];
 
   beforeEach(() => {
     jest.clearAllMocks();
     (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
-    (WebsiteStorageService as jest.Mock).mockImplementation(() => ({
-      listWebsites: mockListWebsites,
-    }));
   });
 
   afterEach(() => {
@@ -65,7 +65,12 @@ describe('RecentApps', () => {
   });
 
   it('renders loading state initially', () => {
-    mockListWebsites.mockResolvedValue([]);
+    (useWebsites as jest.Mock).mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    });
+    
     render(<RecentApps />);
     
     expect(screen.getByText('Recent Apps')).toBeInTheDocument();
@@ -73,7 +78,12 @@ describe('RecentApps', () => {
   });
 
   it('renders empty state when no websites exist', async () => {
-    mockListWebsites.mockResolvedValue([]);
+    (useWebsites as jest.Mock).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
+    
     render(<RecentApps />);
 
     await waitFor(() => {
@@ -82,7 +92,12 @@ describe('RecentApps', () => {
   });
 
   it('renders website cards correctly', async () => {
-    mockListWebsites.mockResolvedValue(mockWebsites);
+    (useWebsites as jest.Mock).mockReturnValue({
+      data: mockWebsites,
+      isLoading: false,
+      error: null,
+    });
+    
     render(<RecentApps />);
 
     await waitFor(() => {
@@ -93,19 +108,29 @@ describe('RecentApps', () => {
     });
   });
 
-  it('sorts websites by last modified date', async () => {
-    mockListWebsites.mockResolvedValue(mockWebsites);
+  it('sorts websites by updated date', async () => {
+    (useWebsites as jest.Mock).mockReturnValue({
+      data: mockWebsites,
+      isLoading: false,
+      error: null,
+    });
+    
     render(<RecentApps />);
 
     await waitFor(() => {
       const cards = screen.getAllByRole('button');
-      // First card should be Website 1 (most recently modified)
+      // First card should be Website 1 (most recently updated)
       expect(cards[0]).toHaveTextContent('Website 1');
     });
   });
 
   it('navigates to studio when card is clicked', async () => {
-    mockListWebsites.mockResolvedValue(mockWebsites);
+    (useWebsites as jest.Mock).mockReturnValue({
+      data: mockWebsites,
+      isLoading: false,
+      error: null,
+    });
+    
     render(<RecentApps />);
 
     await waitFor(() => {
@@ -120,11 +145,18 @@ describe('RecentApps', () => {
     const manyWebsites = Array.from({ length: 20 }, (_, i) => ({
       id: `site${i}`,
       name: `Website ${i}`,
-      createdAt: '2024-01-01T10:00:00Z',
-      lastModified: '2024-01-01T10:00:00Z',
+      category: 'blog',
+      isActive: true,
+      createdAt: new Date('2024-01-01T10:00:00Z'),
+      updatedAt: new Date('2024-01-01T10:00:00Z'),
     }));
 
-    mockListWebsites.mockResolvedValue(manyWebsites);
+    (useWebsites as jest.Mock).mockReturnValue({
+      data: manyWebsites,
+      isLoading: false,
+      error: null,
+    });
+    
     render(<RecentApps maxItems={12} />);
 
     await waitFor(() => {
@@ -140,11 +172,18 @@ describe('RecentApps', () => {
     const manyWebsites = Array.from({ length: 15 }, (_, i) => ({
       id: `site${i}`,
       name: `Website ${i}`,
-      createdAt: '2024-01-01T10:00:00Z',
-      lastModified: '2024-01-01T10:00:00Z',
+      category: 'blog',
+      isActive: true,
+      createdAt: new Date('2024-01-01T10:00:00Z'),
+      updatedAt: new Date('2024-01-01T10:00:00Z'),
     }));
 
-    mockListWebsites.mockResolvedValue(manyWebsites);
+    (useWebsites as jest.Mock).mockReturnValue({
+      data: manyWebsites,
+      isLoading: false,
+      error: null,
+    });
+    
     render(<RecentApps maxItems={12} />);
 
     await waitFor(() => {
@@ -162,59 +201,31 @@ describe('RecentApps', () => {
   });
 
   it('handles error state gracefully', async () => {
-    mockListWebsites.mockRejectedValue(new Error('Failed to load'));
-    render(<RecentApps />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Unable to load recent apps')).toBeInTheDocument();
-      expect(screen.getByText('Try again')).toBeInTheDocument();
+    (useWebsites as jest.Mock).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('Failed to load websites'),
     });
-  });
-
-  it('retries loading when Try again is clicked', async () => {
-    mockListWebsites
-      .mockRejectedValueOnce(new Error('Failed to load'))
-      .mockResolvedValueOnce(mockWebsites);
     
     render(<RecentApps />);
 
     await waitFor(() => {
-      const retryButton = screen.getByText('Try again');
-      fireEvent.click(retryButton);
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText('Website 1')).toBeInTheDocument();
+      expect(screen.getByText('Unable to load recent apps')).toBeInTheDocument();
+      expect(screen.getByText('Failed to load websites')).toBeInTheDocument();
     });
   });
 
-  it('updates when storage events occur', async () => {
-    mockListWebsites.mockResolvedValue(mockWebsites);
-    render(<RecentApps />);
+  // Note: Retry functionality removed as React Query handles refetch internally
 
-    await waitFor(() => {
-      expect(screen.getByText('Website 1')).toBeInTheDocument();
-    });
-
-    // Simulate a storage event
-    const updatedWebsites = [...mockWebsites, {
-      id: 'site4',
-      name: 'Website 4',
-      createdAt: '2024-01-01T13:00:00Z',
-      lastModified: '2024-01-01T13:00:00Z',
-    }];
-    mockListWebsites.mockResolvedValue(updatedWebsites);
-
-    // Trigger custom event
-    window.dispatchEvent(new CustomEvent('website-created'));
-
-    await waitFor(() => {
-      expect(mockListWebsites).toHaveBeenCalledTimes(2);
-    });
-  });
+  // Note: Real-time updates handled by React Query cache invalidation
 
   it('displays website icons when available', async () => {
-    mockListWebsites.mockResolvedValue(mockWebsites);
+    (useWebsites as jest.Mock).mockReturnValue({
+      data: mockWebsites,
+      isLoading: false,
+      error: null,
+    });
+    
     render(<RecentApps />);
 
     await waitFor(() => {
@@ -224,7 +235,12 @@ describe('RecentApps', () => {
   });
 
   it('applies custom className prop', () => {
-    mockListWebsites.mockResolvedValue([]);
+    (useWebsites as jest.Mock).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
+    
     const { container } = render(<RecentApps className="custom-class" />);
     
     expect(container.firstChild).toHaveClass('custom-class');

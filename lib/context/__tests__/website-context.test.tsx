@@ -1,45 +1,52 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { WebsiteContextProvider, useWebsiteContext } from '../website-context';
-import { WebsiteStorageService } from '@/lib/storage/website-storage.service';
+import { useWebsite, useUpdateWebsite, useDeleteWebsite } from '@/lib/api/hooks/use-websites';
 
-// Mock the WebsiteStorageService
-jest.mock('@/lib/storage/website-storage.service');
+// Mock Next.js router
+jest.mock('next/navigation', () => ({
+  useRouter: jest.fn(() => ({
+    push: jest.fn(),
+  })),
+}));
+
+// Mock the API hooks
+jest.mock('@/lib/api/hooks/use-websites');
 
 describe('WebsiteContext', () => {
-  let mockStorageService: jest.Mocked<WebsiteStorageService>;
+  const mockWebsite = {
+    id: 'test-website',
+    name: 'Test Website',
+    description: 'Test Description',
+    category: 'Business',
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const mockUpdateMutate = jest.fn();
+  const mockDeleteMutate = jest.fn();
+  const mockRefetch = jest.fn();
   
   beforeEach(() => {
     // Reset mocks before each test
     jest.clearAllMocks();
     
-    // Create mock implementation
-    mockStorageService = {
-      initializeDB: jest.fn().mockResolvedValue(undefined),
-      listWebsites: jest.fn().mockResolvedValue([
-        {
-          id: 'test-website',
-          name: 'Test Website',
-          createdAt: new Date(),
-          lastModified: new Date(),
-          storageQuota: 50 * 1024 * 1024,
-          category: 'test'
-        }
-      ]),
-      getWebsiteData: jest.fn().mockResolvedValue({
-        config: {},
-        content: {},
-        assets: {},
-        aiContext: {}
-      }),
-      createWebsite: jest.fn().mockResolvedValue('default'),
-      saveWebsiteData: jest.fn().mockResolvedValue(undefined),
-      updateWebsiteMetadata: jest.fn().mockResolvedValue(undefined),
-      deleteWebsiteData: jest.fn().mockResolvedValue(undefined),
-    } as unknown as jest.Mocked<WebsiteStorageService>;
-    
-    // Mock the constructor
-    (WebsiteStorageService as jest.MockedClass<typeof WebsiteStorageService>).mockImplementation(() => mockStorageService);
+    // Default mock implementations
+    (useWebsite as jest.Mock).mockReturnValue({
+      data: mockWebsite,
+      isLoading: false,
+      error: null,
+      refetch: mockRefetch,
+    });
+
+    (useUpdateWebsite as jest.Mock).mockReturnValue({
+      mutateAsync: mockUpdateMutate,
+    });
+
+    (useDeleteWebsite as jest.Mock).mockReturnValue({
+      mutateAsync: mockDeleteMutate,
+    });
   });
 
   describe('WebsiteContextProvider', () => {
@@ -59,50 +66,43 @@ describe('WebsiteContext', () => {
           <TestComponent />
         </WebsiteContextProvider>
       );
-
-      // Initially should be loading
-      expect(screen.getByTestId('loading')).toHaveTextContent('loading');
-      
-      // Wait for loading to complete
-      await waitFor(() => {
-        expect(screen.getByTestId('loading')).toHaveTextContent('loaded');
-      });
       
       // Should have loaded website data
+      expect(screen.getByTestId('loading')).toHaveTextContent('loaded');
       expect(screen.getByTestId('website')).toHaveTextContent('has-website');
-      expect(mockStorageService.initializeDB).toHaveBeenCalled();
-      expect(mockStorageService.listWebsites).toHaveBeenCalled();
-      expect(mockStorageService.getWebsiteData).toHaveBeenCalledWith('test-website');
+      expect(useWebsite).toHaveBeenCalledWith('test-website');
     });
 
-    it('should create default website if not found', async () => {
-      // Mock no websites exist
-      mockStorageService.listWebsites.mockResolvedValue([]);
+    it('should handle loading state', async () => {
+      (useWebsite as jest.Mock).mockReturnValue({
+        data: null,
+        isLoading: true,
+        error: null,
+        refetch: mockRefetch,
+      });
       
       const TestComponent = () => {
-        const { websiteId } = useWebsiteContext();
-        return <div data-testid="website-id">{websiteId}</div>;
+        const { isLoading } = useWebsiteContext();
+        return <div data-testid="loading">{isLoading ? 'loading' : 'loaded'}</div>;
       };
 
       render(
-        <WebsiteContextProvider websiteId="default">
+        <WebsiteContextProvider websiteId="test-website">
           <TestComponent />
         </WebsiteContextProvider>
       );
 
-      await waitFor(() => {
-        expect(mockStorageService.createWebsite).toHaveBeenCalledWith(
-          expect.objectContaining({
-            name: 'My Website',
-            category: 'default'
-          })
-        );
-      });
+      expect(screen.getByTestId('loading')).toHaveTextContent('loading');
     });
 
     it('should handle errors gracefully', async () => {
       const testError = new Error('Failed to load');
-      mockStorageService.getWebsiteData.mockRejectedValue(testError);
+      (useWebsite as jest.Mock).mockReturnValue({
+        data: null,
+        isLoading: false,
+        error: testError,
+        refetch: mockRefetch,
+      });
       
       const TestComponent = () => {
         const { error } = useWebsiteContext();
@@ -115,16 +115,16 @@ describe('WebsiteContext', () => {
         </WebsiteContextProvider>
       );
 
-      await waitFor(() => {
-        expect(screen.getByTestId('error')).toHaveTextContent('Failed to load');
-      });
+      expect(screen.getByTestId('error')).toHaveTextContent('Failed to load');
     });
 
     it('should update website data', async () => {
+      mockUpdateMutate.mockResolvedValue({});
+      
       const TestComponent = () => {
         const { updateWebsite } = useWebsiteContext();
         React.useEffect(() => {
-          updateWebsite({ config: { updated: true } });
+          updateWebsite({ name: 'Updated Name' });
         }, [updateWebsite]);
         return <div>Test</div>;
       };
@@ -136,14 +136,13 @@ describe('WebsiteContext', () => {
       );
 
       await waitFor(() => {
-        expect(mockStorageService.saveWebsiteData).toHaveBeenCalledWith(
-          'test-website',
-          expect.objectContaining({ config: { updated: true } })
-        );
+        expect(mockUpdateMutate).toHaveBeenCalledWith({ name: 'Updated Name' });
       });
     });
 
     it('should delete website data', async () => {
+      mockDeleteMutate.mockResolvedValue({});
+      
       const TestComponent = () => {
         const { deleteWebsite } = useWebsiteContext();
         React.useEffect(() => {
@@ -159,7 +158,7 @@ describe('WebsiteContext', () => {
       );
 
       await waitFor(() => {
-        expect(mockStorageService.deleteWebsiteData).toHaveBeenCalledWith('test-website');
+        expect(mockDeleteMutate).toHaveBeenCalledWith('test-website');
       });
     });
   });
