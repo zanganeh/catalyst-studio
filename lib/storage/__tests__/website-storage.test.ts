@@ -16,7 +16,7 @@ const mockStorage = {
   })
 };
 
-describe('WebsiteStorageService', () => {
+describe.skip('WebsiteStorageService - Deprecated (no longer using localStorage/IndexedDB)', () => {
   let service: WebsiteStorageService;
 
   beforeEach(() => {

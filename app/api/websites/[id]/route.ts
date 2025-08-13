@@ -121,7 +121,7 @@ export async function DELETE(
     if (error && typeof error === 'object' && 'code' in error) {
       const prismaError = error as { code: string };
       if (prismaError.code === 'P2025') {
-        throw new ApiError(404, 'Website not found', 'NOT_FOUND');
+        return handleApiError(new ApiError(404, 'Website not found', 'NOT_FOUND'));
       }
     }
     return handleApiError(error);

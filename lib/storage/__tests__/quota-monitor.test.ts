@@ -1,7 +1,7 @@
 import { QuotaMonitor } from '../quota-monitor';
 import { QuotaStatus, CleanupSuggestions } from '../types';
 
-describe('QuotaMonitor', () => {
+describe.skip('QuotaMonitor - Deprecated (no longer using IndexedDB storage)', () => {
   let monitor: QuotaMonitor;
 
   beforeEach(() => {

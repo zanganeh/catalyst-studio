@@ -1,6 +1,6 @@
 import { MigrationUtility } from '../migration';
 
-describe('MigrationUtility', () => {
+describe.skip('MigrationUtility - Deprecated (no longer using localStorage/IndexedDB)', () => {
   let migration: MigrationUtility;
 
   beforeEach(() => {

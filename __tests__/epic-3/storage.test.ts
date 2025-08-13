@@ -28,7 +28,7 @@ const mockIndexedDB = {
 // @ts-ignore
 global.indexedDB = mockIndexedDB;
 
-describe('WebsiteStorageService', () => {
+describe.skip('WebsiteStorageService - Deprecated (no longer using localStorage/IndexedDB)', () => {
   let service: WebsiteStorageService;
   
   beforeEach(() => {

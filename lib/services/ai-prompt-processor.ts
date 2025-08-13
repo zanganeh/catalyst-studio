@@ -1,6 +1,4 @@
-import { WebsiteStorageService } from '@/lib/storage/website-storage.service';
 import { generateWebsiteId } from '@/lib/utils/id-generator';
-import { WebsiteMetadata, AIContext } from '@/lib/storage/types';
 
 interface ProcessedPrompt {
   websiteName: string;
@@ -31,10 +29,8 @@ interface WebsiteCreationData {
 }
 
 export class AIPromptProcessor {
-  private storageService: WebsiteStorageService;
-  
   constructor() {
-    this.storageService = new WebsiteStorageService();
+    // No longer using local storage
   }
   
   async processPrompt(userPrompt: string): Promise<ProcessedPrompt> {
@@ -55,66 +51,47 @@ export class AIPromptProcessor {
     // Use provided processed prompt or process it
     const prompt = processedPrompt || await this.processPrompt(userPrompt);
     
-    // Initialize storage if needed
-    await this.storageService.initializeDB();
-    
-    // Create website metadata
-    const websiteMetadata: Omit<WebsiteMetadata, 'id'> = {
-      name: prompt.websiteName,
-      description: prompt.description,
-      category: prompt.category,
-      createdAt: new Date(),
-      lastModified: new Date(),
-      storageQuota: 100 * 1024 * 1024 // 100MB default
-    };
-    
-    // Create the website in storage
-    const websiteId = await this.storageService.createWebsite(websiteMetadata);
-    
-    // Save AI context and initial configuration
-    const aiContext: AIContext = {
-      brandIdentity: {
+    // First, create the website in the actual database via API
+    const response = await fetch('/api/websites', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         name: prompt.websiteName,
-        tagline: this.generateTagline(prompt),
-      },
-      contentStrategy: {
-        targetAudience: prompt.targetAudience,
-        topics: this.extractTopics(userPrompt),
-        tone: this.detectTone(prompt.category)
-      },
-      history: [{
-        id: generateWebsiteId(),
-        timestamp: new Date(),
-        prompt: userPrompt,
-        response: JSON.stringify(prompt),
-        context: { type: 'website_creation' }
-      }]
-    };
-    
-    const websiteData = {
-      config: {
-        id: websiteId,
+        description: prompt.description,
+        category: prompt.category,
+        icon: this.getCategoryIcon(prompt.category),
         settings: {
-          features: prompt.suggestedFeatures,
-          techStack: this.suggestTechStack(prompt)
+          // Convert features array to object with boolean values
+          features: {
+            blog: prompt.suggestedFeatures.includes('blog'),
+            shop: prompt.suggestedFeatures.includes('ecommerce') || prompt.suggestedFeatures.includes('payments'),
+            analytics: prompt.suggestedFeatures.includes('analytics')
+          },
+          // Additional settings preserved through passthrough
+          theme: this.suggestTheme(prompt.category),
+          techStack: this.suggestTechStack(prompt),
+          suggestedFeatures: prompt.suggestedFeatures
         },
-        theme: this.suggestTheme(prompt.category)
-      },
-      content: {
-        pages: [],
-        components: [],
-        templates: []
-      },
-      assets: {
-        images: [],
-        videos: [],
-        documents: []
-      },
-      aiContext
-    };
+        metadata: {
+          targetAudience: prompt.targetAudience,
+          technicalRequirements: prompt.technicalRequirements,
+          createdViaAI: true,
+          originalPrompt: userPrompt
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Failed to create website in database');
+    }
+
+    const { data: dbWebsite } = await response.json();
+    const websiteId = dbWebsite.id;
     
-    await this.storageService.saveWebsiteData(websiteId, websiteData);
-    
+    // No longer using local storage - everything is in the database
     return websiteId;
   }
   
@@ -157,23 +134,42 @@ export class AIPromptProcessor {
       .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
     
-    return cleanedName || 'My Website';
+    return cleanedName || 'My New Website';
   }
   
   private detectCategory(prompt: string): string {
+    // Check more specific patterns first
     const categories = {
-      crm: /crm|customer|relationship|sales|lead|contact|deal|pipeline/i,
-      ecommerce: /store|shop|ecommerce|e-commerce|product|cart|checkout|payment|catalog/i,
-      education: /course|learn|teach|student|education|training|tutorial|lesson|quiz/i,
-      portfolio: /portfolio|showcase|projects|work|gallery|exhibition|resume/i,
-      saas: /saas|platform|subscription|dashboard|analytics|metrics|users|billing/i,
+      crm: /crm|customer relationship|sales pipeline|lead management|contact management|deal tracking/i,
+      ecommerce: /online store|e-?commerce|shopping cart|product catalog|checkout|payment processing/i,
+      education: /course|learn|teach|student|education|training|tutorial|lesson|quiz|academy/i,
+      social: /social network|community|forum|discussion|chat|messaging platform/i,
+      portfolio: /portfolio|showcase|exhibition|resume|my work|projects showcase/i,
+      saas: /saas|software as a service|subscription|dashboard|analytics platform|metrics/i,
+      blog: /blog|article|post|content management|writing platform|journal|news/i,
+      business: /business|company|corporate|agency|consulting|service provider/i,
+      dev: /developer|code|programming|development tools|api|documentation/i
+    };
+    
+    // Try exact matches first
+    for (const [category, pattern] of Object.entries(categories)) {
+      if (pattern.test(prompt)) return category;
+    }
+    
+    // Fallback to broader patterns
+    const broadCategories = {
+      crm: /customer|sales|lead|contact|deal|pipeline/i,
+      ecommerce: /store|shop|product|cart|payment|catalog/i,
+      education: /learn|teach|student|training/i,
+      social: /social|community|network/i,
+      portfolio: /portfolio|showcase|work|gallery|resume/i,
+      saas: /platform|subscription|dashboard|analytics|metrics|users|billing/i,
       blog: /blog|article|post|content|writing|journal|news/i,
-      social: /social|community|forum|discussion|chat|message|network/i,
       business: /business|company|corporate|agency|consulting|service/i,
       dev: /developer|code|programming|tools|api|documentation/i
     };
     
-    for (const [category, pattern] of Object.entries(categories)) {
+    for (const [category, pattern] of Object.entries(broadCategories)) {
       if (pattern.test(prompt)) return category;
     }
     
@@ -196,7 +192,9 @@ export class AIPromptProcessor {
       forms: /form|survey|quiz|questionnaire|feedback|input/i,
       calendar: /calendar|schedule|event|appointment|booking|date/i,
       maps: /map|location|address|geo|gps|direction/i,
-      social: /share|like|follow|comment|social|feed/i
+      social: /share|like|follow|comment|social|feed/i,
+      blog: /blog|article|post|content|writing|journal|news/i,
+      ecommerce: /store|shop|ecommerce|e-commerce|product|cart|checkout|catalog/i
     };
     
     for (const [feature, pattern] of Object.entries(featurePatterns)) {
@@ -381,5 +379,22 @@ export class AIPromptProcessor {
     };
     
     return tones[category] || 'neutral';
+  }
+
+  private getCategoryIcon(category: string): string {
+    const icons: Record<string, string> = {
+      crm: '👥',
+      ecommerce: '🛒',
+      education: '🎓',
+      portfolio: '🎨',
+      saas: '☁️',
+      blog: '📝',
+      social: '💬',
+      business: '💼',
+      dev: '💻',
+      general: '🌐'
+    };
+    
+    return icons[category] || '🌐';
   }
 }

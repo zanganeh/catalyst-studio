@@ -1,6 +1,6 @@
 import { GET, PUT, DELETE } from '../[id]/route';
 import { getClient } from '@/lib/db/client';
-import { createTestRequest, parseTestResponse } from './setup';
+import { createTestRequest, parseTestResponse } from './test-helpers';
 
 // Mock Prisma client
 jest.mock('@/lib/db/client', () => ({
@@ -54,6 +54,8 @@ describe('/api/websites/[id]', () => {
       expect(data).toEqual({
         data: {
           ...mockWebsite,
+          createdAt: mockWebsite.createdAt.toISOString(),
+          updatedAt: mockWebsite.updatedAt.toISOString(),
           metadata: { test: true },
           settings: { primaryColor: '#000' }
         }
@@ -113,6 +115,8 @@ describe('/api/websites/[id]', () => {
       expect(data).toEqual({
         data: {
           ...updatedWebsite,
+          createdAt: updatedWebsite.createdAt.toISOString(),
+          updatedAt: updatedWebsite.updatedAt.toISOString(),
           metadata: null,
           settings: updateData.settings
         }

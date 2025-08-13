@@ -2,21 +2,12 @@ import { renderHook, act } from '@testing-library/react';
 import { useContentStore } from '../content-store';
 import type { ContentItem } from '@/lib/content-types/types';
 
-// Mock localStorage
-const localStorageMock = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
-};
-global.localStorage = localStorageMock as Storage;
-
 describe('useContentStore', () => {
   beforeEach(() => {
     // Clear the store before each test
+    const { result } = renderHook(() => useContentStore());
     act(() => {
-      const { result } = renderHook(() => useContentStore());
-      result.current.contentItems = [];
+      result.current.clearContent();
     });
     jest.clearAllMocks();
   });
@@ -167,18 +158,9 @@ describe('useContentStore', () => {
     expect(result.current.contentItems).toHaveLength(0);
   });
 
-  it('persists data to localStorage', () => {
-    const { result } = renderHook(() => useContentStore());
-    
-    act(() => {
-      result.current.addContent('ct1', { title: 'Persistent Item' });
-    });
-    
-    // Check that setItem was called
-    expect(localStorageMock.setItem).toHaveBeenCalled();
-    
-    // The actual persistence implementation would need to be tested
-    // with the specific persist middleware configuration
+  it.skip('persists data to localStorage - no longer using localStorage', () => {
+    // This test is skipped because we removed localStorage persistence
+    // All data is now stored in the database via API
   });
 
   it('generates unique IDs for new content items', () => {
@@ -231,13 +213,21 @@ describe('useContentStore', () => {
   it('handles concurrent operations correctly', () => {
     const { result } = renderHook(() => useContentStore());
     
-    // Perform multiple operations in a single act
+    // Add initial items
+    let item1Id: string;
+    let item2Id: string;
+    
     act(() => {
-      result.current.addContent('ct1', { title: 'Item 1' });
-      result.current.addContent('ct2', { title: 'Item 2' });
-      const firstId = result.current.contentItems[0].id;
-      result.current.updateContent(firstId, { title: 'Updated Item 1' });
-      result.current.deleteContent(result.current.contentItems[1].id);
+      const { item: item1 } = result.current.addContent('ct1', { title: 'Item 1' });
+      const { item: item2 } = result.current.addContent('ct2', { title: 'Item 2' });
+      item1Id = item1.id;
+      item2Id = item2.id;
+    });
+    
+    // Perform multiple operations
+    act(() => {
+      result.current.updateContent(item1Id!, { title: 'Updated Item 1' });
+      result.current.deleteContent(item2Id!);
       result.current.addContent('ct3', { title: 'Item 3' });
     });
     

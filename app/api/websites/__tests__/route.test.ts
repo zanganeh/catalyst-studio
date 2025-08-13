@@ -1,6 +1,6 @@
 import { GET, POST } from '../route';
 import { getClient } from '@/lib/db/client';
-import { createTestRequest, parseTestResponse } from './setup';
+import { createTestRequest, parseTestResponse } from './test-helpers';
 
 // Mock Prisma client
 jest.mock('@/lib/db/client', () => ({

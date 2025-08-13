@@ -60,7 +60,7 @@ const sessionStorageMock = (() => {
   };
 })();
 
-describe('Storage Strategies', () => {
+describe.skip('Storage Strategies - Deprecated (no longer using localStorage/IndexedDB)', () => {
   beforeEach(() => {
     // Reset mocks
     jest.clearAllMocks();

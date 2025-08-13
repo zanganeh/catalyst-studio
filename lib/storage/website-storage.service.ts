@@ -150,10 +150,10 @@ export class WebsiteStorageService {
     }
   }
 
-  async createWebsite(metadata: Omit<WebsiteMetadata, 'id'>): Promise<string> {
+  async createWebsite(metadata: Omit<WebsiteMetadata, 'id'>, providedId?: string): Promise<string> {
     try {
-      // Generate unique ID
-      const id = this.generateWebsiteId();
+      // Use provided ID from database or generate unique ID
+      const id = providedId || this.generateWebsiteId();
       
       const websiteMetadata: WebsiteMetadata = {
         ...metadata,

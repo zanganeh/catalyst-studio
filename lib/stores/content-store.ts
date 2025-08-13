@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { ContentItem } from '@/lib/content-types/types';
 import { generateId } from '@/lib/content-types/types';
 
@@ -22,155 +21,113 @@ interface ContentState {
   
   // Project management
   setProjectId: (id: string) => void;
+  setContentItems: (items: ContentItem[]) => void;
 }
 
-// Helper to get storage key
-const getStorageKey = (projectId: string) => `project:${projectId}:content`;
-
 export const useContentStore = create<ContentState>()(
-  persist(
-    (set, get) => ({
-      contentItems: [],
-      projectId: 'default',
+  (set, get) => ({
+    contentItems: [],
+    projectId: 'default',
+    
+    addContent: (contentTypeId: string, data: Record<string, unknown>) => {
+      const previousState = get().contentItems;
+      const newItem: ContentItem = {
+        id: generateId(),
+        contentTypeId,
+        data,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
       
-      addContent: (contentTypeId: string, data: Record<string, unknown>) => {
-        const previousState = get().contentItems;
-        const newItem: ContentItem = {
-          id: generateId(),
-          contentTypeId,
-          data,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        
-        set((state) => ({
-          contentItems: [...state.contentItems, newItem],
-        }));
-        
-        return {
-          item: newItem,
-          rollback: () => set({ contentItems: previousState }),
-        };
-      },
+      set((state) => ({
+        contentItems: [...state.contentItems, newItem],
+      }));
       
-      updateContent: (id: string, data: Record<string, unknown>) => {
-        const previousState = get().contentItems;
-        const previousItem = previousState.find(item => item.id === id);
-        
-        set((state) => ({
-          contentItems: state.contentItems.map((item) =>
-            item.id === id
-              ? { ...item, data, updatedAt: new Date() }
-              : item
-          ),
-        }));
-        
-        return {
-          rollback: () => set({ contentItems: previousState }),
-          previousData: previousItem?.data,
-        };
-      },
+      return {
+        item: newItem,
+        rollback: () => set({ contentItems: previousState }),
+      };
+    },
+    
+    updateContent: (id: string, data: Record<string, unknown>) => {
+      const previousState = get().contentItems;
+      const previousItem = previousState.find(item => item.id === id);
       
-      deleteContent: (id: string) => {
-        set((state) => ({
-          contentItems: state.contentItems.filter((item) => item.id !== id),
-        }));
-      },
+      set((state) => ({
+        contentItems: state.contentItems.map((item) =>
+          item.id === id
+            ? { ...item, data, updatedAt: new Date() }
+            : item
+        ),
+      }));
       
-      getContentByType: (contentTypeId: string) => {
-        const state = get();
-        return state.contentItems.filter(
-          (item) => item.contentTypeId === contentTypeId
-        );
-      },
+      return {
+        rollback: () => set({ contentItems: previousState }),
+        previousData: previousItem?.data,
+      };
+    },
+    
+    deleteContent: (id: string) => {
+      set((state) => ({
+        contentItems: state.contentItems.filter((item) => item.id !== id),
+      }));
+    },
+    
+    getContentByType: (contentTypeId: string) => {
+      const state = get();
+      return state.contentItems.filter(
+        (item) => item.contentTypeId === contentTypeId
+      );
+    },
+    
+    getContentById: (id: string) => {
+      const state = get();
+      return state.contentItems.find((item) => item.id === id);
+    },
+    
+    duplicateContent: (id: string) => {
+      const state = get();
+      const original = state.contentItems.find((item) => item.id === id);
       
-      getContentById: (id: string) => {
-        const state = get();
-        return state.contentItems.find((item) => item.id === id);
-      },
+      if (!original) return undefined;
       
-      duplicateContent: (id: string) => {
-        const state = get();
-        const original = state.contentItems.find((item) => item.id === id);
-        
-        if (!original) return undefined;
-        
-        const duplicate: ContentItem = {
-          ...original,
-          id: generateId(),
-          data: { ...original.data },
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-        
-        set((state) => ({
-          contentItems: [...state.contentItems, duplicate],
-        }));
-        
-        return duplicate;
-      },
+      const duplicate: ContentItem = {
+        ...original,
+        id: generateId(),
+        data: { ...original.data },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
       
-      clearContent: () => {
-        set({ contentItems: [] });
-      },
+      set((state) => ({
+        contentItems: [...state.contentItems, duplicate],
+      }));
       
-      importContent: (items: ContentItem[]) => {
-        set({ contentItems: items });
-      },
-      
-      exportContent: () => {
-        return get().contentItems;
-      },
-      
-      setProjectId: (id: string) => {
-        set({ projectId: id });
-      },
-    }),
-    {
-      name: 'content-storage',
-      // Custom storage to handle IndexedDB with localStorage fallback
-      storage: {
-        getItem: async (name) => {
-          try {
-            // Try IndexedDB first (through localStorage for simplicity)
-            const stored = localStorage.getItem(name);
-            return stored ? JSON.parse(stored) : null;
-          } catch (error) {
-            console.error('Failed to load content from storage:', error);
-            return null;
-          }
-        },
-        setItem: async (name, value) => {
-          try {
-            // Use localStorage with size check
-            const serialized = JSON.stringify(value);
-            
-            // Check size (localStorage has ~5-10MB limit)
-            if (serialized.length > 5 * 1024 * 1024) {
-              console.warn('Content size exceeds recommended limit');
-            }
-            
-            localStorage.setItem(name, serialized);
-          } catch (error) {
-            console.error('Failed to save content to storage:', error);
-            
-            // If quota exceeded, try to clear old data
-            if (error instanceof DOMException && error.name === 'QuotaExceededError') {
-              console.warn('Storage quota exceeded, clearing old data...');
-              // Could implement LRU cache or other strategies here
-            }
-          }
-        },
-        removeItem: async (name) => {
-          try {
-            localStorage.removeItem(name);
-          } catch (error) {
-            console.error('Failed to remove content from storage:', error);
-          }
-        },
-      },
-    }
-  )
+      return duplicate;
+    },
+    
+    clearContent: () => {
+      set({ contentItems: [] });
+    },
+    
+    importContent: (items: ContentItem[]) => {
+      set({ contentItems: items });
+    },
+    
+    exportContent: () => {
+      return get().contentItems;
+    },
+    
+    setProjectId: (id: string) => {
+      // Clear current content when switching projects/websites
+      set({ projectId: id, contentItems: [] });
+      // Content should be loaded from API when needed
+    },
+    
+    setContentItems: (items: ContentItem[]) => {
+      set({ contentItems: items });
+    },
+  })
 );
 
 // Optimistic update wrapper for better UX

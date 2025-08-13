@@ -18,6 +18,7 @@ import {
 } from '@/lib/api/hooks/use-content-types';
 import { CreateContentTypeRequest, UpdateContentTypeRequest } from '@/lib/api/validation/content-type';
 import { DEFAULT_WEBSITE_ID } from '@/lib/config/constants';
+import { useWebsiteContext } from '@/lib/context/website-context';
 
 interface ContentTypeContextValue {
   contentTypes: ContentType[];
@@ -72,11 +73,11 @@ function transformApiContentType(apiContentType: ApiContentType): ContentType {
   };
 }
 
-function transformToApiFormat(contentType: Partial<ContentType>, websiteId?: string) {
+function transformToApiFormat(contentType: Partial<ContentType>, websiteId: string) {
   const { id, createdAt, updatedAt, ...rest } = contentType as ContentType & { id?: string; createdAt?: Date; updatedAt?: Date };
   
   return {
-    websiteId: websiteId || DEFAULT_WEBSITE_ID,
+    websiteId: websiteId,
     name: contentType.name,
     pluralName: contentType.pluralName,
     icon: contentType.icon,
@@ -91,7 +92,17 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
   const [isDirty, setIsDirty] = useState(false);
   const [optimisticContentTypes, setOptimisticContentTypes] = useState<ContentType[]>([]);
   
-  const { data: apiContentTypes, isLoading, error } = useContentTypesQuery();
+  // Get current website ID from context - will be null if not in website context
+  let websiteId: string | undefined;
+  try {
+    const websiteContext = useWebsiteContext();
+    websiteId = websiteContext.websiteId;
+  } catch {
+    // Not in website context, use default
+    websiteId = DEFAULT_WEBSITE_ID;
+  }
+  
+  const { data: apiContentTypes, isLoading, error } = useContentTypesQuery(websiteId);
   const createMutation = useCreateContentType();
   const updateMutation = useUpdateContentType();
   const deleteMutation = useDeleteContentType();
@@ -119,7 +130,7 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
     setCurrentContentType(newContentType);
     setIsDirty(true);
     
-    createMutation.mutate(transformToApiFormat(newContentType) as CreateContentTypeRequest, {
+    createMutation.mutate(transformToApiFormat(newContentType, websiteId || DEFAULT_WEBSITE_ID) as CreateContentTypeRequest, {
       onSuccess: (data) => {
         const transformed = transformApiContentType(data);
         setOptimisticContentTypes(prev => 
@@ -134,7 +145,7 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
     });
     
     return newContentType;
-  }, [createMutation]);
+  }, [createMutation, websiteId]);
   
   const updateContentTypeHandler = useCallback((id: string, updates: Partial<ContentType>) => {
     const contentType = contentTypes.find(ct => ct.id === id);
@@ -153,7 +164,7 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
     }
     
     updateMutation.mutate(
-      { id, data: transformToApiFormat(updates) as UpdateContentTypeRequest },
+      { id, data: transformToApiFormat(updates, websiteId || DEFAULT_WEBSITE_ID) as UpdateContentTypeRequest },
       {
         onError: () => {
           setOptimisticContentTypes(prev => prev.filter(ct => ct.id !== id));
@@ -165,7 +176,7 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
     );
     
     setIsDirty(true);
-  }, [contentTypes, currentContentType, updateMutation]);
+  }, [contentTypes, currentContentType, updateMutation, websiteId]);
   
   const deleteContentTypeHandler = useCallback((id: string) => {
     const contentType = contentTypes.find(ct => ct.id === id);

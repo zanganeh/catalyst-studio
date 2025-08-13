@@ -1,6 +1,17 @@
 import { CodeExportService } from './code-export-service';
 import { FileNode } from '@/components/development/file-tree';
 
+// Mock JSZip with proper structure
+const mockJSZipInstance = {
+  file: jest.fn().mockReturnThis(),
+  generateAsync: jest.fn().mockResolvedValue(new Blob(['mock zip'])),
+};
+
+jest.mock('jszip', () => ({
+  __esModule: true,
+  default: jest.fn(() => mockJSZipInstance),
+}));
+
 describe('CodeExportService', () => {
   let service: CodeExportService;
   let createElementSpy: jest.SpyInstance;
@@ -92,18 +103,6 @@ describe('CodeExportService', () => {
   });
 
   describe('exportProject', () => {
-    beforeEach(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (global as any).JSZip = jest.fn().mockImplementation(() => ({
-        file: jest.fn(),
-        generateAsync: jest.fn().mockResolvedValue(new Blob(['mock zip'])),
-      }));
-    });
-
-    afterEach(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (global as any).JSZip;
-    });
 
     it('should export project as ZIP', async () => {
       const files = new Map([
