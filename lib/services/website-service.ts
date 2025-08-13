@@ -125,8 +125,5 @@ export class WebsiteService {
   }
 }
 
-// Export class for testing
-export { WebsiteService };
-
 // Export singleton instance for production use
 export const websiteService = new WebsiteService();
