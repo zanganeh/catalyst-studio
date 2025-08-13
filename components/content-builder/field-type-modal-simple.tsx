@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { Card } from '@/components/ui/card';
 import { FIELD_CATEGORIES, FieldType } from '@/lib/content-types/types';
 import { useContentTypes } from '@/lib/context/content-type-context';
@@ -22,7 +23,7 @@ export function FieldTypeModal({ open, onOpenChange, contentTypeId }: FieldTypeM
 
   if (!open) return null;
 
-  return (
+  const modalContent = (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div 
@@ -81,4 +82,7 @@ export function FieldTypeModal({ open, onOpenChange, contentTypeId }: FieldTypeM
       </div>
     </div>
   );
+
+  // Use portal to render modal directly to document.body, bypassing overflow containers
+  return createPortal(modalContent, document.body);
 }

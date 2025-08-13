@@ -1,4 +1,5 @@
 import { WebsiteContextProvider } from '@/lib/context/website-context';
+import { ContentTypeProvider } from '@/lib/context/content-type-context';
 import { StudioShell } from '@/components/studio/studio-shell';
 
 export default async function StudioLayout({
@@ -14,9 +15,11 @@ export default async function StudioLayout({
   
   return (
     <WebsiteContextProvider websiteId={websiteId}>
-      <StudioShell>
-        {children}
-      </StudioShell>
+      <ContentTypeProvider>
+        <StudioShell>
+          {children}
+        </StudioShell>
+      </ContentTypeProvider>
     </WebsiteContextProvider>
   );
 }

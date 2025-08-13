@@ -68,19 +68,19 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
       label: 'Content',
       icon: <Database className="h-4 w-4" />,
       expanded: false,
-      items: [
+      items: [        
         {
-          label: 'Content Items',
-          href: `/studio/${websiteId}/content`,
-          icon: <FolderOpen className="h-4 w-4" />,
-          tooltip: 'Browse and manage your content entries',
-        },
-        {
-          label: 'Content Modeling',
+          label: 'Content Types',
           href: `/studio/${websiteId}/content-builder`,
           icon: <Database className="h-4 w-4" />,
           tooltip: 'Design content schemas and data structures',
         },
+        {
+          label: 'Content Manager',
+          href: `/studio/${websiteId}/content`,
+          icon: <FolderOpen className="h-4 w-4" />,
+          tooltip: 'Browse and manage your content entries',
+        }        
       ]
     },
     {
@@ -225,7 +225,7 @@ export const NavigationSidebar = React.memo(function NavigationSidebar() {
       {/* Footer Section */}
       <div className="p-4 border-t border-gray-700">
         <p className="text-xs text-gray-500 text-center">
-          v1.0.0 • Story 1.5a
+          v0.5.0
         </p>
       </div>
     </nav>

@@ -2,75 +2,234 @@ import { create } from 'zustand';
 import type { ContentItem } from '@/lib/content-types/types';
 import { generateId } from '@/lib/content-types/types';
 
+// Type for content items that matches the API format
+interface ApiContentItem {
+  id: string;
+  contentTypeId: string;
+  websiteId: string;
+  slug?: string;
+  data: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  status: 'draft' | 'published' | 'archived';
+  publishedAt?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Transform API content item to internal format
+function transformApiToInternal(apiItem: ApiContentItem): ContentItem {
+  const title = apiItem.data.title as string || 'Untitled';
+  const { title: _, ...fieldData } = apiItem.data;
+  
+  return {
+    id: apiItem.id,
+    contentTypeId: apiItem.contentTypeId,
+    title,
+    data: fieldData,
+    createdAt: apiItem.createdAt,
+    updatedAt: apiItem.updatedAt,
+  };
+}
+
+// Transform internal format to API format
+function transformInternalToApi(item: ContentItem, websiteId: string): Partial<ApiContentItem> {
+  return {
+    contentTypeId: item.contentTypeId,
+    websiteId,
+    data: {
+      title: item.title,
+      ...item.data,
+    },
+    status: 'draft',
+  };
+}
+
 interface ContentState {
   contentItems: ContentItem[];
   projectId: string;
+  isLoading: boolean;
+  error: string | null;
   
-  // CRUD operations with rollback support
-  addContent: (contentTypeId: string, data: Record<string, unknown>) => { item: ContentItem; rollback: () => void };
-  updateContent: (id: string, data: Record<string, unknown>) => { rollback: () => void; previousData: Record<string, unknown> | undefined };
-  deleteContent: (id: string) => void;
+  // API operations
+  loadContent: (websiteId: string) => Promise<void>;
+  addContent: (contentTypeId: string, data: Record<string, unknown>, websiteId: string) => Promise<ContentItem>;
+  updateContent: (id: string, data: Record<string, unknown>, websiteId: string) => Promise<void>;
+  deleteContent: (id: string) => Promise<void>;
+  
+  // Read operations (local state)
   getContentByType: (contentTypeId: string) => ContentItem[];
   getContentById: (id: string) => ContentItem | undefined;
-  duplicateContent: (id: string) => ContentItem | undefined;
+  duplicateContent: (id: string, websiteId: string) => Promise<ContentItem | undefined>;
   
-  // Batch operations
+  // State management
   clearContent: () => void;
-  importContent: (items: ContentItem[]) => void;
-  exportContent: () => ContentItem[];
-  
-  // Project management
   setProjectId: (id: string) => void;
-  setContentItems: (items: ContentItem[]) => void;
+  setError: (error: string | null) => void;
 }
 
 export const useContentStore = create<ContentState>()(
   (set, get) => ({
     contentItems: [],
     projectId: 'default',
+    isLoading: false,
+    error: null,
     
-    addContent: (contentTypeId: string, data: Record<string, unknown>) => {
-      const previousState = get().contentItems;
-      const newItem: ContentItem = {
+    loadContent: async (websiteId: string) => {
+      set({ isLoading: true, error: null });
+      
+      try {
+        const response = await fetch(`/api/content-items?websiteId=${websiteId}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to load content items');
+        }
+        
+        const result = await response.json();
+        const apiItems = result.data || [];
+        
+        const contentItems = apiItems.map(transformApiToInternal);
+        
+        set({ contentItems, isLoading: false });
+      } catch (error) {
+        console.error('Failed to load content:', error);
+        set({ 
+          error: error instanceof Error ? error.message : 'Unknown error',
+          isLoading: false 
+        });
+      }
+    },
+    
+    addContent: async (contentTypeId: string, data: Record<string, unknown>, websiteId: string) => {
+      const { title, ...fieldData } = data;
+      
+      // Create optimistic item
+      const optimisticItem: ContentItem = {
         id: generateId(),
         contentTypeId,
-        data,
+        title: (title as string) || 'Untitled',
+        data: fieldData,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
       
+      // Add optimistically
       set((state) => ({
-        contentItems: [...state.contentItems, newItem],
+        contentItems: [...state.contentItems, optimisticItem],
       }));
       
-      return {
-        item: newItem,
-        rollback: () => set({ contentItems: previousState }),
-      };
+      try {
+        const payload = transformInternalToApi(optimisticItem, websiteId);
+        
+        const response = await fetch('/api/content-items', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to create content item');
+        }
+        
+        const result = await response.json();
+        const apiItem = result.data;
+        const persistedItem = transformApiToInternal(apiItem);
+        
+        // Replace optimistic item with persisted item
+        set((state) => ({
+          contentItems: state.contentItems.map(item =>
+            item.id === optimisticItem.id ? persistedItem : item
+          ),
+        }));
+        
+        return persistedItem;
+      } catch (error) {
+        // Remove optimistic item on error
+        set((state) => ({
+          contentItems: state.contentItems.filter(item => item.id !== optimisticItem.id),
+          error: error instanceof Error ? error.message : 'Failed to create content',
+        }));
+        throw error;
+      }
     },
     
-    updateContent: (id: string, data: Record<string, unknown>) => {
+    updateContent: async (id: string, data: Record<string, unknown>, websiteId: string) => {
+      const { title, ...fieldData } = data;
       const previousState = get().contentItems;
-      const previousItem = previousState.find(item => item.id === id);
       
+      // Update optimistically
       set((state) => ({
         contentItems: state.contentItems.map((item) =>
           item.id === id
-            ? { ...item, data, updatedAt: new Date() }
+            ? { 
+                ...item, 
+                title: (title as string) || item.title,
+                data: fieldData, 
+                updatedAt: new Date() 
+              }
             : item
         ),
       }));
       
-      return {
-        rollback: () => set({ contentItems: previousState }),
-        previousData: previousItem?.data,
-      };
+      try {
+        const response = await fetch(`/api/content-items/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            data: {
+              title: title as string,
+              ...fieldData,
+            },
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to update content item');
+        }
+        
+        const result = await response.json();
+        const apiItem = result.data;
+        const updatedItem = transformApiToInternal(apiItem);
+        
+        // Replace with server response
+        set((state) => ({
+          contentItems: state.contentItems.map(item =>
+            item.id === id ? updatedItem : item
+          ),
+        }));
+      } catch (error) {
+        // Rollback on error
+        set({ 
+          contentItems: previousState,
+          error: error instanceof Error ? error.message : 'Failed to update content',
+        });
+        throw error;
+      }
     },
     
-    deleteContent: (id: string) => {
+    deleteContent: async (id: string) => {
+      const previousState = get().contentItems;
+      
+      // Remove optimistically
       set((state) => ({
         contentItems: state.contentItems.filter((item) => item.id !== id),
       }));
+      
+      try {
+        const response = await fetch(`/api/content-items/${id}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to delete content item');
+        }
+      } catch (error) {
+        // Rollback on error
+        set({ 
+          contentItems: previousState,
+          error: error instanceof Error ? error.message : 'Failed to delete content',
+        });
+        throw error;
+      }
     },
     
     getContentByType: (contentTypeId: string) => {
@@ -85,47 +244,35 @@ export const useContentStore = create<ContentState>()(
       return state.contentItems.find((item) => item.id === id);
     },
     
-    duplicateContent: (id: string) => {
+    duplicateContent: async (id: string, websiteId: string) => {
       const state = get();
       const original = state.contentItems.find((item) => item.id === id);
       
       if (!original) return undefined;
       
-      const duplicate: ContentItem = {
-        ...original,
-        id: generateId(),
-        data: { ...original.data },
-        createdAt: new Date(),
-        updatedAt: new Date(),
+      const duplicateData = {
+        title: `${original.title} (Copy)`,
+        ...original.data,
       };
       
-      set((state) => ({
-        contentItems: [...state.contentItems, duplicate],
-      }));
-      
-      return duplicate;
+      try {
+        return await get().addContent(original.contentTypeId, duplicateData, websiteId);
+      } catch (error) {
+        console.error('Failed to duplicate content:', error);
+        return undefined;
+      }
     },
     
     clearContent: () => {
-      set({ contentItems: [] });
-    },
-    
-    importContent: (items: ContentItem[]) => {
-      set({ contentItems: items });
-    },
-    
-    exportContent: () => {
-      return get().contentItems;
+      set({ contentItems: [], error: null });
     },
     
     setProjectId: (id: string) => {
-      // Clear current content when switching projects/websites
-      set({ projectId: id, contentItems: [] });
-      // Content should be loaded from API when needed
+      set({ projectId: id, contentItems: [], error: null });
     },
     
-    setContentItems: (items: ContentItem[]) => {
-      set({ contentItems: items });
+    setError: (error: string | null) => {
+      set({ error });
     },
   })
 );

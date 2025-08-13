@@ -5,7 +5,7 @@ import { useContentTypes } from '@/lib/context/content-type-context';
 import { Field } from '@/lib/content-types/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Edit2, Network } from 'lucide-react';
+import { Plus, Edit2, Network, Trash2 } from 'lucide-react';
 import { FieldTypeModal } from './field-type-modal-simple';
 import { SortableFieldList } from './sortable-field-list';
 import { FieldPropertiesPanel } from './field-properties-panel';
@@ -22,6 +22,7 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
     setCurrentContentType,
     createContentType,
     updateContentType,
+    safeDeleteContentType,
     deleteField,
     updateField,
     reorderFields,
@@ -107,6 +108,27 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
     setIsPropertiesPanelOpen(true);
   };
 
+  const handleDeleteContentType = async (contentTypeId: string) => {
+    const success = await safeDeleteContentType(contentTypeId, () => {
+      // After successful deletion, select another content type or create new one
+      const remainingTypes = contentTypes.filter(ct => ct.id !== contentTypeId);
+      if (remainingTypes.length > 0) {
+        const nextContentType = remainingTypes[remainingTypes.length - 1];
+        setCurrentContentType(nextContentType);
+        setNameInput(nextContentType.name);
+      } else {
+        // No content types left, we'll let the component handle this in its render logic
+        setCurrentContentType(null);
+      }
+    });
+    
+    if (success) {
+      // Reset selected field if it belonged to deleted content type
+      setSelectedField(null);
+      setIsPropertiesPanelOpen(false);
+    }
+  };
+
   // Show loading state during initialization to prevent hydration mismatch
   if (!isInitialized) {
     return (
@@ -125,6 +147,7 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
           <h2 className="text-2xl font-semibold mb-4 text-white">No Content Type Selected</h2>
           <Button className="catalyst-button-primary" onClick={() => {
             const newContentType = createContentType('NewContentType');
+            setCurrentContentType(newContentType);
             setNameInput(newContentType.name);
           }}>
             Create New Content Type
@@ -136,6 +159,62 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
 
   return (
     <div className="h-full flex flex-col">
+      {/* Content Types Selector */}
+      <div className="border-b p-4 bg-dark-primary border-gray-800">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-medium text-gray-400">Content Types</h2>
+            <span className="text-xs text-gray-500">({contentTypes.length})</span>
+          </div>
+          <Button 
+            size="sm" 
+            onClick={() => {
+              const newContentType = createContentType(`ContentType_${contentTypes.length + 1}`);
+              setCurrentContentType(newContentType);
+              setNameInput(newContentType.name);
+            }}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add content type
+          </Button>
+        </div>
+        <div className="flex gap-2 mt-3 flex-wrap">
+          {contentTypes.map((contentType) => (
+            <div key={contentType.id} className="relative group">
+              <button
+                onClick={() => {
+                  setCurrentContentType(contentType);
+                  setNameInput(contentType.name);
+                }}
+                className={`px-3 py-2 pr-8 rounded-lg text-sm font-medium transition-colors ${
+                  currentContentType?.id === contentType.id
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                <span className="mr-2">{contentType.icon}</span>
+                {contentType.name}
+                <span className="ml-2 text-xs opacity-70">({contentType.fields.length})</span>
+              </button>
+              {/* Delete button - only show when there are multiple content types */}
+              {contentTypes.length > 1 && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteContentType(contentType.id);
+                  }}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-red-600/20 text-red-400 hover:text-red-300 transition-all"
+                  title={`Delete ${contentType.name}`}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+      
       {/* Header with Content Type Name */}
       <div className="border-b p-6 bg-dark-secondary border-gray-800">
         <div className="flex items-center justify-between">
@@ -212,7 +291,7 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
               onClick={() => setIsFieldModalOpen(true)}
             >
               <Plus className="mr-2 h-4 w-4" />
-              Add First Field
+              Add field
             </Button>
           </div>
         ) : (
@@ -234,7 +313,7 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
               onClick={() => setIsFieldModalOpen(true)}
             >
               <Plus className="mr-2 h-4 w-4" />
-              Add Field
+              Add field
             </Button>
           </div>
         )}
