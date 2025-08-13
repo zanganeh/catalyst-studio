@@ -1,6 +1,6 @@
 import { GET, POST } from '../route';
 import { getClient } from '@/lib/db/client';
-import { NextRequest } from 'next/server';
+import { createTestRequest, parseTestResponse } from './setup';
 
 // Mock Prisma client
 jest.mock('@/lib/db/client', () => ({
@@ -96,12 +96,9 @@ describe('/api/websites', () => {
 
       mockPrisma.website.create.mockResolvedValue(createdWebsite);
 
-      const request = new NextRequest('http://localhost:3000/api/websites', {
-        method: 'POST',
-        body: JSON.stringify(newWebsite)
-      });
+      const request = createTestRequest(newWebsite);
 
-      const response = await POST(request);
+      const response = await POST(request as any);
       const data = await response.json();
 
       expect(response.status).toBe(201);
@@ -120,12 +117,9 @@ describe('/api/websites', () => {
         category: 'business'
       };
 
-      const request = new NextRequest('http://localhost:3000/api/websites', {
-        method: 'POST',
-        body: JSON.stringify(invalidWebsite)
-      });
+      const request = createTestRequest(invalidWebsite);
 
-      const response = await POST(request);
+      const response = await POST(request as any);
       const data = await response.json();
 
       expect(response.status).toBe(400);

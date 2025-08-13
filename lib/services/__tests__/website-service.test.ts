@@ -1,4 +1,4 @@
-import { websiteService } from '../website-service';
+import { WebsiteService } from '../website-service';
 import { getClient } from '@/lib/db/client';
 import { ApiError } from '@/lib/api/errors';
 
@@ -9,6 +9,7 @@ jest.mock('@/lib/db/client', () => ({
 
 describe('WebsiteService', () => {
   let mockPrisma: any;
+  let websiteService: WebsiteService;
 
   beforeEach(() => {
     mockPrisma = {
@@ -21,6 +22,9 @@ describe('WebsiteService', () => {
       }
     };
     (getClient as jest.Mock).mockReturnValue(mockPrisma);
+    
+    // Create new instance for each test
+    websiteService = new WebsiteService();
   });
 
   afterEach(() => {

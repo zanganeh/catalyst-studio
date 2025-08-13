@@ -38,3 +38,64 @@ global.IntersectionObserver = class IntersectionObserver {
     return []
   }
 }
+
+// Mock Next.js server components for tests
+if (typeof global.Response === 'undefined') {
+  global.Response = class Response {
+    constructor(body, init) {
+      this.body = body;
+      this.status = init?.status || 200;
+      this.statusText = init?.statusText || 'OK';
+      this.headers = new Map(Object.entries(init?.headers || {}));
+    }
+
+    async json() {
+      if (typeof this.body === 'string') {
+        return JSON.parse(this.body);
+      }
+      return this.body;
+    }
+
+    async text() {
+      if (typeof this.body === 'string') {
+        return this.body;
+      }
+      return JSON.stringify(this.body);
+    }
+
+    static json(data, init) {
+      return new Response(JSON.stringify(data), {
+        ...init,
+        headers: {
+          'content-type': 'application/json',
+          ...(init?.headers || {})
+        }
+      });
+    }
+  };
+}
+
+if (typeof global.Request === 'undefined') {
+  global.Request = class Request {
+    constructor(url, init) {
+      this.url = url;
+      this.method = init?.method || 'GET';
+      this.headers = new Map(Object.entries(init?.headers || {}));
+      this.body = init?.body;
+    }
+
+    async json() {
+      if (typeof this.body === 'string') {
+        return JSON.parse(this.body);
+      }
+      return this.body;
+    }
+
+    async text() {
+      if (typeof this.body === 'string') {
+        return this.body;
+      }
+      return JSON.stringify(this.body);
+    }
+  };
+}
