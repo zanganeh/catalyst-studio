@@ -25,10 +25,10 @@ export const UpdateContentItemSchema = z.object({
   publishedAt: z.union([z.string(), z.date(), z.null()]).optional(),
 });
 
-// Query parameters schema
+// Query parameters schema with clamping for invalid values
 export const ContentItemsQuerySchema = z.object({
-  page: z.coerce.number().min(1).optional().default(1),
-  limit: z.coerce.number().min(1).max(100).optional().default(20),
+  page: z.coerce.number().optional().default(1).transform(val => Math.max(1, val)),
+  limit: z.coerce.number().optional().default(20).transform(val => Math.min(100, Math.max(1, val))),
   status: ContentStatusSchema.optional(),
   contentTypeId: z.string().optional(),
   websiteId: z.string().optional(),

@@ -7,11 +7,12 @@ import { validateUpdateContentItem } from '@/lib/api/validation/content-item';
 // GET /api/content-items/[id] - Get a single content item
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const contentItem = await prisma.contentItem.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         contentType: true,
         website: true,
@@ -54,9 +55,10 @@ export async function GET(
 // PUT /api/content-items/[id] - Update a content item
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     
     // Validate request body
@@ -72,7 +74,7 @@ export async function PUT(
     
     // Check if item exists
     const existing = await prisma.contentItem.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
     
     if (!existing) {
@@ -94,7 +96,7 @@ export async function PUT(
     
     // Update content item
     const contentItem = await prisma.contentItem.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         contentType: true,
@@ -131,12 +133,14 @@ export async function PUT(
 // DELETE /api/content-items/[id] - Soft delete a content item
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
+    
     // Check if item exists
     const existing = await prisma.contentItem.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
     
     if (!existing) {
@@ -148,7 +152,7 @@ export async function DELETE(
     
     // Soft delete by setting status to archived
     const contentItem = await prisma.contentItem.update({
-      where: { id: params.id },
+      where: { id },
       data: { status: 'archived' },
     });
     
