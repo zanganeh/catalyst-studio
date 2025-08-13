@@ -13,7 +13,7 @@ const AnalyticsPage = dynamic(() => import('../../../(dashboard)/analytics/page'
 });
 
 export default function StudioAnalyticsPage() {
-  const { website, websiteMetadata, isLoading, error } = useWebsiteContext();
+  const { website, isLoading, error } = useWebsiteContext();
 
   if (isLoading) {
     return (

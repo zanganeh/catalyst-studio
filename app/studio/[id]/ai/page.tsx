@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { Sparkles } from 'lucide-react';
 
 export default function AIPage() {
-  const { website, websiteMetadata, isLoading, error } = useWebsiteContext();
+  const { website, isLoading, error } = useWebsiteContext();
   const params = useParams();
   const websiteId = params?.id as string;
 
@@ -57,7 +57,7 @@ export default function AIPage() {
           <div>
             <h1 className="text-2xl font-bold text-white">AI Development Assistant</h1>
             <p className="text-gray-400 mt-1">
-              Working on: {websiteMetadata?.name || 'Untitled Website'}
+              Working on: {website?.name || 'Untitled Website'}
             </p>
           </div>
         </div>
@@ -65,7 +65,7 @@ export default function AIPage() {
         <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
           <h2 className="text-lg font-semibold text-white mb-3">AI Assistant Active</h2>
           <p className="text-gray-300 mb-4">
-            The AI assistant is ready to help you build your {websiteMetadata?.category || 'website'}.
+            The AI assistant is ready to help you build your {website?.category || 'website'}.
             Use the chat panel on the left to interact with the AI.
           </p>
           
@@ -77,24 +77,24 @@ export default function AIPage() {
           </div>
         </div>
 
-        {websiteMetadata && (
+        {website && (
           <div className="mt-6 bg-gray-800 rounded-lg p-4 border border-gray-700">
             <h3 className="text-sm font-medium text-gray-400 mb-2">Project Details</h3>
             <dl className="space-y-1">
               <div className="flex justify-between">
                 <dt className="text-sm text-gray-500">Category:</dt>
-                <dd className="text-sm text-gray-300">{websiteMetadata.category}</dd>
+                <dd className="text-sm text-gray-300">{website.category}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-sm text-gray-500">Created:</dt>
                 <dd className="text-sm text-gray-300">
-                  {new Date(websiteMetadata.createdAt).toLocaleDateString()}
+                  {new Date(website.createdAt).toLocaleDateString()}
                 </dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-sm text-gray-500">Last Modified:</dt>
                 <dd className="text-sm text-gray-300">
-                  {new Date(websiteMetadata.lastModified).toLocaleDateString()}
+                  {new Date(website.updatedAt).toLocaleDateString()}
                 </dd>
               </div>
             </dl>

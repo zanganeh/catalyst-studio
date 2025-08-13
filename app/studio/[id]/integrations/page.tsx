@@ -13,7 +13,7 @@ const IntegrationsPage = dynamic(() => import('../../../(dashboard)/integrations
 });
 
 export default function StudioIntegrationsPage() {
-  const { website, websiteMetadata, isLoading, error } = useWebsiteContext();
+  const { website, isLoading, error } = useWebsiteContext();
 
   if (isLoading) {
     return (

@@ -17,6 +17,9 @@ model Website {
   description String?
   category    String
   metadata    String?  // Using String for SQLite instead of Json
+  icon        String?
+  settings    String?  // Using String for SQLite instead of Json
+  isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   

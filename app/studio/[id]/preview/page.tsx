@@ -13,7 +13,7 @@ const PreviewPage = dynamic(() => import('../../../preview/page'), {
 });
 
 export default function StudioPreviewPage() {
-  const { website, websiteMetadata, isLoading, error } = useWebsiteContext();
+  const { website, isLoading, error } = useWebsiteContext();
 
   if (isLoading) {
     return (
@@ -42,7 +42,7 @@ export default function StudioPreviewPage() {
       <div className="p-4 border-b border-gray-700 bg-gray-800">
         <h1 className="text-xl font-bold text-white">Website Preview</h1>
         <p className="text-sm text-gray-400 mt-1">
-          {websiteMetadata?.name || 'Untitled Website'}
+          {website?.name || 'Untitled Website'}
         </p>
       </div>
       <PreviewPage />
