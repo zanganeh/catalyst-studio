@@ -56,3 +56,4 @@ test-results/**
 playwright-report/**
 
 /lib/generated/prisma
+/proof-of-concept

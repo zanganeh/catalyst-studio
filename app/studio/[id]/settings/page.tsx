@@ -13,7 +13,7 @@ const SettingsPage = dynamic(() => import('../../../settings/page'), {
 });
 
 export default function StudioSettingsPage() {
-  const { website, websiteMetadata, isLoading, error, updateWebsite } = useWebsiteContext();
+  const { website, isLoading, error, updateWebsite } = useWebsiteContext();
 
   if (isLoading) {
     return (
@@ -42,7 +42,7 @@ export default function StudioSettingsPage() {
       <div className="p-4 border-b border-gray-700 bg-gray-800">
         <h1 className="text-xl font-bold text-white">Website Settings</h1>
         <p className="text-sm text-gray-400 mt-1">
-          Configure settings for: {websiteMetadata?.name || 'Untitled Website'}
+          Configure settings for: {website?.name || 'Untitled Website'}
         </p>
       </div>
       <SettingsPage />

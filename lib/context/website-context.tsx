@@ -1,21 +1,20 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { WebsiteStorageService } from '@/lib/storage/website-storage.service';
-import { WebsiteData, WebsiteMetadata } from '@/lib/storage/types';
+import { useWebsite, useUpdateWebsite, useDeleteWebsite } from '@/lib/api/hooks/use-websites';
+import { Website, UpdateWebsiteRequest } from '@/types/api';
 
 interface WebsiteContextValue {
   websiteId: string;
-  website: WebsiteData | null;
-  websiteMetadata: WebsiteMetadata | null;
+  website: Website | null;
   isLoading: boolean;
   error: Error | null;
   
   // Operations
-  updateWebsite: (updates: Partial<WebsiteData>) => Promise<void>;
+  updateWebsite: (updates: UpdateWebsiteRequest) => Promise<void>;
   deleteWebsite: () => Promise<void>;
-  switchWebsite: (id: string) => Promise<void>;
+  switchWebsite: (id: string) => void;
   refreshWebsite: () => Promise<void>;
 }
 
@@ -34,131 +33,64 @@ export function WebsiteContextProvider({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [website, setWebsite] = useState<WebsiteData | null>(null);
-  const [websiteMetadata, setWebsiteMetadata] = useState<WebsiteMetadata | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-  const [storageService] = useState(() => new WebsiteStorageService());
+  const [currentWebsiteId, setCurrentWebsiteId] = useState(websiteId);
   
   // Validate website ID on mount
   const validatedWebsiteId = useMemo(() => {
-    if (!validateWebsiteId(websiteId)) {
-      console.warn(`Invalid website ID: ${websiteId}, using default`);
+    if (!validateWebsiteId(currentWebsiteId)) {
+      console.warn(`Invalid website ID: ${currentWebsiteId}, using default`);
       return 'default';
     }
-    return websiteId;
-  }, [websiteId]);
+    return currentWebsiteId;
+  }, [currentWebsiteId]);
 
-  // Load website data
-  const loadWebsiteData = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // Initialize storage service if needed
-      await storageService.initializeDB();
-      
-      // Check if website exists, create default if not
-      const websites = await storageService.listWebsites();
-      let targetWebsite = websites.find(w => w.id === validatedWebsiteId);
-      
-      if (!targetWebsite && validatedWebsiteId === 'default') {
-        // Create default website for backward compatibility
-        const newId = await storageService.createWebsite({
-          name: 'My Website',
-          createdAt: new Date(),
-          lastModified: new Date(),
-          storageQuota: 50 * 1024 * 1024, // 50MB default
-          category: 'default'
-        });
-        
-        // The returned ID might be different, so fetch the metadata again
-        const updatedWebsites = await storageService.listWebsites();
-        targetWebsite = updatedWebsites.find(w => w.id === newId);
-      }
-      
-      if (!targetWebsite) {
-        throw new Error(`Website with ID "${validatedWebsiteId}" not found`);
-      }
-      
-      // Load website data
-      const data = await storageService.getWebsiteData(validatedWebsiteId);
-      setWebsite(data);
-      setWebsiteMetadata(targetWebsite);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to load website'));
-      console.error('Failed to load website:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [validatedWebsiteId, storageService]);
+  // Use React Query hooks
+  const { data: website = null, isLoading, error: queryError, refetch } = useWebsite(validatedWebsiteId);
+  const updateMutation = useUpdateWebsite(validatedWebsiteId);
+  const deleteMutation = useDeleteWebsite();
+
+  // Convert query error to Error object
+  const error = queryError instanceof Error ? queryError : queryError ? new Error(String(queryError)) : null;
 
   // Update website data
-  const updateWebsite = useCallback(async (updates: Partial<WebsiteData>) => {
+  const updateWebsite = useCallback(async (updates: UpdateWebsiteRequest) => {
     try {
-      await storageService.saveWebsiteData(validatedWebsiteId, updates);
-      
-      // Update local state
-      setWebsite(prev => prev ? { ...prev, ...updates } : null);
-      
-      // Update metadata last modified
-      if (websiteMetadata) {
-        await storageService.updateWebsiteMetadata(validatedWebsiteId, {
-          lastModified: new Date()
-        });
-        setWebsiteMetadata(prev => prev ? { ...prev, lastModified: new Date() } : null);
-      }
+      await updateMutation.mutateAsync(updates);
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to update website'));
+      console.error('Failed to update website:', err);
       throw err;
     }
-  }, [validatedWebsiteId, storageService, websiteMetadata]);
+  }, [updateMutation]);
 
   // Delete website
   const deleteWebsite = useCallback(async () => {
     try {
-      await storageService.deleteWebsiteData(validatedWebsiteId);
-      setWebsite(null);
-      setWebsiteMetadata(null);
+      await deleteMutation.mutateAsync(validatedWebsiteId);
+      // Navigate to dashboard after deletion
+      router.push('/dashboard');
     } catch (err) {
-      setError(err instanceof Error ? err : new Error('Failed to delete website'));
+      console.error('Failed to delete website:', err);
       throw err;
     }
-  }, [validatedWebsiteId, storageService]);
+  }, [deleteMutation, validatedWebsiteId, router]);
 
   // Switch to different website
-  const switchWebsite = useCallback(async (newId: string) => {
-    // Use Next.js router for client-side navigation
-    router.push(`/studio/${newId}`);
+  const switchWebsite = useCallback((id: string) => {
+    setCurrentWebsiteId(id);
+    // Navigate to new website
+    router.push(`/studio/${id}`);
   }, [router]);
 
   // Refresh website data
   const refreshWebsite = useCallback(async () => {
-    await loadWebsiteData();
-  }, [loadWebsiteData]);
-
-  // Load website data on mount and when ID changes
-  useEffect(() => {
-    loadWebsiteData();
-  }, [loadWebsiteData]);
-
-  // Cleanup storage service on unmount
-  useEffect(() => {
-    return () => {
-      // Clean up any open connections if cleanup method exists
-      const serviceWithCleanup = storageService as unknown as { cleanup?: () => void };
-      if (serviceWithCleanup.cleanup) {
-        serviceWithCleanup.cleanup();
-      }
-    };
-  }, [storageService]);
+    await refetch();
+  }, [refetch]);
 
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(
     () => ({
       websiteId: validatedWebsiteId,
       website,
-      websiteMetadata,
       isLoading,
       error,
       updateWebsite,
@@ -166,7 +98,7 @@ export function WebsiteContextProvider({
       switchWebsite,
       refreshWebsite
     }),
-    [validatedWebsiteId, website, websiteMetadata, isLoading, error, 
+    [validatedWebsiteId, website, isLoading, error, 
      updateWebsite, deleteWebsite, switchWebsite, refreshWebsite]
   );
 
@@ -186,11 +118,10 @@ export const useWebsiteContext = () => {
 };
 
 // Helper hook for components that need website data but can handle loading/error states
-export const useWebsite = () => {
+export const useCurrentWebsite = () => {
   const context = useWebsiteContext();
   return {
     website: context.website,
-    metadata: context.websiteMetadata,
     isLoading: context.isLoading,
     error: context.error
   };

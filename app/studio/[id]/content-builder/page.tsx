@@ -13,7 +13,7 @@ const ContentBuilderPage = dynamic(() => import('../../../content-builder/page')
 });
 
 export default function StudioContentBuilderPage() {
-  const { website, websiteMetadata, isLoading, error } = useWebsiteContext();
+  const { website, isLoading, error } = useWebsiteContext();
 
   if (isLoading) {
     return (

@@ -18,7 +18,7 @@ const OverviewPage = dynamic(() => import('../../(dashboard)/overview/page'), {
 });
 
 export default function StudioPage() {
-  const { website, websiteMetadata, isLoading, error } = useWebsiteContext();
+  const { website, isLoading, error } = useWebsiteContext();
   const router = useRouter();
 
   useEffect(() => {
@@ -49,5 +49,14 @@ export default function StudioPage() {
   }
 
   // Render the overview page with website context available
-  return <OverviewPage />;
+  return (
+    <>
+      {website && (
+        <div data-testid="website-name" className="sr-only">
+          {website.name}
+        </div>
+      )}
+      <OverviewPage />
+    </>
+  );
 }

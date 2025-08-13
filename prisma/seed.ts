@@ -17,7 +17,18 @@ async function main() {
           enableComments: true,
           enableSearch: true
         }
-      })
+      }),
+      icon: '🌐',
+      settings: JSON.stringify({
+        primaryColor: '#007bff',
+        secondaryColor: '#6c757d',
+        features: {
+          blog: true,
+          shop: false,
+          analytics: true
+        }
+      }),
+      isActive: true
     }
   })
 

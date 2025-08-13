@@ -13,7 +13,7 @@ const ContentPage = dynamic(() => import('../../../(dashboard)/content/page'), {
 });
 
 export default function StudioContentPage() {
-  const { website, websiteMetadata, isLoading, error } = useWebsiteContext();
+  const { website, isLoading, error } = useWebsiteContext();
 
   if (isLoading) {
     return (
@@ -42,7 +42,7 @@ export default function StudioContentPage() {
       <div className="p-4 border-b border-gray-700 bg-gray-800">
         <h1 className="text-xl font-bold text-white">Content Management</h1>
         <p className="text-sm text-gray-400 mt-1">
-          Website: {websiteMetadata?.name || 'Untitled Website'}
+          Website: {website?.name || 'Untitled Website'}
         </p>
       </div>
       <ContentPage />

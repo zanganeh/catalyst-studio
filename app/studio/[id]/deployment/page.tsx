@@ -13,7 +13,7 @@ const DeploymentPage = dynamic(() => import('../../deployment/page'), {
 });
 
 export default function StudioDeploymentPage() {
-  const { website, websiteMetadata, isLoading, error } = useWebsiteContext();
+  const { website, isLoading, error } = useWebsiteContext();
 
   if (isLoading) {
     return (

@@ -10,12 +10,26 @@ export interface ApiError {
 }
 
 // Website model types
+export interface WebsiteSettings {
+  primaryColor?: string;
+  secondaryColor?: string;
+  features?: {
+    blog?: boolean;
+    shop?: boolean;
+    analytics?: boolean;
+  };
+  [key: string]: any;
+}
+
 export interface Website {
   id: string;
   name: string;
   description?: string;
   category: string;
   metadata?: Record<string, any>;
+  icon?: string;
+  settings?: WebsiteSettings;
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,6 +39,9 @@ export interface CreateWebsiteRequest {
   description?: string;
   category: string;
   metadata?: Record<string, any>;
+  icon?: string;
+  settings?: WebsiteSettings;
+  isActive?: boolean;
 }
 
 export interface UpdateWebsiteRequest extends Partial<CreateWebsiteRequest> {}

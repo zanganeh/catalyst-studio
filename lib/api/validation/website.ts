@@ -1,6 +1,19 @@
 import { z } from 'zod';
 
 /**
+ * Schema for website settings
+ */
+export const WebsiteSettingsSchema = z.object({
+  primaryColor: z.string().optional(),
+  secondaryColor: z.string().optional(),
+  features: z.object({
+    blog: z.boolean().optional(),
+    shop: z.boolean().optional(),
+    analytics: z.boolean().optional()
+  }).optional()
+}).passthrough(); // Allow additional properties
+
+/**
  * Schema for creating a new website
  */
 export const CreateWebsiteSchema = z.object({
@@ -16,7 +29,12 @@ export const CreateWebsiteSchema = z.object({
     .min(1, 'Category is required')
     .max(100, 'Category must be less than 100 characters')
     .trim(),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.any()).optional(),
+  icon: z.string()
+    .max(100, 'Icon must be less than 100 characters')
+    .optional(),
+  settings: WebsiteSettingsSchema.optional(),
+  isActive: z.boolean().optional().default(true)
 });
 
 /**

@@ -13,7 +13,7 @@ const DevelopmentPage = dynamic(() => import('../../../(dashboard)/development/p
 });
 
 export default function StudioDevelopmentPage() {
-  const { website, websiteMetadata, isLoading, error } = useWebsiteContext();
+  const { website, isLoading, error } = useWebsiteContext();
 
   if (isLoading) {
     return (

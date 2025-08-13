@@ -7,7 +7,7 @@ test.describe('Epic 4 - Story 4.5: Content Items API', () => {
   let createdItemId: string;
 
   test.beforeAll(async ({ request }) => {
-    // Get existing website and content type from seed data
+    // Create a test website if none exists
     const websitesResponse = await request.get(`${API_BASE}/websites`);
     if (websitesResponse.ok()) {
       const websitesData = await websitesResponse.json();
@@ -15,14 +15,52 @@ test.describe('Epic 4 - Story 4.5: Content Items API', () => {
         testWebsiteId = websitesData.data[0].id;
       }
     }
+    
+    // If no website exists, create one
+    if (!testWebsiteId) {
+      const createWebsiteResponse = await request.post(`${API_BASE}/websites`, {
+        data: {
+          name: 'E2E Test Website for Content Items',
+          description: 'Website for content items E2E testing',
+          category: 'Testing'
+        }
+      });
+      if (createWebsiteResponse.ok()) {
+        const websiteData = await createWebsiteResponse.json();
+        testWebsiteId = websiteData.data.id;
+      }
+    }
 
-    // Get content types for the website
+    // Create a content type for testing
     if (testWebsiteId) {
-      const typesResponse = await request.get(`${API_BASE}/content-types?websiteId=${testWebsiteId}`);
-      if (typesResponse.ok()) {
-        const typesData = await typesResponse.json();
-        if (typesData.data && typesData.data.length > 0) {
-          testContentTypeId = typesData.data[0].id;
+      const createTypeResponse = await request.post(`${API_BASE}/content-types`, {
+        data: {
+          websiteId: testWebsiteId,
+          name: 'E2E Test Article Type',
+          fields: [
+            { name: 'title', type: 'text', required: true },
+            { name: 'content', type: 'richtext', required: true },
+            { name: 'author', type: 'text', required: false },
+            { name: 'tags', type: 'array', required: false }
+          ],
+          settings: {
+            singular: 'Article',
+            plural: 'Articles'
+          }
+        }
+      });
+      
+      if (createTypeResponse.ok()) {
+        const typeData = await createTypeResponse.json();
+        testContentTypeId = typeData.data.id;
+      } else {
+        // If creation fails, try to get existing
+        const typesResponse = await request.get(`${API_BASE}/content-types?websiteId=${testWebsiteId}`);
+        if (typesResponse.ok()) {
+          const typesData = await typesResponse.json();
+          if (typesData.data && typesData.data.length > 0) {
+            testContentTypeId = typesData.data[0].id;
+          }
         }
       }
     }

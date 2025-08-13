@@ -1,38 +1,12 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
 import { WebsiteCard } from './website-card';
 import { EmptyState } from './empty-state';
 import { GridSkeleton } from './grid-skeleton';
-import { WebsiteStorageService } from '@/lib/storage/website-storage.service';
-import { WebsiteMetadata } from '@/lib/storage/types';
+import { useWebsites } from '@/lib/api/hooks/use-websites';
 
 export function WebsiteGrid() {
-  const [websites, setWebsites] = useState<WebsiteMetadata[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Memoize the storage service instance to prevent recreation on re-renders
-  const storageService = useMemo(() => new WebsiteStorageService(), []);
-
-  const loadWebsites = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const sites = await storageService.listWebsites();
-      setWebsites(sites);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load websites';
-      console.error('Failed to load websites:', error);
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [storageService]);
-
-  useEffect(() => {
-    loadWebsites();
-  }, [loadWebsites]);
+  const { data: websites = [], isLoading, error, refetch } = useWebsites();
 
   if (isLoading) {
     return <GridSkeleton />;
@@ -40,6 +14,7 @@ export function WebsiteGrid() {
 
   // Display error state if loading failed
   if (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to load websites';
     return (
       <div className="flex flex-col items-center justify-center py-16">
         <div className="text-destructive mb-4">
@@ -58,9 +33,9 @@ export function WebsiteGrid() {
           </svg>
         </div>
         <h3 className="text-lg font-semibold mb-2">Failed to load websites</h3>
-        <p className="text-muted-foreground mb-4">{error}</p>
+        <p className="text-muted-foreground mb-4">{errorMessage}</p>
         <button 
-          onClick={loadWebsites}
+          onClick={() => refetch()}
           className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
         >
           Try Again
@@ -74,7 +49,10 @@ export function WebsiteGrid() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div 
+      data-testid="website-grid"
+      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+    >
       {websites.map((website) => (
         <WebsiteCard key={website.id} website={website} />
       ))}

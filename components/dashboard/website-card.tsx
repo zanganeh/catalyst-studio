@@ -1,21 +1,24 @@
 import Link from 'next/link';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { formatDistanceToNow } from 'date-fns';
-import { WebsiteMetadata } from '@/lib/storage/types';
+import { Website } from '@/types/api';
 
 interface WebsiteCardProps {
-  website: WebsiteMetadata;
+  website: Website;
 }
 
 export function WebsiteCard({ website }: WebsiteCardProps) {
-  const lastModifiedText = `Last modified ${formatDistanceToNow(new Date(website.lastModified))} ago`;
+  const lastModifiedText = `Last modified ${formatDistanceToNow(new Date(website.updatedAt))} ago`;
   
   return (
     <Link 
       href={`/studio/${website.id}`}
       aria-label={`Open ${website.name} website${website.category ? ` (${website.category})` : ''}`}
     >
-      <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full group">
+      <Card 
+        data-testid="website-card"
+        className="hover:shadow-lg transition-shadow cursor-pointer h-full group"
+      >
         <CardHeader className="pb-4">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
@@ -49,7 +52,7 @@ export function WebsiteCard({ website }: WebsiteCardProps) {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            <time dateTime={website.lastModified.toString()}>
+            <time dateTime={website.updatedAt.toString()}>
               {lastModifiedText}
             </time>
           </p>

@@ -10,22 +10,24 @@ import { z } from 'zod';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const prisma = getClient();
     const website = await prisma.website.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
     
     if (!website) {
       throw new ApiError(404, 'Website not found', 'NOT_FOUND');
     }
     
-    // Parse JSON metadata for response
+    // Parse JSON fields for response
     const formattedWebsite = {
       ...website,
-      metadata: website.metadata ? JSON.parse(website.metadata) : null
+      metadata: website.metadata ? JSON.parse(website.metadata) : null,
+      settings: website.settings ? JSON.parse(website.settings) : null
     };
     
     return Response.json({ data: formattedWebsite });
@@ -40,9 +42,10 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const validated = UpdateWebsiteSchema.parse(body);
     
@@ -50,31 +53,35 @@ export async function PUT(
     
     // Check if website exists
     const existing = await prisma.website.findUnique({
-      where: { id: params.id }
+      where: { id }
     });
     
     if (!existing) {
       throw new ApiError(404, 'Website not found', 'NOT_FOUND');
     }
     
-    // Convert metadata to JSON string for storage
+    // Convert JSON fields to strings for storage
     const dataToUpdate = {
       ...validated,
       metadata: validated.metadata !== undefined 
         ? (validated.metadata ? JSON.stringify(validated.metadata) : null)
+        : undefined,
+      settings: validated.settings !== undefined
+        ? (validated.settings ? JSON.stringify(validated.settings) : null)
         : undefined
     };
     
     // Update website
     const website = await prisma.website.update({
-      where: { id: params.id },
+      where: { id },
       data: dataToUpdate
     });
     
-    // Parse JSON metadata for response
+    // Parse JSON fields for response
     const formattedWebsite = {
       ...website,
-      metadata: website.metadata ? JSON.parse(website.metadata) : null
+      metadata: website.metadata ? JSON.parse(website.metadata) : null,
+      settings: website.settings ? JSON.parse(website.settings) : null
     };
     
     return Response.json({ data: formattedWebsite });
@@ -88,18 +95,20 @@ export async function PUT(
 
 /**
  * DELETE /api/websites/[id]
- * Delete a website
+ * Soft delete a website by setting isActive to false
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const prisma = getClient();
     
-    // Use deleteMany which returns count - more efficient than check + delete
-    const result = await prisma.website.delete({
-      where: { id: params.id }
+    // Soft delete by setting isActive to false
+    const result = await prisma.website.update({
+      where: { id },
+      data: { isActive: false }
     });
     
     if (!result) {
@@ -108,7 +117,7 @@ export async function DELETE(
     
     return Response.json({ data: { message: 'Website deleted successfully' } });
   } catch (error) {
-    // Prisma throws P2025 when trying to delete non-existent record
+    // Prisma throws P2025 when trying to update non-existent record
     if (error && typeof error === 'object' && 'code' in error) {
       const prismaError = error as { code: string };
       if (prismaError.code === 'P2025') {
