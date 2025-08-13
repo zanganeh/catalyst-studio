@@ -109,6 +109,7 @@ export interface ContentType {
 export interface ContentItem {
   id: string;
   contentTypeId: string;
+  title: string; // Required title field for all content items (CMS industry standard)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: Record<string, any>; // Field name -> value
   createdAt: Date;

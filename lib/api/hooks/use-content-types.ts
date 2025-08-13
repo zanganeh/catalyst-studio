@@ -108,8 +108,14 @@ export function useCreateContentType() {
   return useMutation({
     mutationFn: createContentType,
     onSuccess: (data) => {
+      // Invalidate all content-types queries for all websites
       queryClient.invalidateQueries({ queryKey: ['content-types'] });
       queryClient.setQueryData(['content-types', data.id], data);
+      // Also invalidate queries with websiteId parameter
+      const websiteId = data?.websiteId;
+      if (websiteId) {
+        queryClient.invalidateQueries({ queryKey: ['content-types', websiteId] });
+      }
     },
   });
 }
@@ -136,8 +142,14 @@ export function useUpdateContentType() {
       }
     },
     onSettled: (data, error, { id }) => {
+      // Invalidate all content-types queries for all websites
       queryClient.invalidateQueries({ queryKey: ['content-types'] });
       queryClient.invalidateQueries({ queryKey: ['content-types', id] });
+      // Also invalidate queries with websiteId parameter
+      const websiteId = data?.websiteId;
+      if (websiteId) {
+        queryClient.invalidateQueries({ queryKey: ['content-types', websiteId] });
+      }
     },
   });
 }

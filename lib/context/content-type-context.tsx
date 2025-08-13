@@ -17,6 +17,7 @@ import {
   useDeleteContentType,
 } from '@/lib/api/hooks/use-content-types';
 import { CreateContentTypeRequest, UpdateContentTypeRequest } from '@/lib/api/validation/content-type';
+import { useContentStore } from '@/lib/stores/content-store';
 import { DEFAULT_WEBSITE_ID } from '@/lib/config/constants';
 import { useWebsiteContext } from '@/lib/context/website-context';
 
@@ -27,6 +28,7 @@ interface ContentTypeContextValue {
   createContentType: (name: string) => ContentType;
   updateContentType: (id: string, updates: Partial<ContentType>) => void;
   deleteContentType: (id: string) => void;
+  safeDeleteContentType: (id: string, onConfirm?: () => void) => Promise<boolean>;
   
   addField: (contentTypeId: string, fieldType: FieldType) => void;
   updateField: (contentTypeId: string, fieldId: string, updates: Partial<Field>) => void;
@@ -62,7 +64,7 @@ function transformApiContentType(apiContentType: ApiContentType): ContentType {
   
   return {
     id: apiContentType.id,
-    name: apiContentType.fields?.name || apiContentType.name,
+    name: apiContentType.name, // Always use the database name column as primary source
     pluralName: settings.pluralName || apiContentType.fields?.pluralName || `${apiContentType.name}s`,
     icon: settings.icon || apiContentType.fields?.icon || '📋',
     description: settings.description || apiContentType.fields?.description,
@@ -199,6 +201,49 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
     
     setIsDirty(true);
   }, [contentTypes, currentContentType, deleteMutation]);
+
+  const safeDeleteContentType = useCallback(async (id: string, onConfirm?: () => void): Promise<boolean> => {
+    const contentType = contentTypes.find(ct => ct.id === id);
+    if (!contentType) return false;
+
+    // Check for existing content items using this content type
+    const contentStore = useContentStore.getState();
+    const existingContent = contentStore.getContentByType(id);
+    
+    if (existingContent.length > 0) {
+      // Show confirmation dialog for content type with existing items
+      const confirmed = confirm(
+        `Warning: "${contentType.name}" has ${existingContent.length} content item${existingContent.length > 1 ? 's' : ''}.\n\n` +
+        `Deleting this content type will permanently remove:\n` +
+        `• The content type definition\n` +
+        `• All ${existingContent.length} associated content item${existingContent.length > 1 ? 's' : ''}\n\n` +
+        `This action cannot be undone. Are you sure you want to continue?`
+      );
+      
+      if (!confirmed) return false;
+      
+      // Delete all content items first
+      existingContent.forEach(item => {
+        contentStore.deleteContent(item.id);
+      });
+    } else {
+      // Simple confirmation for empty content type
+      const confirmed = confirm(
+        `Are you sure you want to delete the content type "${contentType.name}"?\n\n` +
+        `This action cannot be undone.`
+      );
+      
+      if (!confirmed) return false;
+    }
+
+    // Proceed with deletion
+    deleteContentTypeHandler(id);
+    
+    // Call optional confirmation callback
+    if (onConfirm) onConfirm();
+    
+    return true;
+  }, [contentTypes, deleteContentTypeHandler]);
   
   const addFieldHandler = useCallback((contentTypeId: string, fieldType: FieldType) => {
     const contentType = contentTypes.find(ct => ct.id === contentTypeId);
@@ -316,6 +361,7 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
     createContentType: createContentTypeHandler,
     updateContentType: updateContentTypeHandler,
     deleteContentType: deleteContentTypeHandler,
+    safeDeleteContentType,
     addField: addFieldHandler,
     updateField: updateFieldHandler,
     deleteField: deleteFieldHandler,

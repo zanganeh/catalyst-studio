@@ -100,7 +100,10 @@ export async function createContentType(data: CreateContentTypeRequest): Promise
   const { websiteId, fields, relationships, ...contentTypeData } = data;
 
   const contentTypeFields = {
-    ...contentTypeData,
+    name: contentTypeData.name,
+    pluralName: contentTypeData.pluralName,
+    icon: contentTypeData.icon,
+    description: contentTypeData.description,
     fields,
     relationships,
   };
@@ -138,15 +141,16 @@ export async function updateContentType(id: string, data: UpdateContentTypeReque
 
   const { fields, relationships, ...contentTypeData } = data;
 
-  // Fix: Properly merge fields array instead of nesting it
-  let updatedFields = currentFields;
-  if (fields !== undefined || relationships !== undefined) {
-    updatedFields = {
-      ...currentFields,
-      ...(fields !== undefined && { fields }),
-      ...(relationships !== undefined && { relationships }),
-    };
-  }
+  // Fix: Properly merge fields array instead of nesting it  
+  let updatedFields = {
+    ...currentFields,
+    ...(contentTypeData.name && { name: contentTypeData.name }),
+    ...(contentTypeData.pluralName && { pluralName: contentTypeData.pluralName }),
+    ...(contentTypeData.icon && { icon: contentTypeData.icon }),
+    ...(contentTypeData.description !== undefined && { description: contentTypeData.description }),
+    fields: fields !== undefined ? fields : (currentFields.fields || []),
+    relationships: relationships !== undefined ? relationships : (currentFields.relationships || []),
+  };
 
   const updatedSettings = {
     ...currentSettings,

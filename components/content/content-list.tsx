@@ -16,7 +16,7 @@ import { ContentCard } from './content-card';
 interface ContentListProps {
   contentItems: ContentItem[];
   contentTypes: ContentType[];
-  onNewContent: () => void;
+  onNewContent: (contentTypeId?: string) => void;
   onEditContent: (item: ContentItem) => void;
   onDeleteContent: (id: string) => void;
   onDuplicateContent: (item: ContentItem) => void;
@@ -95,13 +95,13 @@ export function ContentList({
         </div>
         
         <Button
-          onClick={onNewContent}
+          onClick={() => onNewContent(selectedContentTypeId)}
           className="bg-orange-500 hover:bg-orange-600 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-gray-900"
           disabled={contentTypes.length === 0}
           aria-label="Create new content item"
         >
           <Plus className="w-4 h-4 mr-2" />
-          New Content
+          Add entry
         </Button>
       </div>
       
@@ -109,23 +109,29 @@ export function ContentList({
       <div className="flex-1 overflow-auto p-4">
         {filteredItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="bg-gray-800/30 backdrop-blur-sm rounded-lg p-8 max-w-md">
-              <h3 className="text-lg font-medium text-white mb-2">
-                No Content Yet
-              </h3>
-              <p className="text-gray-400 mb-4">
+            <div className="mb-6">
+              <div className="w-32 h-32 rounded-full bg-muted flex items-center justify-center mb-4 mx-auto">
+                <Plus className="w-12 h-12 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2 text-white">
                 {selectedContentType 
-                  ? `No ${selectedContentType.pluralName} have been created yet.`
-                  : 'No content items have been created yet.'}
+                  ? `No ${selectedContentType.pluralName} yet`
+                  : 'No content yet'}
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                {selectedContentType 
+                  ? `Start creating ${selectedContentType.pluralName.toLowerCase()} to manage your content`
+                  : 'Start building your content by creating your first item'}
               </p>
-              <Button
-                onClick={onNewContent}
-                className="bg-orange-500 hover:bg-orange-600 text-white"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Your First {selectedContentType?.name || 'Content'}
-              </Button>
             </div>
+            <Button
+              onClick={() => onNewContent(selectedContentTypeId)}
+              size="lg"
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add {selectedContentType?.name.toLowerCase() || 'entry'}
+            </Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

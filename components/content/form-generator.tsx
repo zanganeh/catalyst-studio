@@ -23,6 +23,9 @@ interface FormGeneratorProps {
 function createDynamicSchema(fields: Field[]) {
   const schemaShape: Record<string, z.ZodType<unknown>> = {};
   
+  // Always include title field - required for all content items (CMS industry standard)
+  schemaShape.title = z.string().min(1, 'Title is required');
+  
   fields.forEach((field) => {
     let fieldSchema: z.ZodType<unknown>;
     
@@ -446,12 +449,18 @@ export function FormGenerator({ contentType, contentItem, onSubmit }: FormGenera
     reset,
   } = useForm<Record<string, unknown>>({
     resolver: zodResolver(schema),
-    defaultValues: contentItem?.data || {},
+    defaultValues: {
+      title: contentItem?.title || '',
+      ...contentItem?.data || {},
+    },
   });
   
   // Reset form when content item changes
   useEffect(() => {
-    reset(contentItem?.data || {});
+    reset({
+      title: contentItem?.title || '',
+      ...contentItem?.data || {},
+    });
   }, [contentItem, reset]);
   
   // Handle keyboard shortcuts with proper cleanup
@@ -488,8 +497,25 @@ export function FormGenerator({ contentType, contentItem, onSubmit }: FormGenera
     }
   });
 
+  // Create title field configuration
+  const titleField: Field = {
+    id: 'title',
+    name: 'title',
+    label: 'Title',
+    type: 'text',
+    required: true,
+    order: -1, // Always first
+    placeholder: `Enter ${contentType.name.toLowerCase()} title`,
+    helpText: 'A descriptive title for this content item',
+    defaultValue: '',
+  };
+
   return (
     <form id="content-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Always render title field first */}
+      {renderField(titleField, control, formattedErrors)}
+      
+      {/* Render content type-specific fields */}
       {sortedFields.map((field) => renderField(field, control, formattedErrors))}
     </form>
   );

@@ -12,11 +12,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <QueryProvider>
       <ProjectContextProvider>
         <NavigationProvider>
-          <ContentTypeProvider>
-            <PreviewProvider>
-              {children}
-            </PreviewProvider>
-          </ContentTypeProvider>
+          <PreviewProvider>
+            {children}
+          </PreviewProvider>
         </NavigationProvider>
       </ProjectContextProvider>
     </QueryProvider>
