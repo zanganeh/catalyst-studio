@@ -23,8 +23,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/components/ui/use-toast';
-import { storageService } from '@/lib/storage/storage-service';
 import { useChatPersistence } from '@/hooks/use-chat-persistence';
+import { useWebsiteId } from '@/lib/hooks/use-website-id';
 
 interface StorageSettingsProps {
   sessionId?: string;
@@ -36,12 +36,7 @@ export function StorageSettings({
   onClear 
 }: StorageSettingsProps) {
   const { toast } = useToast();
-  const [storageInfo, setStorageInfo] = useState<{
-    currentStrategy: string;
-    usage: number;
-    quota: number;
-    percentage: number;
-  } | null>(null);
+  const websiteId = useWebsiteId();
   const [isClearing, setIsClearing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -51,39 +46,19 @@ export function StorageSettings({
     exportMessages,
     importMessages,
     saveCount,
-    lastSaved
+    lastSaved,
+    storageStrategy,
+    storageUsage
   } = useChatPersistence({
+    websiteId,
     sessionId,
     enabled: true
   });
-
-  // Load storage info on mount
-  useEffect(() => {
-    const loadStorageInfo = async () => {
-      try {
-        await storageService.initialize();
-        const info = await storageService.getStorageInfo();
-        setStorageInfo(info);
-      } catch (error) {
-        console.error('Failed to load storage info:', error);
-      }
-    };
-
-    loadStorageInfo();
-    
-    // Refresh every 30 seconds
-    const interval = setInterval(loadStorageInfo, 30000);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleClearHistory = async () => {
     setIsClearing(true);
     try {
       await clearMessages();
-      
-      // Refresh storage info
-      const info = await storageService.getStorageInfo();
-      setStorageInfo(info);
       
       onClear?.();
       
@@ -144,10 +119,6 @@ export function StorageSettings({
       const text = await file.text();
       await importMessages(text);
       
-      // Refresh storage info
-      const info = await storageService.getStorageInfo();
-      setStorageInfo(info);
-      
       toast({
         title: 'Chat imported',
         description: 'Chat history has been imported successfully.',
@@ -198,36 +169,36 @@ export function StorageSettings({
               <HardDrive className="w-5 h-5" />
               Storage Status
             </h3>
-            {storageInfo && getStorageStatusIcon(storageInfo.percentage)}
+            {storageUsage && getStorageStatusIcon(storageUsage.percentage)}
           </div>
 
-          {storageInfo && (
+          {storageUsage && (
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Storage Type:</span>
-                <span className="font-medium">{storageInfo.currentStrategy}</span>
+                <span className="font-medium">{storageStrategy}</span>
               </div>
 
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Usage:</span>
-                  <span className={`font-medium ${getStorageStatusColor(storageInfo.percentage)}`}>
-                    {formatBytes(storageInfo.usage)} / {formatBytes(storageInfo.quota)}
+                  <span className={`font-medium ${getStorageStatusColor(storageUsage.percentage)}`}>
+                    {formatBytes(storageUsage.usage)} / {formatBytes(storageUsage.quota)}
                   </span>
                 </div>
                 
                 <div className="w-full bg-secondary rounded-full h-2">
                   <div 
                     className={`h-2 rounded-full transition-all ${
-                      storageInfo.percentage < 50 ? 'bg-green-500' :
-                      storageInfo.percentage < 80 ? 'bg-yellow-500' : 'bg-red-500'
+                      storageUsage.percentage < 50 ? 'bg-green-500' :
+                      storageUsage.percentage < 80 ? 'bg-yellow-500' : 'bg-red-500'
                     }`}
-                    style={{ width: `${Math.min(storageInfo.percentage, 100)}%` }}
+                    style={{ width: `${Math.min(storageUsage.percentage, 100)}%` }}
                   />
                 </div>
                 
                 <p className="text-xs text-muted-foreground">
-                  {storageInfo.percentage.toFixed(1)}% used
+                  {storageUsage.percentage.toFixed(1)}% used
                 </p>
               </div>
 
@@ -317,8 +288,8 @@ export function StorageSettings({
 
           <div className="pt-4 border-t">
             <p className="text-xs text-muted-foreground">
-              Chat history is stored locally in your browser. No data is sent to external servers.
-              Storage may be cleared by your browser if space is needed.
+              Chat history is stored securely in the database. Messages are associated with your website 
+              and session. Old messages are automatically pruned to maintain performance.
             </p>
           </div>
         </div>

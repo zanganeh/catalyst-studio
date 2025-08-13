@@ -3,6 +3,7 @@
 import React, { useEffect, useState, ReactNode } from 'react';
 import { Message } from 'ai';
 import { useChatPersistence } from '@/hooks/use-chat-persistence';
+import { useWebsiteId } from '@/lib/hooks/use-website-id';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface ChatWithPersistenceProps {
@@ -24,6 +25,7 @@ export function ChatWithPersistence({
 }: ChatWithPersistenceProps) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [showLoadingState, setShowLoadingState] = useState(true);
+  const websiteId = useWebsiteId();
 
   const {
     isSaving,
@@ -31,21 +33,25 @@ export function ChatWithPersistence({
     storageStrategy,
     error,
     saveMessages,
-    loadMessages
+    loadMessages,
+    contextData
   } = useChatPersistence({
+    websiteId,
     sessionId,
     enabled,
     autoSaveDelay: 500,
     onLoadComplete: (loadedMessages) => {
+      console.log('Messages loaded from persistence:', loadedMessages);
       if (loadedMessages.length > 0 && setMessages) {
         // Convert our Message format back to AI SDK format
-        const aiMessages: Message[] = loadedMessages.map(msg => ({
-          id: msg.id,
+        const aiMessages: Message[] = loadedMessages.map((msg) => ({
+          id: crypto.randomUUID(), // Generate ID since our format doesn't have it
           role: msg.role,
           content: msg.content,
           createdAt: msg.timestamp ? new Date(msg.timestamp) : undefined
         }));
         
+        console.log('Setting messages in chat:', aiMessages);
         setMessages(aiMessages);
         onMessagesLoaded?.(aiMessages);
       }
@@ -59,9 +65,9 @@ export function ChatWithPersistence({
     }
   });
 
-  // Load messages on mount
+  // Load messages when context data is available
   useEffect(() => {
-    if (enabled && !isInitialized) {
+    if (enabled && !isInitialized && contextData !== undefined) {
       loadMessages().then(() => {
         // Messages loaded
       });
@@ -69,7 +75,7 @@ export function ChatWithPersistence({
       setIsInitialized(true);
       setShowLoadingState(false);
     }
-  }, [enabled, isInitialized, loadMessages]);
+  }, [enabled, isInitialized, contextData, loadMessages]);
 
   // Auto-save messages when they change
   useEffect(() => {

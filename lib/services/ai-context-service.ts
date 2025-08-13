@@ -141,26 +141,23 @@ export class AIContextService {
   
   /**
    * Prune old messages from context
+   * Note: This duplicates logic from ai-context-pruning.ts - should be refactored to use that utility
    */
   static async pruneContext(
     messages: AIMessage[], 
     existingSummary?: string | null
   ): Promise<AIMessage[]> {
-    // Keep system messages and recent messages
-    const systemMessages = messages.filter(m => m.role === 'system');
-    const nonSystemMessages = messages.filter(m => m.role !== 'system');
+    // Import pruning utility to avoid duplication
+    const { pruneMessages } = await import('@/lib/utils/ai-context-pruning');
     
-    // Create summary of older messages if not exists
-    if (!existingSummary && nonSystemMessages.length > 20) {
-      // In production, this would call an AI API to summarize
-      // For now, we'll just note that summarization would happen
-      existingSummary = 'Previous conversation context summarized';
-    }
+    const result = pruneMessages(messages, existingSummary, {
+      maxMessages: MAX_MESSAGES,
+      maxTokens: MAX_TOKENS,
+      preserveSystemMessages: true,
+      preserveRecentCount: 30
+    });
     
-    // Keep last N messages
-    const recentMessages = nonSystemMessages.slice(-30);
-    
-    return [...systemMessages, ...recentMessages];
+    return result.messages;
   }
   
   /**

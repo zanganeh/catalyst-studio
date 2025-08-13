@@ -41,7 +41,16 @@ export async function GET(request: NextRequest) {
 // POST /api/ai-context - Create new context session
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Add body parsing error handling
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      return NextResponse.json(
+        { error: { message: 'Invalid JSON in request body' } },
+        { status: 400 }
+      );
+    }
     
     // Validate request body
     const validation = CreateAIContextSchema.safeParse(body);

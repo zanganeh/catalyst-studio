@@ -1,20 +1,21 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { Message as AIMessage } from 'ai';
-import { storageService } from '@/lib/storage/storage-service';
-import { 
-  chatPersistenceHelper, 
-  STORAGE_KEYS,
-  Message,
-  PersistedChat,
-  StorageMetadata
-} from '@/lib/storage/chat-persistence-model';
+import {
+  useAIContext,
+  useCreateAIContext,
+  useAppendMessage,
+  useClearContext,
+  useDeleteAIContext
+} from '@/lib/api/hooks/use-ai-context';
+import { AIMessage as ContextAIMessage } from '@/types/ai-context';
 
 interface UseChatPersistenceOptions {
+  websiteId: string;
   sessionId: string;
   enabled?: boolean;
   autoSaveDelay?: number;
   onLoadStart?: () => void;
-  onLoadComplete?: (messages: Message[]) => void;
+  onLoadComplete?: (messages: ContextAIMessage[]) => void;
   onLoadError?: (error: Error) => void;
   onSaveStart?: () => void;
   onSaveComplete?: () => void;
@@ -30,13 +31,14 @@ interface UseChatPersistenceReturn {
   storageUsage: { usage: number; quota: number; percentage: number } | null;
   error: Error | null;
   saveMessages: (messages: AIMessage[]) => Promise<void>;
-  loadMessages: () => Promise<Message[]>;
+  loadMessages: () => Promise<ContextAIMessage[]>;
   clearMessages: () => Promise<void>;
   exportMessages: () => Promise<string>;
   importMessages: (jsonData: string) => Promise<void>;
 }
 
 export function useChatPersistence({
+  websiteId,
   sessionId,
   enabled = true,
   autoSaveDelay = 500,
@@ -51,63 +53,83 @@ export function useChatPersistence({
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [saveCount, setSaveCount] = useState(0);
-  const [storageStrategy, setStorageStrategy] = useState('None');
-  const [storageUsage, setStorageUsage] = useState<{ usage: number; quota: number; percentage: number } | null>(null);
   const [error, setError] = useState<Error | null>(null);
   
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isInitializedRef = useRef(false);
   const lastMessagesRef = useRef<string>('');
+  const isInitializedRef = useRef(false);
+  const hasCreatedContextRef = useRef(false);
 
-  // Initialize storage service
+  // Use the new AI Context API hooks
+  const { data: contextData, isLoading: isContextLoading, error: contextError } = useAIContext(
+    websiteId,
+    sessionId
+  );
+  
+  const createContext = useCreateAIContext();
+  const appendMessage = useAppendMessage(websiteId, sessionId);
+  const clearContext = useClearContext(websiteId, sessionId);
+  const deleteContextMutation = useDeleteAIContext();
+
+  // Initialize context if needed
   useEffect(() => {
-    if (!enabled) return;
-
-    const initStorage = async () => {
+    if (!enabled || !websiteId || !sessionId || hasCreatedContextRef.current) return;
+    
+    const initContext = async () => {
       try {
-        await storageService.initialize();
-        setStorageStrategy(storageService.getCurrentStrategy());
-        
-        // Load metadata if exists
-        const metadataKey = STORAGE_KEYS.metadataKey(sessionId);
-        const metadata = await storageService.load<StorageMetadata>(metadataKey);
-        if (metadata) {
-          setSaveCount(metadata.saveCount);
-          setLastSaved(new Date(metadata.lastSaved));
+        // Check if context exists, if not create it
+        // Only create if we have loaded and there's no context
+        if (!isContextLoading && !contextData) {
+          // Check if it's a 404 error (context doesn't exist)
+          if (contextError && contextError.message.includes('not found')) {
+            await createContext.mutateAsync({
+              websiteId,
+              sessionId
+            });
+            hasCreatedContextRef.current = true;
+          }
+        } else if (contextData) {
+          // Context already exists
+          hasCreatedContextRef.current = true;
         }
-        
-        // Update storage usage
-        const usage = await storageService.getStorageInfo();
-        setStorageUsage({
-          usage: usage.usage,
-          quota: usage.quota,
-          percentage: usage.percentage
-        });
-        
         isInitializedRef.current = true;
       } catch (err) {
-        console.error('Failed to initialize storage:', err);
-        setError(err as Error);
+        // Ignore duplicate key errors since context already exists
+        if (err instanceof Error && err.message.includes('already exists')) {
+          hasCreatedContextRef.current = true;
+          isInitializedRef.current = true;
+        } else {
+          console.error('Failed to initialize AI context:', err);
+          setError(err as Error);
+        }
       }
     };
 
-    initStorage();
-  }, [enabled, sessionId]);
+    initContext();
+  }, [enabled, websiteId, sessionId, contextData, isContextLoading, contextError, createContext]);
+
+  // Update metadata from context
+  useEffect(() => {
+    if (contextData) {
+      setLastSaved(contextData.updatedAt ? new Date(contextData.updatedAt) : null);
+      setSaveCount(contextData.metadata?.totalMessages || 0);
+      hasCreatedContextRef.current = true;
+    }
+  }, [contextData]);
 
   // Convert AI SDK messages to our Message format
-  const convertMessages = useCallback((aiMessages: AIMessage[]): Message[] => {
+  const convertMessages = useCallback((aiMessages: AIMessage[]): ContextAIMessage[] => {
     return aiMessages.map(msg => ({
-      id: msg.id,
       role: msg.role as 'user' | 'assistant' | 'system',
       content: msg.content,
-      timestamp: msg.createdAt?.toISOString() || new Date().toISOString(),
+      timestamp: msg.createdAt || new Date(),
       metadata: msg.annotations as Record<string, any>
     }));
   }, []);
 
   // Save messages with debouncing
   const saveMessages = useCallback(async (messages: AIMessage[]) => {
-    if (!enabled || !isInitializedRef.current) return;
+    if (!enabled || !websiteId || !sessionId) return;
 
     // Clear existing timeout
     if (saveTimeoutRef.current) {
@@ -128,99 +150,105 @@ export function useChatPersistence({
 
       try {
         const convertedMessages = convertMessages(messages);
-        const sanitizedMessages = chatPersistenceHelper.sanitizeMessages(convertedMessages);
         
-        // Create persisted chat data
-        const persistedChat = chatPersistenceHelper.createPersistedChat(
-          sanitizedMessages,
-          sessionId
-        );
-
-        // Save to storage
-        const chatKey = STORAGE_KEYS.chatKey(sessionId);
-        await storageService.save(chatKey, persistedChat);
-
-        // Update metadata
-        const newSaveCount = saveCount + 1;
-        const metadata = chatPersistenceHelper.createStorageMetadata(
-          storageService.getCurrentStrategy(),
-          newSaveCount
-        );
+        // If context doesn't exist yet, create it with the first message
+        if (!hasCreatedContextRef.current && !contextData) {
+          const firstMessage = convertedMessages[0];
+          if (firstMessage) {
+            try {
+              await createContext.mutateAsync({
+                websiteId,
+                sessionId,
+                initialMessage: firstMessage
+              });
+              hasCreatedContextRef.current = true;
+              
+              // Append remaining messages if any
+              for (let i = 1; i < convertedMessages.length; i++) {
+                await appendMessage.mutateAsync({
+                  message: convertedMessages[i]
+                });
+              }
+            } catch (err) {
+              // If context already exists, just mark it as created
+              if (err instanceof Error && err.message.includes('already exists')) {
+                hasCreatedContextRef.current = true;
+                // Fall through to update existing context
+              } else {
+                throw err;
+              }
+            }
+          }
+        }
         
-        const metadataKey = STORAGE_KEYS.metadataKey(sessionId);
-        await storageService.save(metadataKey, metadata);
+        // If context exists, update it
+        if (hasCreatedContextRef.current || contextData) {
+          // Only update if messages have actually changed
+          const existingMessages = contextData?.messages || [];
+          const hasChanges = convertedMessages.length !== existingMessages.length ||
+            JSON.stringify(convertedMessages) !== JSON.stringify(existingMessages);
+          
+          if (hasChanges) {
+            // Clear existing messages and append all new ones
+            // This maintains the full conversation history
+            await clearContext.mutateAsync();
+            
+            // Append all messages
+            for (const msg of convertedMessages) {
+              await appendMessage.mutateAsync({
+                message: msg
+              });
+            }
+          }
+        }
 
-        // Update state
-        setSaveCount(newSaveCount);
         setLastSaved(new Date());
+        setSaveCount(convertedMessages.length);
         lastMessagesRef.current = messagesString;
-
-        // Update storage usage
-        const usage = await storageService.getStorageInfo();
-        setStorageUsage({
-          usage: usage.usage,
-          quota: usage.quota,
-          percentage: usage.percentage
-        });
-
         onSaveComplete?.();
       } catch (err) {
         console.error('Failed to save messages:', err);
         setError(err as Error);
         onSaveError?.(err as Error);
-        
-        // Try fallback save with reduced data if quota exceeded
-        if ((err as Error).message.includes('quota')) {
-          try {
-            // Keep only last 50 messages
-            const recentMessages = messages.slice(-50);
-            const convertedMessages = convertMessages(recentMessages);
-            const persistedChat = chatPersistenceHelper.createPersistedChat(
-              convertedMessages,
-              sessionId
-            );
-            
-            const chatKey = STORAGE_KEYS.chatKey(sessionId);
-            await storageService.save(chatKey, persistedChat);
-            
-            console.warn('Saved reduced message history due to quota limits');
-          } catch (fallbackErr) {
-            console.error('Fallback save also failed:', fallbackErr);
-          }
-        }
       } finally {
         setIsSaving(false);
       }
     }, autoSaveDelay);
-  }, [enabled, sessionId, saveCount, autoSaveDelay, convertMessages, onSaveStart, onSaveComplete, onSaveError]);
+  }, [
+    enabled,
+    websiteId,
+    sessionId,
+    autoSaveDelay,
+    convertMessages,
+    createContext,
+    appendMessage,
+    clearContext,
+    onSaveStart,
+    onSaveComplete,
+    onSaveError
+  ]);
 
   // Load messages
-  const loadMessages = useCallback(async (): Promise<Message[]> => {
-    if (!enabled || !isInitializedRef.current) return [];
+  const loadMessages = useCallback(async (): Promise<ContextAIMessage[]> => {
+    if (!enabled || !sessionId) return [];
 
     setIsLoading(true);
     setError(null);
     onLoadStart?.();
 
     try {
-      const chatKey = STORAGE_KEYS.chatKey(sessionId);
-      const persistedChat = await storageService.load<PersistedChat>(chatKey);
-
-      if (!persistedChat) {
+      console.log('Loading messages, contextData:', contextData);
+      // The context data is already loaded via the useAIContext hook
+      if (!contextData) {
+        console.log('No context data available');
         onLoadComplete?.([]);
         return [];
       }
 
-      // Validate and migrate if needed
-      const validatedChat = chatPersistenceHelper.validatePersistedChat(persistedChat);
-      if (!validatedChat) {
-        throw new Error('Invalid persisted chat data');
-      }
-
-      const migratedChat = chatPersistenceHelper.migrateIfNeeded(validatedChat);
-      
-      onLoadComplete?.(migratedChat.messages);
-      return migratedChat.messages;
+      const messages = contextData.messages || [];
+      console.log('Loaded messages from context:', messages);
+      onLoadComplete?.(messages);
+      return messages;
     } catch (err) {
       console.error('Failed to load messages:', err);
       setError(err as Error);
@@ -229,90 +257,86 @@ export function useChatPersistence({
     } finally {
       setIsLoading(false);
     }
-  }, [enabled, sessionId, onLoadStart, onLoadComplete, onLoadError]);
+  }, [enabled, sessionId, contextData, onLoadStart, onLoadComplete, onLoadError]);
 
   // Clear messages
   const clearMessages = useCallback(async () => {
-    if (!enabled || !isInitializedRef.current) return;
+    if (!enabled || !websiteId || !sessionId) return;
 
     try {
-      const chatKey = STORAGE_KEYS.chatKey(sessionId);
-      const metadataKey = STORAGE_KEYS.metadataKey(sessionId);
-      
-      await storageService.remove(chatKey);
-      await storageService.remove(metadataKey);
+      await clearContext.mutateAsync();
       
       // Reset state
       setSaveCount(0);
       setLastSaved(null);
       lastMessagesRef.current = '';
-      
-      // Update storage usage
-      const usage = await storageService.getStorageInfo();
-      setStorageUsage({
-        usage: usage.usage,
-        quota: usage.quota,
-        percentage: usage.percentage
-      });
     } catch (err) {
       console.error('Failed to clear messages:', err);
       setError(err as Error);
     }
-  }, [enabled, sessionId]);
+  }, [enabled, websiteId, sessionId, clearContext]);
 
   // Export messages as JSON
   const exportMessages = useCallback(async (): Promise<string> => {
-    if (!enabled || !isInitializedRef.current) return '[]';
+    if (!enabled || !contextData) return '[]';
 
     try {
-      const chatKey = STORAGE_KEYS.chatKey(sessionId);
-      const persistedChat = await storageService.load<PersistedChat>(chatKey);
-      
-      if (!persistedChat) {
-        return '[]';
-      }
-
-      return JSON.stringify(persistedChat, null, 2);
+      return JSON.stringify({
+        sessionId: contextData.sessionId,
+        websiteId: contextData.websiteId,
+        messages: contextData.messages,
+        metadata: contextData.metadata,
+        summary: contextData.summary,
+        createdAt: contextData.createdAt,
+        updatedAt: contextData.updatedAt
+      }, null, 2);
     } catch (err) {
       console.error('Failed to export messages:', err);
       setError(err as Error);
       return '[]';
     }
-  }, [enabled, sessionId]);
+  }, [enabled, contextData]);
 
   // Import messages from JSON
   const importMessages = useCallback(async (jsonData: string) => {
-    if (!enabled || !isInitializedRef.current) return;
+    if (!enabled || !websiteId || !sessionId) return;
 
     try {
       const data = JSON.parse(jsonData);
-      const validatedChat = chatPersistenceHelper.validatePersistedChat(data);
       
-      if (!validatedChat) {
-        throw new Error('Invalid chat data format');
+      // Validate the imported data structure
+      if (!data.messages || !Array.isArray(data.messages)) {
+        throw new Error('Invalid chat data format: missing messages array');
       }
 
-      // Save imported data
-      const chatKey = STORAGE_KEYS.chatKey(sessionId);
-      await storageService.save(chatKey, validatedChat);
-
-      // Update metadata
-      const metadata = chatPersistenceHelper.createStorageMetadata(
-        storageService.getCurrentStrategy(),
-        saveCount + 1
-      );
+      // Clear existing context
+      await clearContext.mutateAsync();
       
-      const metadataKey = STORAGE_KEYS.metadataKey(sessionId);
-      await storageService.save(metadataKey, metadata);
+      // Create new context with imported messages
+      if (data.messages.length > 0) {
+        // Create context with first message
+        await createContext.mutateAsync({
+          websiteId,
+          sessionId,
+          initialMessage: data.messages[0]
+        });
+        
+        // Append remaining messages
+        for (let i = 1; i < data.messages.length; i++) {
+          await appendMessage.mutateAsync({
+            message: data.messages[i]
+          });
+        }
+      }
 
-      setSaveCount(saveCount + 1);
+      setSaveCount(data.messages.length);
       setLastSaved(new Date());
     } catch (err) {
       console.error('Failed to import messages:', err);
       setError(err as Error);
       throw err;
     }
-  }, [enabled, sessionId, saveCount]);
+  }, [enabled, websiteId, sessionId, clearContext, createContext, appendMessage]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -323,18 +347,26 @@ export function useChatPersistence({
     };
   }, []);
 
+  // Calculate storage usage (using mock values since we're using database now)
+  const storageUsage = {
+    usage: saveCount * 1000, // Rough estimate: 1KB per message
+    quota: 10 * 1024 * 1024, // 10MB quota
+    percentage: (saveCount * 1000) / (10 * 1024 * 1024) * 100
+  };
+
   return {
-    isLoading,
+    isLoading: isLoading || isContextLoading,
     isSaving,
     lastSaved,
     saveCount,
-    storageStrategy,
+    storageStrategy: 'Database (AI Context API)',
     storageUsage,
-    error,
+    error: error || contextError,
     saveMessages,
     loadMessages,
     clearMessages,
     exportMessages,
-    importMessages
+    importMessages,
+    contextData // Export this so components can check if it's ready
   };
 }

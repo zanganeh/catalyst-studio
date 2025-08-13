@@ -55,10 +55,19 @@ export function pruneMessages(
   }
   
   // Calculate how many messages to prune
-  const messagesToKeep = Math.min(
+  let messagesToKeep = Math.min(
     opts.preserveRecentCount,
     opts.maxMessages - systemMessages.length
   );
+  
+  // If we're over token limit, reduce messages further
+  if (tokenCount > opts.maxTokens) {
+    // Estimate how many messages we can keep within token limit
+    const avgTokensPerMessage = tokenCount / messages.length;
+    const maxMessagesForTokens = Math.floor(opts.maxTokens / avgTokensPerMessage);
+    messagesToKeep = Math.min(messagesToKeep, maxMessagesForTokens - systemMessages.length);
+    messagesToKeep = Math.max(1, messagesToKeep); // Keep at least 1 message
+  }
   
   const messagesToPrune = conversationMessages.slice(0, -messagesToKeep);
   const recentMessages = conversationMessages.slice(-messagesToKeep);

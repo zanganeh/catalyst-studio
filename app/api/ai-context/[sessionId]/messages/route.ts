@@ -6,9 +6,10 @@ import { handleApiError } from '@/lib/api/errors';
 // POST /api/ai-context/[sessionId]/messages - Append new message to context
 export async function POST(
   request: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
+    const { sessionId } = await params;
     const websiteId = request.nextUrl.searchParams.get('websiteId');
     
     if (!websiteId) {
@@ -34,7 +35,7 @@ export async function POST(
     
     const context = await AIContextService.appendMessage(
       websiteId,
-      params.sessionId,
+      sessionId,
       message,
       pruneIfNeeded
     );
@@ -49,9 +50,10 @@ export async function POST(
 // DELETE /api/ai-context/[sessionId]/messages - Clear messages (keep session)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
+    const { sessionId } = await params;
     const websiteId = request.nextUrl.searchParams.get('websiteId');
     
     if (!websiteId) {
@@ -61,7 +63,7 @@ export async function DELETE(
       );
     }
     
-    const context = await AIContextService.clearContext(websiteId, params.sessionId);
+    const context = await AIContextService.clearContext(websiteId, sessionId);
     
     return NextResponse.json({ data: context });
     

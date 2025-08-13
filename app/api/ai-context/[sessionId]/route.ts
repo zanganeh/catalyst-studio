@@ -6,9 +6,10 @@ import { handleApiError } from '@/lib/api/errors';
 // GET /api/ai-context/[sessionId] - Retrieve specific session context
 export async function GET(
   request: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
+    const { sessionId } = await params;
     const websiteId = request.nextUrl.searchParams.get('websiteId');
     
     if (!websiteId) {
@@ -18,7 +19,7 @@ export async function GET(
       );
     }
     
-    const context = await AIContextService.getAIContext(websiteId, params.sessionId);
+    const context = await AIContextService.getAIContext(websiteId, sessionId);
     
     if (!context) {
       return NextResponse.json(
@@ -37,9 +38,10 @@ export async function GET(
 // PUT /api/ai-context/[sessionId] - Update context (append messages)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
+    const { sessionId } = await params;
     const websiteId = request.nextUrl.searchParams.get('websiteId');
     
     if (!websiteId) {
@@ -64,7 +66,7 @@ export async function PUT(
     const { messages, metadata, summary, isActive } = validation.data;
     
     // Get existing context
-    const context = await AIContextService.getAIContext(websiteId, params.sessionId);
+    const context = await AIContextService.getAIContext(websiteId, sessionId);
     
     if (!context) {
       return NextResponse.json(
@@ -86,7 +88,7 @@ export async function PUT(
       where: {
         websiteId_sessionId: {
           websiteId,
-          sessionId: params.sessionId
+          sessionId
         }
       },
       data: updateData
@@ -114,9 +116,10 @@ export async function PUT(
 // DELETE /api/ai-context/[sessionId] - Soft delete context session
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { sessionId: string } }
+  { params }: { params: Promise<{ sessionId: string }> }
 ) {
   try {
+    const { sessionId } = await params;
     const websiteId = request.nextUrl.searchParams.get('websiteId');
     
     if (!websiteId) {
@@ -126,7 +129,7 @@ export async function DELETE(
       );
     }
     
-    await AIContextService.deleteContext(websiteId, params.sessionId);
+    await AIContextService.deleteContext(websiteId, sessionId);
     
     return NextResponse.json({ data: { success: true } });
     

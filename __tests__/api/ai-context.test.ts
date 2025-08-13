@@ -196,7 +196,7 @@ describe('AIContextService', () => {
       
       expect(result.messages).toHaveLength(0);
       expect(result.metadata?.totalMessages).toBe(0);
-      expect(result.summary).toBeNull();
+      expect(result.summary).toBeUndefined();
     });
   });
   

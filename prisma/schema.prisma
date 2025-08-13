@@ -59,8 +59,8 @@ model AIContext {
   id           String   @id @default(cuid())
   websiteId    String
   sessionId    String
-  messages     String   // JSON array of conversation messages
-  metadata     String?  // JSON context metadata (tokens, model, etc.)
+  messages     String   // JSON array of conversation messages (SQLite limitation)
+  metadata     String?  // JSON context metadata (tokens, model, etc.) (SQLite limitation)
   summary      String?  // Summarized context for long conversations
   isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
