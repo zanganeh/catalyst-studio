@@ -1,50 +1,22 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ContentList } from '@/components/content/content-list';
 import { ContentModal } from '@/components/content/content-modal';
 import { FormGenerator } from '@/components/content/form-generator';
 import { ContentErrorBoundary } from '@/components/content/content-error-boundary';
 import { useContentStore } from '@/lib/stores/content-store';
 import { useToast } from '@/components/ui/use-toast';
-import type { ContentItem, ContentType } from '@/lib/content-types/types';
+import { useContentTypes } from '@/lib/context/content-type-context';
+import type { ContentItem } from '@/lib/content-types/types';
 
 export default function ContentPage() {
   const contentStore = useContentStore();
   const { toast } = useToast();
+  const { contentTypes, isLoading, error } = useContentTypes();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [selectedContentTypeId, setSelectedContentTypeId] = useState<string>('');
-  const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
-  
-  // Load content types from localStorage (same storage as Content Builder)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('contentTypes');
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          const contentTypesMap = new Map();
-          parsed.forEach((ct: ContentType & { createdAt: string; updatedAt: string }) => {
-            // Keep the content type with more fields if there are duplicates with same name
-            const existing = contentTypesMap.get(ct.name);
-            if (!existing || ct.fields.length > existing.fields.length) {
-              contentTypesMap.set(ct.name, {
-                ...ct,
-                createdAt: new Date(ct.createdAt),
-                updatedAt: new Date(ct.updatedAt),
-              });
-            }
-          });
-          const uniqueContentTypes = Array.from(contentTypesMap.values());
-          setContentTypes(uniqueContentTypes);
-        } catch (error) {
-          console.error('Failed to load content types:', error);
-          setContentTypes([]);
-        }
-      }
-    }
-  }, []);
   
   // Get selected content type for modal
   const selectedContentType = contentTypes.find(
@@ -152,6 +124,28 @@ export default function ContentPage() {
     }
   };
   
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading content types...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-destructive mb-2">Failed to load content types</p>
+          <p className="text-sm text-muted-foreground">{error.message}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ContentErrorBoundary>
       <ContentList
