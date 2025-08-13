@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import {
   ContentType,
   Field,
@@ -8,11 +8,17 @@ import {
   FieldType,
   generateId,
   createField,
-  createContentType,
+  createContentType as createContentTypeHelper,
 } from '@/lib/content-types/types';
+import {
+  useContentTypes as useContentTypesQuery,
+  useCreateContentType,
+  useUpdateContentType,
+  useDeleteContentType,
+} from '@/lib/api/hooks/use-content-types';
+import { CreateContentTypeRequest, UpdateContentTypeRequest } from '@/lib/api/validation/content-type';
 
 interface ContentTypeContextValue {
-  // Content Types
   contentTypes: ContentType[];
   currentContentType: ContentType | null;
   setCurrentContentType: (contentType: ContentType | null) => void;
@@ -20,338 +26,276 @@ interface ContentTypeContextValue {
   updateContentType: (id: string, updates: Partial<ContentType>) => void;
   deleteContentType: (id: string) => void;
   
-  // Fields
   addField: (contentTypeId: string, fieldType: FieldType) => void;
   updateField: (contentTypeId: string, fieldId: string, updates: Partial<Field>) => void;
   deleteField: (contentTypeId: string, fieldId: string) => void;
   reorderFields: (contentTypeId: string, fields: Field[]) => void;
   
-  // Relationships
   addRelationship: (contentTypeId: string, relationship: Omit<Relationship, 'id'>) => void;
   updateRelationship: (contentTypeId: string, relationshipId: string, updates: Partial<Relationship>) => void;
   deleteRelationship: (contentTypeId: string, relationshipId: string) => void;
   
-  // Utility
   isDirty: boolean;
   setIsDirty: (isDirty: boolean) => void;
+  isLoading?: boolean;
+  error?: Error | null;
 }
 
 const ContentTypeContext = createContext<ContentTypeContextValue | undefined>(undefined);
 
+interface ApiContentType {
+  id: string;
+  websiteId: string;
+  name: string;
+  fields: any;
+  settings: any;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function transformApiContentType(apiContentType: ApiContentType): ContentType {
+  const fields = apiContentType.fields?.fields || [];
+  const relationships = apiContentType.fields?.relationships || [];
+  const settings = apiContentType.settings || {};
+  
+  return {
+    id: apiContentType.id,
+    name: apiContentType.fields?.name || apiContentType.name,
+    pluralName: settings.pluralName || apiContentType.fields?.pluralName || `${apiContentType.name}s`,
+    icon: settings.icon || apiContentType.fields?.icon || '📋',
+    description: settings.description || apiContentType.fields?.description,
+    fields: fields,
+    relationships: relationships,
+    createdAt: new Date(apiContentType.createdAt),
+    updatedAt: new Date(apiContentType.updatedAt),
+  };
+}
+
+function transformToApiFormat(contentType: Partial<ContentType>, websiteId?: string) {
+  const { id, createdAt, updatedAt, ...rest } = contentType as ContentType & { id?: string; createdAt?: Date; updatedAt?: Date };
+  
+  return {
+    websiteId: websiteId || 'cme8gy65m0000v8tkdq9ur63o',
+    name: contentType.name,
+    pluralName: contentType.pluralName,
+    icon: contentType.icon,
+    description: contentType.description,
+    fields: contentType.fields || [],
+    relationships: contentType.relationships || [],
+  };
+}
+
 export function ContentTypeProvider({ children }: { children: React.ReactNode }) {
-  const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
   const [currentContentType, setCurrentContentType] = useState<ContentType | null>(null);
   const [isDirty, setIsDirty] = useState(false);
+  const [optimisticContentTypes, setOptimisticContentTypes] = useState<ContentType[]>([]);
   
-  // Use refs to maintain current values without causing re-renders
-  const contentTypesRef = useRef(contentTypes);
-  const currentContentTypeRef = useRef(currentContentType);
+  const { data: apiContentTypes, isLoading, error } = useContentTypesQuery();
+  const createMutation = useCreateContentType();
+  const updateMutation = useUpdateContentType();
+  const deleteMutation = useDeleteContentType();
   
-  // Update refs when state changes
-  useEffect(() => {
-    contentTypesRef.current = contentTypes;
-  }, [contentTypes]);
-  
-  useEffect(() => {
-    currentContentTypeRef.current = currentContentType;
-  }, [currentContentType]);
-  
-  // Load content types from localStorage on mount (client-side only)
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('contentTypes');
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          // Convert date strings back to Date objects and remove duplicates
-          const contentTypesMap = new Map();
-          parsed.forEach((ct: { name: string; fields: unknown[]; createdAt: string; updatedAt: string; [key: string]: unknown }) => {
-            // Keep the content type with more fields if there are duplicates with same name
-            const existing = contentTypesMap.get(ct.name);
-            if (!existing || ct.fields.length > existing.fields.length) {
-              contentTypesMap.set(ct.name, {
-                ...ct,
-                createdAt: new Date(ct.createdAt),
-                updatedAt: new Date(ct.updatedAt),
-              });
-            }
-          });
-          const uniqueContentTypes = Array.from(contentTypesMap.values());
-          setContentTypes(uniqueContentTypes);
-          
-          // If we cleaned up duplicates, save the cleaned version
-          if (uniqueContentTypes.length < parsed.length) {
-            localStorage.setItem('contentTypes', JSON.stringify(uniqueContentTypes));
-          }
-        } catch (error) {
-          console.error('Failed to load content types:', error);
-        }
+  const contentTypes = useMemo(() => {
+    if (!apiContentTypes) return optimisticContentTypes;
+    
+    const transformed = apiContentTypes.map(transformApiContentType);
+    
+    const mergedMap = new Map<string, ContentType>();
+    transformed.forEach(ct => mergedMap.set(ct.id, ct));
+    optimisticContentTypes.forEach(ct => {
+      if (!mergedMap.has(ct.id)) {
+        mergedMap.set(ct.id, ct);
       }
-    }
-  }, []);
+    });
+    
+    return Array.from(mergedMap.values());
+  }, [apiContentTypes, optimisticContentTypes]);
   
-  // Save function that can be called explicitly
-  const saveToLocalStorage = useCallback(() => {
-    if (typeof window !== 'undefined') {
-      console.log('Saving content types to localStorage:', contentTypes);
-      localStorage.setItem('contentTypes', JSON.stringify(contentTypes));
-      setIsDirty(false);
-    }
-  }, [contentTypes]);
-
-  // Save content types to localStorage when they change (client-side only)
-  useEffect(() => {
-    if (typeof window !== 'undefined' && isDirty) {
-      const timeoutId = setTimeout(() => {
-        saveToLocalStorage();
-      }, 500); // Debounce saves by 500ms
-      
-      return () => clearTimeout(timeoutId);
-    }
-  }, [contentTypes, isDirty, saveToLocalStorage]);
-  
-  // Content Type CRUD operations
   const createContentTypeHandler = useCallback((name: string): ContentType => {
-    const newContentType = createContentType(name);
-    setContentTypes(prev => [...prev, newContentType]);
+    const newContentType = createContentTypeHelper(name);
+    
+    setOptimisticContentTypes(prev => [...prev, newContentType]);
     setCurrentContentType(newContentType);
     setIsDirty(true);
+    
+    createMutation.mutate(transformToApiFormat(newContentType) as CreateContentTypeRequest, {
+      onSuccess: (data) => {
+        const transformed = transformApiContentType(data);
+        setOptimisticContentTypes(prev => 
+          prev.map(ct => ct.id === newContentType.id ? transformed : ct)
+        );
+        setCurrentContentType(transformed);
+      },
+      onError: () => {
+        setOptimisticContentTypes(prev => prev.filter(ct => ct.id !== newContentType.id));
+        setCurrentContentType(null);
+      },
+    });
+    
     return newContentType;
-  }, []);
+  }, [createMutation]);
   
   const updateContentTypeHandler = useCallback((id: string, updates: Partial<ContentType>) => {
-    setContentTypes(prev => prev.map(ct => 
-      ct.id === id 
-        ? { ...ct, ...updates, updatedAt: new Date() }
-        : ct
-    ));
+    const contentType = contentTypes.find(ct => ct.id === id);
+    if (!contentType) return;
+    
+    const updatedContentType = { ...contentType, ...updates, updatedAt: new Date() };
+    
+    setOptimisticContentTypes(prev => 
+      prev.some(ct => ct.id === id)
+        ? prev.map(ct => ct.id === id ? updatedContentType : ct)
+        : [...prev, updatedContentType]
+    );
     
     if (currentContentType?.id === id) {
-      setCurrentContentType(prev => prev ? { ...prev, ...updates, updatedAt: new Date() } : null);
+      setCurrentContentType(updatedContentType);
     }
+    
+    updateMutation.mutate(
+      { id, data: transformToApiFormat(updates) as UpdateContentTypeRequest },
+      {
+        onError: () => {
+          setOptimisticContentTypes(prev => prev.filter(ct => ct.id !== id));
+          if (currentContentType?.id === id) {
+            setCurrentContentType(contentType);
+          }
+        },
+      }
+    );
+    
     setIsDirty(true);
-  }, [currentContentType]);
+  }, [contentTypes, currentContentType, updateMutation]);
   
   const deleteContentTypeHandler = useCallback((id: string) => {
-    setContentTypes(prev => prev.filter(ct => ct.id !== id));
+    const contentType = contentTypes.find(ct => ct.id === id);
+    if (!contentType) return;
+    
+    setOptimisticContentTypes(prev => [...prev.filter(ct => ct.id !== id)]);
+    
     if (currentContentType?.id === id) {
       setCurrentContentType(null);
     }
-    setIsDirty(true);
-  }, [currentContentType]);
-  
-  // Field management functions  
-  const addFieldHandler = useCallback((contentTypeId: string, fieldType: FieldType) => {
-    setContentTypes(prev => {
-      // Find the content type and calculate order
-      const targetContentType = prev.find(ct => ct.id === contentTypeId);
-      const order = targetContentType?.fields.length || 0;
-      const newField = createField(fieldType, order);
-      
-      // Update contentTypes
-      const updatedContentTypes = prev.map(ct => {
-        if (ct.id === contentTypeId) {
-          return {
-            ...ct,
-            fields: [...ct.fields, newField],
-            updatedAt: new Date(),
-          };
+    
+    deleteMutation.mutate(id, {
+      onError: () => {
+        setOptimisticContentTypes(prev => [...prev, contentType]);
+        if (currentContentType?.id === id) {
+          setCurrentContentType(contentType);
         }
-        return ct;
-      });
-      
-      // Save immediately to localStorage
-      if (typeof window !== 'undefined') {
-        console.log('Saving after field add:', updatedContentTypes);
-        localStorage.setItem('contentTypes', JSON.stringify(updatedContentTypes));
-      }
-      
-      // Update currentContentType if it matches
-      if (currentContentTypeRef.current?.id === contentTypeId) {
-        const updated = updatedContentTypes.find(ct => ct.id === contentTypeId);
-        if (updated) {
-          // Need to update currentContentType in a separate effect
-          setTimeout(() => setCurrentContentType(updated), 0);
-        }
-      }
-      
-      return updatedContentTypes;
+      },
     });
     
     setIsDirty(true);
-  }, []);
+  }, [contentTypes, currentContentType, deleteMutation]);
+  
+  const addFieldHandler = useCallback((contentTypeId: string, fieldType: FieldType) => {
+    const contentType = contentTypes.find(ct => ct.id === contentTypeId);
+    if (!contentType) return;
+    
+    const order = contentType.fields.length;
+    const newField = createField(fieldType, order);
+    
+    const updatedContentType = {
+      ...contentType,
+      fields: [...contentType.fields, newField],
+      updatedAt: new Date(),
+    };
+    
+    updateContentTypeHandler(contentTypeId, updatedContentType);
+  }, [contentTypes, updateContentTypeHandler]);
   
   const updateFieldHandler = useCallback((contentTypeId: string, fieldId: string, updates: Partial<Field>) => {
-    setContentTypes(prev => prev.map(ct => {
-      if (ct.id === contentTypeId) {
-        return {
-          ...ct,
-          fields: ct.fields.map(field => 
-            field.id === fieldId ? { ...field, ...updates } : field
-          ),
-          updatedAt: new Date(),
-        };
-      }
-      return ct;
-    }));
+    const contentType = contentTypes.find(ct => ct.id === contentTypeId);
+    if (!contentType) return;
     
-    if (currentContentType?.id === contentTypeId) {
-      setCurrentContentType(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          fields: prev.fields.map(field => 
-            field.id === fieldId ? { ...field, ...updates } : field
-          ),
-          updatedAt: new Date(),
-        };
-      });
-    }
-    setIsDirty(true);
-  }, [currentContentType]);
+    const updatedContentType = {
+      ...contentType,
+      fields: contentType.fields.map(field => 
+        field.id === fieldId ? { ...field, ...updates } : field
+      ),
+      updatedAt: new Date(),
+    };
+    
+    updateContentTypeHandler(contentTypeId, updatedContentType);
+  }, [contentTypes, updateContentTypeHandler]);
   
   const deleteFieldHandler = useCallback((contentTypeId: string, fieldId: string) => {
-    setContentTypes(prev => prev.map(ct => {
-      if (ct.id === contentTypeId) {
-        const updatedFields = ct.fields
-          .filter(field => field.id !== fieldId)
-          .map((field, index) => ({ ...field, order: index }));
-        return {
-          ...ct,
-          fields: updatedFields,
-          updatedAt: new Date(),
-        };
-      }
-      return ct;
-    }));
+    const contentType = contentTypes.find(ct => ct.id === contentTypeId);
+    if (!contentType) return;
     
-    if (currentContentType?.id === contentTypeId) {
-      setCurrentContentType(prev => {
-        if (!prev) return null;
-        const updatedFields = prev.fields
-          .filter(field => field.id !== fieldId)
-          .map((field, index) => ({ ...field, order: index }));
-        return {
-          ...prev,
-          fields: updatedFields,
-          updatedAt: new Date(),
-        };
-      });
-    }
-    setIsDirty(true);
-  }, [currentContentType]);
+    const updatedFields = contentType.fields
+      .filter(field => field.id !== fieldId)
+      .map((field, index) => ({ ...field, order: index }));
+    
+    const updatedContentType = {
+      ...contentType,
+      fields: updatedFields,
+      updatedAt: new Date(),
+    };
+    
+    updateContentTypeHandler(contentTypeId, updatedContentType);
+  }, [contentTypes, updateContentTypeHandler]);
   
   const reorderFieldsHandler = useCallback((contentTypeId: string, fields: Field[]) => {
     const reorderedFields = fields.map((field, index) => ({ ...field, order: index }));
     
-    setContentTypes(prev => prev.map(ct => {
-      if (ct.id === contentTypeId) {
-        return {
-          ...ct,
-          fields: reorderedFields,
-          updatedAt: new Date(),
-        };
-      }
-      return ct;
-    }));
+    const contentType = contentTypes.find(ct => ct.id === contentTypeId);
+    if (!contentType) return;
     
-    if (currentContentType?.id === contentTypeId) {
-      setCurrentContentType(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          fields: reorderedFields,
-          updatedAt: new Date(),
-        };
-      });
-    }
-    setIsDirty(true);
-  }, [currentContentType]);
+    const updatedContentType = {
+      ...contentType,
+      fields: reorderedFields,
+      updatedAt: new Date(),
+    };
+    
+    updateContentTypeHandler(contentTypeId, updatedContentType);
+  }, [contentTypes, updateContentTypeHandler]);
   
-  // Relationship management functions
   const addRelationshipHandler = useCallback((contentTypeId: string, relationship: Omit<Relationship, 'id'>) => {
+    const contentType = contentTypes.find(ct => ct.id === contentTypeId);
+    if (!contentType) return;
+    
     const newRelationship: Relationship = {
       ...relationship,
       id: generateId(),
     };
     
-    setContentTypes(prev => prev.map(ct => {
-      if (ct.id === contentTypeId) {
-        return {
-          ...ct,
-          relationships: [...ct.relationships, newRelationship],
-          updatedAt: new Date(),
-        };
-      }
-      return ct;
-    }));
+    const updatedContentType = {
+      ...contentType,
+      relationships: [...contentType.relationships, newRelationship],
+      updatedAt: new Date(),
+    };
     
-    if (currentContentType?.id === contentTypeId) {
-      setCurrentContentType(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          relationships: [...prev.relationships, newRelationship],
-          updatedAt: new Date(),
-        };
-      });
-    }
-    setIsDirty(true);
-  }, [currentContentType]);
+    updateContentTypeHandler(contentTypeId, updatedContentType);
+  }, [contentTypes, updateContentTypeHandler]);
   
   const updateRelationshipHandler = useCallback((contentTypeId: string, relationshipId: string, updates: Partial<Relationship>) => {
-    setContentTypes(prev => prev.map(ct => {
-      if (ct.id === contentTypeId) {
-        return {
-          ...ct,
-          relationships: ct.relationships.map(rel => 
-            rel.id === relationshipId ? { ...rel, ...updates } : rel
-          ),
-          updatedAt: new Date(),
-        };
-      }
-      return ct;
-    }));
+    const contentType = contentTypes.find(ct => ct.id === contentTypeId);
+    if (!contentType) return;
     
-    if (currentContentType?.id === contentTypeId) {
-      setCurrentContentType(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          relationships: prev.relationships.map(rel => 
-            rel.id === relationshipId ? { ...rel, ...updates } : rel
-          ),
-          updatedAt: new Date(),
-        };
-      });
-    }
-    setIsDirty(true);
-  }, [currentContentType]);
+    const updatedContentType = {
+      ...contentType,
+      relationships: contentType.relationships.map(rel => 
+        rel.id === relationshipId ? { ...rel, ...updates } : rel
+      ),
+      updatedAt: new Date(),
+    };
+    
+    updateContentTypeHandler(contentTypeId, updatedContentType);
+  }, [contentTypes, updateContentTypeHandler]);
   
   const deleteRelationshipHandler = useCallback((contentTypeId: string, relationshipId: string) => {
-    setContentTypes(prev => prev.map(ct => {
-      if (ct.id === contentTypeId) {
-        return {
-          ...ct,
-          relationships: ct.relationships.filter(rel => rel.id !== relationshipId),
-          updatedAt: new Date(),
-        };
-      }
-      return ct;
-    }));
+    const contentType = contentTypes.find(ct => ct.id === contentTypeId);
+    if (!contentType) return;
     
-    if (currentContentType?.id === contentTypeId) {
-      setCurrentContentType(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          relationships: prev.relationships.filter(rel => rel.id !== relationshipId),
-          updatedAt: new Date(),
-        };
-      });
-    }
-    setIsDirty(true);
-  }, [currentContentType]);
+    const updatedContentType = {
+      ...contentType,
+      relationships: contentType.relationships.filter(rel => rel.id !== relationshipId),
+      updatedAt: new Date(),
+    };
+    
+    updateContentTypeHandler(contentTypeId, updatedContentType);
+  }, [contentTypes, updateContentTypeHandler]);
   
   const value: ContentTypeContextValue = {
     contentTypes,
@@ -369,6 +313,8 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
     deleteRelationship: deleteRelationshipHandler,
     isDirty,
     setIsDirty,
+    isLoading,
+    error,
   };
   
   return (
