@@ -39,12 +39,6 @@ export default function StudioContentPage() {
   // Render the content page with website context available
   return (
     <div className="h-full">
-      <div className="p-4 border-b border-gray-700 bg-gray-800">
-        <h1 className="text-xl font-bold text-white">Content Management</h1>
-        <p className="text-sm text-gray-400 mt-1">
-          Website: {website?.name || 'Untitled Website'}
-        </p>
-      </div>
       <ContentPage />
     </div>
   );

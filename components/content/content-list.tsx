@@ -3,13 +3,6 @@
 import React, { useState, useMemo } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import type { ContentType, ContentItem } from '@/lib/content-types/types';
 import { ContentCard } from './content-card';
 
@@ -30,7 +23,7 @@ export function ContentList({
   onDeleteContent,
   onDuplicateContent,
 }: ContentListProps) {
-  const [selectedContentTypeId, setSelectedContentTypeId] = useState<string>('');
+  const [selectedContentTypeId, setSelectedContentTypeId] = useState<string>('all');
   
   // Filter content items by selected content type
   const filteredItems = useMemo(() => {
@@ -63,46 +56,55 @@ export function ContentList({
   
   return (
     <div className="flex flex-col h-full">
-      {/* Header with content type selector */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-800">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-semibold text-white">Content Items</h2>
-          <Select
-            value={selectedContentTypeId}
-            onValueChange={setSelectedContentTypeId}
+      {/* Header with content type filter buttons */}
+      <div className="border-b p-4 bg-dark-primary border-gray-800">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-semibold text-white">Content Items</h2>
+            <span className="text-sm text-gray-400">({filteredItems.length})</span>
+          </div>
+          <Button
+            onClick={() => onNewContent(selectedContentTypeId === 'all' ? '' : selectedContentTypeId)}
+            className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
+            disabled={contentTypes.length === 0}
           >
-            <SelectTrigger className="w-[200px] bg-gray-800/50 border-gray-700 text-white">
-              <SelectValue placeholder="All Content Types" />
-            </SelectTrigger>
-            <SelectContent className="bg-gray-900 border-gray-700">
-              <SelectItem value="all" className="text-gray-300 hover:bg-gray-800">
-                All Content Types
-              </SelectItem>
-              {contentTypes.map((contentType) => (
-                <SelectItem 
-                  key={contentType.id} 
-                  value={contentType.id}
-                  className="text-gray-300 hover:bg-gray-800"
-                >
-                  <span className="flex items-center gap-2">
-                    <span>{contentType.icon}</span>
-                    <span>{contentType.pluralName}</span>
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Plus className="h-4 w-4" />
+            Add entry
+          </Button>
         </div>
         
-        <Button
-          onClick={() => onNewContent(selectedContentTypeId)}
-          className="bg-orange-500 hover:bg-orange-600 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 focus:ring-offset-gray-900"
-          disabled={contentTypes.length === 0}
-          aria-label="Create new content item"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add entry
-        </Button>
+        {/* Content type filter buttons */}
+        <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={() => setSelectedContentTypeId('all')}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              !selectedContentTypeId || selectedContentTypeId === 'all'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+            }`}
+          >
+            All Content
+            <span className="ml-2 text-xs opacity-70">({contentItems.length})</span>
+          </button>
+          {contentTypes.map((contentType) => {
+            const count = contentItems.filter(item => item.contentTypeId === contentType.id).length;
+            return (
+              <button
+                key={contentType.id}
+                onClick={() => setSelectedContentTypeId(contentType.id)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedContentTypeId === contentType.id
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                }`}
+              >
+                <span className="mr-2">{contentType.icon}</span>
+                {contentType.pluralName}
+                <span className="ml-2 text-xs opacity-70">({count})</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
       
       {/* Content grid */}

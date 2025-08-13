@@ -75,12 +75,16 @@ export function ContentCard({
       {/* Content */}
       <div className="p-4">
         {/* Header */}
-        <div className="flex items-start justify-between mb-2">
-          <div className="flex items-center gap-2 flex-1">
-            <span className="text-lg">{contentType.icon}</span>
-            <h3 className="text-white font-medium truncate">
-              {title || 'Untitled'}
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-white font-medium truncate mb-2">
+              {item.title || title || 'Untitled'}
             </h3>
+            {/* Content type badge */}
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+              <span className="mr-1">{contentType.icon}</span>
+              {contentType.name}
+            </span>
           </div>
           
           {/* Actions dropdown */}
@@ -129,12 +133,7 @@ export function ContentCard({
         
         {/* Metadata */}
         <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>{contentType.name}</span>
           <span>{formatDate(item.updatedAt)}</span>
-        </div>
-        
-        {/* Status badge (for future use) */}
-        <div className="mt-3 flex gap-2">
           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
             Published
           </span>
