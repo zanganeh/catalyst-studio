@@ -1,0 +1,296 @@
+import { prisma } from '@/lib/prisma';
+import { AIContext, AIMessage, AIMetadata } from '@/types/ai-context';
+import { ApiError } from '@/lib/api/errors';
+
+const MAX_MESSAGES = 50;
+const MAX_TOKENS = 8000;
+const OLD_MESSAGE_DAYS = 30;
+
+export class AIContextService {
+  /**
+   * Get all AI contexts for a website
+   */
+  static async getAIContexts(
+    websiteId: string, 
+    options?: { 
+      limit?: number; 
+      offset?: number; 
+      isActive?: boolean;
+    }
+  ) {
+    const { limit = 50, offset = 0, isActive } = options || {};
+    
+    const where = { 
+      websiteId,
+      ...(isActive !== undefined && { isActive })
+    };
+    
+    const [contexts, total] = await Promise.all([
+      prisma.aIContext.findMany({
+        where,
+        skip: offset,
+        take: limit,
+        orderBy: { updatedAt: 'desc' },
+      }),
+      prisma.aIContext.count({ where })
+    ]);
+    
+    return {
+      contexts: contexts.map(this.transformContext),
+      total,
+      limit,
+      offset
+    };
+  }
+  
+  /**
+   * Get a specific AI context by sessionId
+   */
+  static async getAIContext(websiteId: string, sessionId: string): Promise<AIContext | null> {
+    const context = await prisma.aIContext.findUnique({
+      where: {
+        websiteId_sessionId: {
+          websiteId,
+          sessionId
+        }
+      }
+    });
+    
+    return context ? this.transformContext(context) : null;
+  }
+  
+  /**
+   * Create a new AI context session
+   */
+  static async createAIContext(
+    websiteId: string, 
+    initialMessage?: AIMessage,
+    sessionId?: string
+  ): Promise<AIContext> {
+    const newSessionId = sessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const messages: AIMessage[] = initialMessage ? [initialMessage] : [];
+    const metadata: AIMetadata = {
+      totalMessages: messages.length,
+      tokens: this.estimateTokens(messages)
+    };
+    
+    const context = await prisma.aIContext.create({
+      data: {
+        websiteId,
+        sessionId: newSessionId,
+        messages: JSON.stringify(messages),
+        metadata: JSON.stringify(metadata),
+        isActive: true
+      }
+    });
+    
+    return this.transformContext(context);
+  }
+  
+  /**
+   * Append a message to the conversation
+   */
+  static async appendMessage(
+    websiteId: string,
+    sessionId: string, 
+    message: AIMessage,
+    pruneIfNeeded = true
+  ): Promise<AIContext> {
+    const context = await this.getAIContext(websiteId, sessionId);
+    
+    if (!context) {
+      throw new ApiError(404, 'AI context not found');
+    }
+    
+    if (!context.isActive) {
+      throw new ApiError(400, 'Context session is not active');
+    }
+    
+    let messages = [...context.messages, message];
+    
+    // Prune if needed
+    if (pruneIfNeeded) {
+      const tokens = this.estimateTokens(messages);
+      if (messages.length > MAX_MESSAGES || tokens > MAX_TOKENS) {
+        messages = await this.pruneContext(messages, context.summary);
+      }
+    }
+    
+    const metadata: AIMetadata = {
+      ...context.metadata,
+      totalMessages: messages.length,
+      tokens: this.estimateTokens(messages)
+    };
+    
+    const updated = await prisma.aIContext.update({
+      where: {
+        websiteId_sessionId: {
+          websiteId,
+          sessionId
+        }
+      },
+      data: {
+        messages: JSON.stringify(messages),
+        metadata: JSON.stringify(metadata),
+        updatedAt: new Date()
+      }
+    });
+    
+    return this.transformContext(updated);
+  }
+  
+  /**
+   * Prune old messages from context
+   */
+  static async pruneContext(
+    messages: AIMessage[], 
+    existingSummary?: string | null
+  ): Promise<AIMessage[]> {
+    // Keep system messages and recent messages
+    const systemMessages = messages.filter(m => m.role === 'system');
+    const nonSystemMessages = messages.filter(m => m.role !== 'system');
+    
+    // Create summary of older messages if not exists
+    if (!existingSummary && nonSystemMessages.length > 20) {
+      // In production, this would call an AI API to summarize
+      // For now, we'll just note that summarization would happen
+      existingSummary = 'Previous conversation context summarized';
+    }
+    
+    // Keep last N messages
+    const recentMessages = nonSystemMessages.slice(-30);
+    
+    return [...systemMessages, ...recentMessages];
+  }
+  
+  /**
+   * Summarize a long conversation context
+   */
+  static async summarizeContext(
+    websiteId: string,
+    sessionId: string
+  ): Promise<string> {
+    const context = await this.getAIContext(websiteId, sessionId);
+    
+    if (!context) {
+      throw new ApiError(404, 'AI context not found');
+    }
+    
+    // In production, this would call an AI API to create a summary
+    // For now, return a placeholder
+    const summary = `Conversation summary: ${context.messages.length} messages exchanged`;
+    
+    await prisma.aIContext.update({
+      where: {
+        websiteId_sessionId: {
+          websiteId,
+          sessionId
+        }
+      },
+      data: {
+        summary
+      }
+    });
+    
+    return summary;
+  }
+  
+  /**
+   * Clear messages from a context (keep session)
+   */
+  static async clearContext(websiteId: string, sessionId: string): Promise<AIContext> {
+    const context = await this.getAIContext(websiteId, sessionId);
+    
+    if (!context) {
+      throw new ApiError(404, 'AI context not found');
+    }
+    
+    const updated = await prisma.aIContext.update({
+      where: {
+        websiteId_sessionId: {
+          websiteId,
+          sessionId
+        }
+      },
+      data: {
+        messages: JSON.stringify([]),
+        metadata: JSON.stringify({ totalMessages: 0, tokens: 0 }),
+        summary: null
+      }
+    });
+    
+    return this.transformContext(updated);
+  }
+  
+  /**
+   * Soft delete a context session
+   */
+  static async deleteContext(websiteId: string, sessionId: string): Promise<void> {
+    await prisma.aIContext.update({
+      where: {
+        websiteId_sessionId: {
+          websiteId,
+          sessionId
+        }
+      },
+      data: {
+        isActive: false
+      }
+    });
+  }
+  
+  /**
+   * Transform database record to typed AIContext
+   */
+  private static transformContext(record: {
+    id: string;
+    websiteId: string;
+    sessionId: string;
+    messages: string;
+    metadata?: string | null;
+    summary?: string | null;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }): AIContext {
+    return {
+      id: record.id,
+      websiteId: record.websiteId,
+      sessionId: record.sessionId,
+      messages: JSON.parse(record.messages || '[]'),
+      metadata: record.metadata ? JSON.parse(record.metadata) : undefined,
+      summary: record.summary || undefined,
+      isActive: record.isActive,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt
+    };
+  }
+  
+  /**
+   * Estimate token count for messages
+   */
+  private static estimateTokens(messages: AIMessage[]): number {
+    // Rough estimation: 1 token ~= 4 characters
+    const totalChars = messages.reduce((sum, msg) => sum + msg.content.length, 0);
+    return Math.ceil(totalChars / 4);
+  }
+  
+  /**
+   * Clean up old inactive sessions
+   */
+  static async cleanupOldSessions(): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - OLD_MESSAGE_DAYS);
+    
+    const result = await prisma.aIContext.deleteMany({
+      where: {
+        isActive: false,
+        updatedAt: {
+          lt: cutoffDate
+        }
+      }
+    });
+    
+    return result.count;
+  }
+}
