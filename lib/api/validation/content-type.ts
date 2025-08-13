@@ -28,7 +28,7 @@ export const ContentTypeFieldOptionSchema = z.object({
 
 export const ContentTypeFieldSchema = z.object({
   id: z.string(),
-  name: z.string().regex(/^[a-zA-Z][a-zA-Z0-9]*$/, 'Field name must start with letter and contain only alphanumeric characters'),
+  name: z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, 'Field name must start with letter and contain only alphanumeric characters or underscores'),
   label: z.string().min(1, 'Field label is required'),
   type: z.enum(['text', 'number', 'boolean', 'date', 'image', 'richText', 'reference']),
   required: z.boolean(),

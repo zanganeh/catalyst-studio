@@ -13,7 +13,7 @@ import type { ContentItem } from '@/lib/content-types/types';
 export default function ContentPage() {
   const contentStore = useContentStore();
   const { toast } = useToast();
-  const { contentTypes } = useContentTypes();
+  const { contentTypes, isLoading, error } = useContentTypes();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [selectedContentTypeId, setSelectedContentTypeId] = useState<string>('');
@@ -124,6 +124,28 @@ export default function ContentPage() {
     }
   };
   
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading content types...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <p className="text-destructive mb-2">Failed to load content types</p>
+          <p className="text-sm text-muted-foreground">{error.message}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <ContentErrorBoundary>
       <ContentList

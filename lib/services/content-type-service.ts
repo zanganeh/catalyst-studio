@@ -1,28 +1,68 @@
-import { PrismaClient } from '@/lib/generated/prisma';
 import { CreateContentTypeRequest, UpdateContentTypeRequest } from '@/lib/api/validation/content-type';
+import prisma from '@/lib/db/prisma';
 
-const prisma = new PrismaClient();
+export interface ContentTypeFields {
+  name?: string;
+  pluralName?: string;
+  icon?: string;
+  description?: string;
+  fields?: Array<{
+    id: string;
+    name: string;
+    label: string;
+    type: string;
+    required: boolean;
+    defaultValue?: unknown;
+    validation?: Record<string, unknown>;
+    helpText?: string;
+    placeholder?: string;
+    options?: Array<{
+      label: string;
+      value: string | number | boolean;
+      description?: string;
+    }>;
+    order: number;
+  }>;
+  relationships?: Array<{
+    id: string;
+    name: string;
+    type: 'oneToOne' | 'oneToMany' | 'manyToOne' | 'manyToMany';
+    sourceContentTypeId: string;
+    targetContentTypeId: string;
+    sourceFieldName?: string;
+    targetFieldName?: string;
+    fieldName?: string;
+    isRequired: boolean;
+  }>;
+}
+
+export interface ContentTypeSettings {
+  pluralName?: string;
+  icon?: string;
+  description?: string;
+  [key: string]: unknown;
+}
 
 export interface ContentTypeWithParsedFields {
   id: string;
   websiteId: string;
   name: string;
-  fields: any;
-  settings: any;
+  fields: ContentTypeFields;
+  settings: ContentTypeSettings;
   createdAt: Date;
   updatedAt: Date;
 }
 
-function parseJsonField(field: string | null): any {
+function parseJsonField<T = ContentTypeFields | ContentTypeSettings>(field: string | null): T | null {
   if (!field) return null;
   try {
-    return JSON.parse(field);
+    return JSON.parse(field) as T;
   } catch {
     return null;
   }
 }
 
-function stringifyJsonField(field: any): string {
+function stringifyJsonField(field: ContentTypeFields | ContentTypeSettings | null | undefined): string {
   if (field === null || field === undefined) return '{}';
   return JSON.stringify(field);
 }
@@ -35,8 +75,8 @@ export async function getContentTypes(websiteId?: string): Promise<ContentTypeWi
 
   return contentTypes.map(ct => ({
     ...ct,
-    fields: parseJsonField(ct.fields) || [],
-    settings: parseJsonField(ct.settings) || {},
+    fields: parseJsonField<ContentTypeFields>(ct.fields) || {},
+    settings: parseJsonField<ContentTypeSettings>(ct.settings) || {},
   }));
 }
 
@@ -51,8 +91,8 @@ export async function getContentType(id: string): Promise<ContentTypeWithParsedF
 
   return {
     ...contentType,
-    fields: parseJsonField(contentType.fields) || [],
-    settings: parseJsonField(contentType.settings) || {},
+    fields: parseJsonField<ContentTypeFields>(contentType.fields) || {},
+    settings: parseJsonField<ContentTypeSettings>(contentType.settings) || {},
   };
 }
 
@@ -90,7 +130,7 @@ export async function createContentType(data: CreateContentTypeRequest): Promise
 export async function updateContentType(id: string, data: UpdateContentTypeRequest): Promise<ContentTypeWithParsedFields> {
   const existing = await getContentType(id);
   if (!existing) {
-    throw new Error('Content type not found');
+    throw new Error(`Content type with ID '${id}' not found`);
   }
 
   const currentFields = existing.fields || {};
@@ -98,9 +138,15 @@ export async function updateContentType(id: string, data: UpdateContentTypeReque
 
   const { fields, relationships, ...contentTypeData } = data;
 
-  const updatedFields = fields !== undefined 
-    ? { ...currentFields, fields, relationships }
-    : currentFields;
+  // Fix: Properly merge fields array instead of nesting it
+  let updatedFields = currentFields;
+  if (fields !== undefined || relationships !== undefined) {
+    updatedFields = {
+      ...currentFields,
+      ...(fields !== undefined && { fields }),
+      ...(relationships !== undefined && { relationships }),
+    };
+  }
 
   const updatedSettings = {
     ...currentSettings,

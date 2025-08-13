@@ -17,6 +17,7 @@ import {
   useDeleteContentType,
 } from '@/lib/api/hooks/use-content-types';
 import { CreateContentTypeRequest, UpdateContentTypeRequest } from '@/lib/api/validation/content-type';
+import { DEFAULT_WEBSITE_ID } from '@/lib/config/constants';
 
 interface ContentTypeContextValue {
   contentTypes: ContentType[];
@@ -75,7 +76,7 @@ function transformToApiFormat(contentType: Partial<ContentType>, websiteId?: str
   const { id, createdAt, updatedAt, ...rest } = contentType as ContentType & { id?: string; createdAt?: Date; updatedAt?: Date };
   
   return {
-    websiteId: websiteId || 'cme8gy65m0000v8tkdq9ur63o',
+    websiteId: websiteId || DEFAULT_WEBSITE_ID,
     name: contentType.name,
     pluralName: contentType.pluralName,
     icon: contentType.icon,
