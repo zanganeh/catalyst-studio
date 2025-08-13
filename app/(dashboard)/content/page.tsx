@@ -21,21 +21,15 @@ export default function ContentPage() {
   const [selectedContentTypeId, setSelectedContentTypeId] = useState<string>('');
   
   // Get website ID from context or use default
-  let websiteId: string;
-  try {
-    const { websiteId: contextWebsiteId } = useWebsiteContext();
-    websiteId = contextWebsiteId || DEFAULT_WEBSITE_ID;
-  } catch {
-    // Not in website context, use default
-    websiteId = DEFAULT_WEBSITE_ID;
-  }
+  const { websiteId: contextWebsiteId } = useWebsiteContext() || {};
+  const websiteId = contextWebsiteId || DEFAULT_WEBSITE_ID;
   
   // Load content when component mounts or website changes
   useEffect(() => {
     if (websiteId) {
       contentStore.loadContent(websiteId);
     }
-  }, [websiteId]);
+  }, [websiteId, contentStore]);
   
   // Get selected content type for modal
   const selectedContentType = contentTypes.find(
@@ -68,6 +62,7 @@ export default function ContentPage() {
           description: 'The content item has been successfully deleted.',
         });
       } catch (error) {
+        console.error('Delete content error:', error);
         toast({
           title: 'Error',
           description: 'Failed to delete content item. Please try again.',
@@ -89,6 +84,7 @@ export default function ContentPage() {
         handleEditContent(duplicated);
       }
     } catch (error) {
+      console.error('Duplicate content error:', error);
       toast({
         title: 'Error',
         description: 'Failed to duplicate content item. Please try again.',
@@ -119,6 +115,7 @@ export default function ContentPage() {
       setModalOpen(false);
       setSelectedItem(null);
     } catch (error) {
+      console.error('Save content error:', error);
       toast({
         title: 'Error',
         description: 'Failed to save content. Please check your input and try again.',
