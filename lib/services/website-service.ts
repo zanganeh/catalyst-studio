@@ -1,15 +1,21 @@
 import { getClient } from '@/lib/db/client';
 import { Website, CreateWebsiteRequest, UpdateWebsiteRequest, WebsiteSettings } from '@/types/api';
 import { ApiError } from '@/lib/api/errors';
+import type { PrismaClient } from '@/lib/generated/prisma';
+import type { Website as PrismaWebsite } from '@/lib/generated/prisma';
 
 /**
  * Service layer for website operations
  */
 export class WebsiteService {
-  private prisma;
+  private _prisma: PrismaClient | null = null;
 
-  constructor() {
-    this.prisma = getClient();
+  // Lazy initialization of Prisma client
+  private get prisma(): PrismaClient {
+    if (!this._prisma) {
+      this._prisma = getClient();
+    }
+    return this._prisma;
   }
 
   /**
@@ -116,11 +122,18 @@ export class WebsiteService {
   /**
    * Format website data from database
    */
-  private formatWebsite(website: any): Website {
+  private formatWebsite(website: PrismaWebsite): Website {
     return {
-      ...website,
-      metadata: website.metadata ? JSON.parse(website.metadata) : null,
-      settings: website.settings ? JSON.parse(website.settings) : null
+      id: website.id,
+      name: website.name,
+      description: website.description || undefined,
+      category: website.category,
+      icon: website.icon || undefined,
+      isActive: website.isActive,
+      createdAt: website.createdAt,
+      updatedAt: website.updatedAt,
+      metadata: website.metadata ? JSON.parse(website.metadata as string) : undefined,
+      settings: website.settings ? JSON.parse(website.settings as string) : undefined
     };
   }
 }
