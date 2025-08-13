@@ -29,6 +29,63 @@ export interface CreateWebsiteRequest {
 
 export interface UpdateWebsiteRequest extends Partial<CreateWebsiteRequest> {}
 
+// ContentType model types
+export interface ContentType {
+  id: string;
+  websiteId: string;
+  name: string;
+  fields: any;
+  settings?: any;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ContentItem model types
+export type ContentStatus = 'draft' | 'published' | 'archived';
+
+export interface ContentItem {
+  id: string;
+  contentTypeId: string;
+  websiteId: string;
+  slug?: string;
+  data: Record<string, any>;
+  metadata?: Record<string, any>;
+  status: ContentStatus;
+  publishedAt?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  contentType?: ContentType;
+  website?: Website;
+}
+
+export interface CreateContentItemRequest {
+  contentTypeId: string;
+  websiteId: string;
+  slug?: string;
+  data: Record<string, any>;
+  metadata?: Record<string, any>;
+  status?: ContentStatus;
+  publishedAt?: Date | string | null;
+}
+
+export interface UpdateContentItemRequest {
+  slug?: string;
+  data?: Record<string, any>;
+  metadata?: Record<string, any>;
+  status?: ContentStatus;
+  publishedAt?: Date | string | null;
+}
+
+export interface ContentItemsQuery extends PaginationParams {
+  status?: ContentStatus;
+  contentTypeId?: string;
+  websiteId?: string;
+}
+
+export interface ContentItemsResponse extends PaginatedResponse<ContentItem> {
+  data: ContentItem[];
+}
+
 // Pagination types for future use
 export interface PaginationParams {
   page?: number;
@@ -44,5 +101,7 @@ export interface PaginatedResponse<T> {
     limit: number;
     total: number;
     totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
   };
 }

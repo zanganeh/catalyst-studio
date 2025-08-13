@@ -1,0 +1,15 @@
+
+> catalyst-studio@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.4.5
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.50.170:3000
+   - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Ready in 1819ms
+ ○ Compiling /api/content-items ...
+ ✓ Compiled /api/content-items in 960ms (347 modules)
+ GET /api/content-items?page=1&limit=10 200 in 1682ms
+ ✓ Compiled in 30ms
