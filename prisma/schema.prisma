@@ -38,14 +38,21 @@ model ContentType {
 }
 
 model ContentItem {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   contentTypeId String
   websiteId     String
-  data          String   // Using String for SQLite instead of Json
-  status        String   @default("draft")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  slug          String?
+  data          String    // Using String for SQLite instead of Json
+  metadata      String?   // Using String for SQLite instead of Json
+  status        String    @default("draft")
+  publishedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   
   contentType ContentType @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
   website     Website     @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  
+  @@index([websiteId, contentTypeId])
+  @@index([slug])
+  @@index([status, publishedAt])
 }

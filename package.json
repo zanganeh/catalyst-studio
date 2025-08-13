@@ -23,7 +23,9 @@
     "db:seed": "npx tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "test:db:setup": "dotenv -e .env.test -- prisma migrate deploy",
-    "test:db:reset": "rm -f test.db test.db-journal && npm run test:db:setup"
+    "test:db:reset": "rm -f test.db test.db-journal && npm run test:db:setup",
+    "migrate:content-items": "npx tsx scripts/migrate-content-items.ts",
+    "migrate:content-items:rollback": "npx tsx scripts/migrate-content-items.ts rollback"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.3.23",
