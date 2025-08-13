@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { UpdateContentItemRequest } from '@/types/api';
 import { Prisma } from '@/lib/generated/prisma';
 import { validateUpdateContentItem } from '@/lib/api/validation/content-item';
 

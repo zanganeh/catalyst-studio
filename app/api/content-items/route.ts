@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { ContentItemsResponse, CreateContentItemRequest } from '@/types/api';
+import { ContentItemsResponse, ContentStatus } from '@/types/api';
 import { Prisma } from '@/lib/generated/prisma';
 import { validateContentItemsQuery, validateCreateContentItem } from '@/lib/api/validation/content-item';
 
@@ -47,18 +47,16 @@ export async function GET(request: NextRequest) {
     
     // Transform data field from string to JSON
     const transformedItems = items.map(item => ({
-      ...item,
+      id: item.id,
+      contentTypeId: item.contentTypeId,
+      websiteId: item.websiteId,
+      slug: item.slug || undefined, // Convert null to undefined for type compatibility
       data: item.data ? JSON.parse(item.data) : {},
       metadata: item.metadata ? JSON.parse(item.metadata) : null,
-      contentType: item.contentType ? {
-        ...item.contentType,
-        fields: item.contentType.fields ? JSON.parse(item.contentType.fields) : [],
-        settings: item.contentType.settings ? JSON.parse(item.contentType.settings) : null,
-      } : undefined,
-      website: item.website ? {
-        ...item.website,
-        metadata: item.website.metadata ? JSON.parse(item.website.metadata) : null,
-      } : undefined,
+      status: item.status as ContentStatus, // Cast status to ContentStatus type
+      publishedAt: item.publishedAt || undefined, // Convert null to undefined
+      createdAt: item.createdAt,
+      updatedAt: item.updatedAt,
     }));
     
     const response: ContentItemsResponse = {
