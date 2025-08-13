@@ -39,6 +39,14 @@ global.IntersectionObserver = class IntersectionObserver {
   }
 }
 
+// Mock URL.createObjectURL and URL.revokeObjectURL
+if (typeof URL.createObjectURL === 'undefined') {
+  URL.createObjectURL = jest.fn(() => 'blob:mock-url');
+}
+if (typeof URL.revokeObjectURL === 'undefined') {
+  URL.revokeObjectURL = jest.fn();
+}
+
 // Mock Next.js server components for tests
 if (typeof global.Response === 'undefined') {
   global.Response = class Response {

@@ -1,6 +1,28 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Content Type Builder', () => {
+  let testWebsiteId: string;
+
+  test.beforeAll(async ({ request }) => {
+    // Create a test website for all tests
+    const response = await request.post('/api/websites', {
+      data: {
+        name: 'Content Builder Test Website',
+        description: 'Website for content type builder tests',
+        category: 'Testing'
+      }
+    });
+    const data = await response.json();
+    testWebsiteId = data.data.id;
+  });
+
+  test.afterAll(async ({ request }) => {
+    // Clean up test website
+    if (testWebsiteId) {
+      await request.delete(`/api/websites/${testWebsiteId}`);
+    }
+  });
+
   test.beforeEach(async ({ page }) => {
     // Features are permanently enabled, no flags needed
     await page.goto('http://localhost:3000');
@@ -9,8 +31,8 @@ test.describe('Content Type Builder', () => {
       localStorage.removeItem('contentTypes');
     });
     
-    // Navigate to content builder
-    await page.goto('http://localhost:3000/content-builder');
+    // Navigate to studio content builder with website context
+    await page.goto(`http://localhost:3000/studio/${testWebsiteId}/content-builder`);
     await page.waitForTimeout(1000);
   });
 
@@ -164,8 +186,8 @@ test.describe('Content Type Builder', () => {
     // Click Relationships button
     await page.click('button:has-text("Relationships")');
     
-    // Verify navigation
-    await expect(page).toHaveURL(/.*\/content-builder\/relationships/);
+    // Verify navigation - updated to match studio route
+    await expect(page).toHaveURL(new RegExp(`.*\/studio\/${testWebsiteId}\/content-builder\/relationships`));
     await expect(page.locator('text=Content Relationships')).toBeVisible();
   });
 
@@ -196,13 +218,35 @@ test.describe('Content Type Builder', () => {
 });
 
 test.describe('Content Type Builder - Edge Cases', () => {
+  let testWebsiteId: string;
+
+  test.beforeAll(async ({ request }) => {
+    // Create a test website for edge case tests
+    const response = await request.post('/api/websites', {
+      data: {
+        name: 'Edge Case Test Website',
+        description: 'Website for edge case testing',
+        category: 'Testing'
+      }
+    });
+    const data = await response.json();
+    testWebsiteId = data.data.id;
+  });
+
+  test.afterAll(async ({ request }) => {
+    // Clean up test website
+    if (testWebsiteId) {
+      await request.delete(`/api/websites/${testWebsiteId}`);
+    }
+  });
+
   test.beforeEach(async ({ page }) => {
     // Features are permanently enabled, no flags needed
     await page.goto('http://localhost:3000');
     await page.evaluate(() => {
       localStorage.removeItem('contentTypes');
     });
-    await page.goto('http://localhost:3000/content-builder');
+    await page.goto(`http://localhost:3000/studio/${testWebsiteId}/content-builder`);
     await page.waitForTimeout(1000);
   });
 

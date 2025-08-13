@@ -1,6 +1,6 @@
 import { GET, POST } from '../route';
 import { getClient } from '@/lib/db/client';
-import { createTestRequest, parseTestResponse } from './setup';
+import { createTestRequest } from './test-helpers';
 
 // Mock Prisma client
 jest.mock('@/lib/db/client', () => ({
@@ -8,7 +8,12 @@ jest.mock('@/lib/db/client', () => ({
 }));
 
 describe('/api/websites', () => {
-  let mockPrisma: any;
+  let mockPrisma: {
+    website: {
+      findMany: jest.Mock;
+      create: jest.Mock;
+    };
+  };
 
   beforeEach(() => {
     mockPrisma = {
@@ -96,7 +101,7 @@ describe('/api/websites', () => {
 
       const request = createTestRequest(newWebsite);
 
-      const response = await POST(request as any);
+      const response = await POST(request as Request);
       const data = await response.json();
 
       expect(response.status).toBe(201);
@@ -117,7 +122,7 @@ describe('/api/websites', () => {
 
       const request = createTestRequest(invalidWebsite);
 
-      const response = await POST(request as any);
+      const response = await POST(request as Request);
       const data = await response.json();
 
       expect(response.status).toBe(400);

@@ -54,7 +54,7 @@ export const ContentTypeRelationshipSchema = z.object({
 
 export const CreateContentTypeSchema = z.object({
   websiteId: z.string().optional(),
-  name: z.string().min(1, 'Content type name is required').regex(/^[A-Z][a-zA-Z0-9]*$/, 'Must be PascalCase'),
+  name: z.string().min(1, 'Content type name is required').regex(/^[A-Z][a-zA-Z0-9 ]*$/, 'Must start with capital letter'),
   pluralName: z.string().min(1, 'Plural name is required'),
   icon: z.string().min(1, 'Icon is required'),
   description: z.string().optional(),
@@ -63,7 +63,7 @@ export const CreateContentTypeSchema = z.object({
 });
 
 export const UpdateContentTypeSchema = z.object({
-  name: z.string().min(1, 'Content type name is required').regex(/^[A-Z][a-zA-Z0-9]*$/, 'Must be PascalCase').optional(),
+  name: z.string().min(1, 'Content type name is required').regex(/^[A-Z][a-zA-Z0-9 ]*$/, 'Must start with capital letter').optional(),
   pluralName: z.string().min(1, 'Plural name is required').optional(),
   icon: z.string().min(1, 'Icon is required').optional(),
   description: z.string().optional(),

@@ -1,9 +1,6 @@
 import { create } from 'zustand';
 import { 
-  ContentItem, 
-  ContentItemsQuery,
-  CreateContentItemRequest,
-  UpdateContentItemRequest 
+  ContentItem
 } from '@/types/api';
 
 interface ContentItemsStore {

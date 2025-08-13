@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { WebsiteStorageService } from '@/lib/storage/website-storage.service';
-import { WebsiteMetadata } from '@/lib/storage/types';
+import { useWebsites } from '@/lib/api/hooks/use-websites';
 import { formatDistanceToNow } from 'date-fns';
 import { ChevronRight, Clock, Globe } from 'lucide-react';
 
@@ -13,76 +12,25 @@ interface RecentAppsProps {
 }
 
 export function RecentApps({ maxItems = 12, className = '' }: RecentAppsProps) {
-  const [websites, setWebsites] = useState<WebsiteMetadata[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const router = useRouter();
+  
+  // Use the API hook to fetch websites
+  const { data: websites = [], isLoading, error } = useWebsites();
 
-  // Memoize the storage service instance
-  const storageService = useMemo(() => new WebsiteStorageService(), []);
-
-  const loadRecentWebsites = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const sites = await storageService.listWebsites();
-      
-      // Sort by lastModified date (most recent first)
-      const sortedSites = sites.sort((a, b) => {
-        const dateA = new Date(a.lastModified || a.createdAt).getTime();
-        const dateB = new Date(b.lastModified || b.createdAt).getTime();
-        return dateB - dateA;
-      });
-      
-      setWebsites(sortedSites);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to load recent apps';
-      console.error('Failed to load recent apps:', error);
-      setError(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [storageService]);
-
-  // Subscribe to storage changes for real-time updates
-  useEffect(() => {
-    loadRecentWebsites();
-
-    // Set up storage event listener for real-time updates
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key?.startsWith('website_')) {
-        loadRecentWebsites();
-      }
-    };
-
-    // Also listen for custom website events
-    const handleWebsiteChange = () => {
-      loadRecentWebsites();
-    };
-
-    // Event listeners for real-time updates
-    const websiteEvents = ['website-created', 'website-deleted', 'website-updated'] as const;
-    
-    window.addEventListener('storage', handleStorageChange);
-    websiteEvents.forEach(eventName => {
-      window.addEventListener(eventName, handleWebsiteChange);
-    });
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      websiteEvents.forEach(eventName => {
-        window.removeEventListener(eventName, handleWebsiteChange);
-      });
-    };
-  }, [loadRecentWebsites]);
+  // Sort websites by updatedAt date (most recent first)
+  const sortedWebsites = [...websites].sort((a, b) => {
+    const dateA = new Date(a.updatedAt).getTime();
+    const dateB = new Date(b.updatedAt).getTime();
+    return dateB - dateA;
+  });
 
   const handleWebsiteClick = (websiteId: string) => {
     router.push(`/studio/${websiteId}`);
   };
 
-  const displayedWebsites = showAll ? websites : websites.slice(0, maxItems);
-  const hasMoreWebsites = websites.length > maxItems;
+  const displayedWebsites = showAll ? sortedWebsites : sortedWebsites.slice(0, maxItems);
+  const hasMoreWebsites = sortedWebsites.length > maxItems;
 
   if (isLoading) {
     return (
@@ -118,18 +66,13 @@ export function RecentApps({ maxItems = 12, className = '' }: RecentAppsProps) {
         </div>
         <div className="text-center py-8 text-gray-400">
           <p>Unable to load recent apps</p>
-          <button
-            onClick={loadRecentWebsites}
-            className="mt-2 text-catalyst-orange hover:text-catalyst-orange-dark hover:underline"
-          >
-            Try again
-          </button>
+          <p className="text-sm mt-1">{error instanceof Error ? error.message : 'An error occurred'}</p>
         </div>
       </div>
     );
   }
 
-  if (websites.length === 0) {
+  if (sortedWebsites.length === 0) {
     return (
       <div className={`${className}`}>
         <div className="flex items-center justify-between mb-6">
@@ -158,7 +101,7 @@ export function RecentApps({ maxItems = 12, className = '' }: RecentAppsProps) {
             onClick={() => setShowAll(true)}
             className="text-catalyst-orange hover:text-catalyst-orange-dark flex items-center gap-1"
           >
-            View All ({websites.length})
+            View All ({sortedWebsites.length})
             <ChevronRight className="w-4 h-4" />
           </button>
         )}
@@ -207,7 +150,7 @@ export function RecentApps({ maxItems = 12, className = '' }: RecentAppsProps) {
             <div className="flex items-center gap-1 text-xs text-gray-500">
               <Clock className="w-3 h-3" />
               <span>
-                {formatDistanceToNow(new Date(website.lastModified || website.createdAt), {
+                {formatDistanceToNow(new Date(website.updatedAt), {
                   addSuffix: true,
                 })}
               </span>

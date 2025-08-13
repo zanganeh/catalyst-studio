@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { RecentApps } from '@/components/dashboard/recent-apps';
-import { WebsiteStorageService } from '@/lib/storage/website-storage.service';
+import { useWebsites } from '@/lib/api/hooks/use-websites';
 import { useRouter } from 'next/navigation';
 
 // Mock modules
@@ -9,11 +9,7 @@ jest.mock('next/navigation', () => ({
   useRouter: jest.fn(),
 }));
 
-jest.mock('@/lib/storage/website-storage.service', () => ({
-  WebsiteStorageService: jest.fn().mockImplementation(() => ({
-    listWebsites: jest.fn(),
-  })),
-}));
+jest.mock('@/lib/api/hooks/use-websites');
 
 jest.mock('date-fns', () => ({
   formatDistanceToNow: jest.fn(() => '2 hours ago'),
@@ -21,7 +17,6 @@ jest.mock('date-fns', () => ({
 
 describe('Recent Apps Navigation Integration', () => {
   const mockPush = jest.fn();
-  const mockListWebsites = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -29,10 +24,6 @@ describe('Recent Apps Navigation Integration', () => {
     (useRouter as jest.Mock).mockReturnValue({
       push: mockPush,
     });
-
-    (WebsiteStorageService as jest.Mock).mockImplementation(() => ({
-      listWebsites: mockListWebsites,
-    }));
   });
 
   describe('Navigation to Studio', () => {
@@ -42,19 +33,27 @@ describe('Recent Apps Navigation Integration', () => {
           id: 'test-site-1',
           name: 'Test Website 1',
           description: 'A test website',
-          createdAt: '2024-01-01T10:00:00Z',
-          lastModified: '2024-01-01T12:00:00Z',
+          category: 'Business',
+          isActive: true,
+          createdAt: new Date('2024-01-01T10:00:00Z'),
+          updatedAt: new Date('2024-01-01T12:00:00Z'),
         },
         {
           id: 'test-site-2',
           name: 'Test Website 2',
           description: 'Another test website',
-          createdAt: '2024-01-01T09:00:00Z',
-          lastModified: '2024-01-01T11:00:00Z',
+          category: 'Portfolio',
+          isActive: true,
+          createdAt: new Date('2024-01-01T09:00:00Z'),
+          updatedAt: new Date('2024-01-01T11:00:00Z'),
         },
       ];
 
-      mockListWebsites.mockResolvedValue(mockWebsites);
+      (useWebsites as jest.Mock).mockReturnValue({
+        data: mockWebsites,
+        isLoading: false,
+        error: null,
+      });
       
       render(<RecentApps />);
 
@@ -80,11 +79,17 @@ describe('Recent Apps Navigation Integration', () => {
         id: `site-${i}`,
         name: `Website ${i}`,
         description: `Description for website ${i}`,
-        createdAt: new Date(2024, 0, 1, 10 - i).toISOString(),
-        lastModified: new Date(2024, 0, 1, 12 - i).toISOString(),
+        category: 'Business',
+        isActive: true,
+        createdAt: new Date(2024, 0, 1, 10 - i),
+        updatedAt: new Date(2024, 0, 1, 12 - i),
       }));
 
-      mockListWebsites.mockResolvedValue(websites);
+      (useWebsites as jest.Mock).mockReturnValue({
+        data: websites,
+        isLoading: false,
+        error: null,
+      });
       
       render(<RecentApps />);
 
@@ -112,12 +117,18 @@ describe('Recent Apps Navigation Integration', () => {
         {
           id: 'existing-site',
           name: 'Existing Website',
-          createdAt: '2024-01-01T10:00:00Z',
-          lastModified: '2024-01-01T10:00:00Z',
+          category: 'Business',
+          isActive: true,
+          createdAt: new Date('2024-01-01T10:00:00Z'),
+          updatedAt: new Date('2024-01-01T10:00:00Z'),
         },
       ];
 
-      mockListWebsites.mockResolvedValue(initialWebsites);
+      (useWebsites as jest.Mock).mockReturnValue({
+        data: initialWebsites,
+        isLoading: false,
+        error: null,
+      });
       
       render(<RecentApps />);
 
@@ -130,13 +141,19 @@ describe('Recent Apps Navigation Integration', () => {
         {
           id: 'new-site',
           name: 'New Website',
-          createdAt: '2024-01-01T14:00:00Z',
-          lastModified: '2024-01-01T14:00:00Z',
+          category: 'Business',
+          isActive: true,
+          createdAt: new Date('2024-01-01T14:00:00Z'),
+          updatedAt: new Date('2024-01-01T14:00:00Z'),
         },
         ...initialWebsites,
       ];
 
-      mockListWebsites.mockResolvedValue(updatedWebsites);
+      (useWebsites as jest.Mock).mockReturnValue({
+        data: updatedWebsites,
+        isLoading: false,
+        error: null,
+      });
 
       // Dispatch website-created event
       window.dispatchEvent(new CustomEvent('website-created'));
@@ -155,18 +172,26 @@ describe('Recent Apps Navigation Integration', () => {
         {
           id: 'site-to-keep',
           name: 'Website to Keep',
-          createdAt: '2024-01-01T10:00:00Z',
-          lastModified: '2024-01-01T10:00:00Z',
+          category: 'Business',
+          isActive: true,
+          createdAt: new Date('2024-01-01T10:00:00Z'),
+          updatedAt: new Date('2024-01-01T10:00:00Z'),
         },
         {
           id: 'site-to-delete',
           name: 'Website to Delete',
-          createdAt: '2024-01-01T09:00:00Z',
-          lastModified: '2024-01-01T09:00:00Z',
+          category: 'Portfolio',
+          isActive: true,
+          createdAt: new Date('2024-01-01T09:00:00Z'),
+          updatedAt: new Date('2024-01-01T09:00:00Z'),
         },
       ];
 
-      mockListWebsites.mockResolvedValue(websites);
+      (useWebsites as jest.Mock).mockReturnValue({
+        data: websites,
+        isLoading: false,
+        error: null,
+      });
       
       render(<RecentApps />);
 
@@ -177,7 +202,11 @@ describe('Recent Apps Navigation Integration', () => {
 
       // Simulate website deletion
       const remainingWebsites = websites.filter(w => w.id !== 'site-to-delete');
-      mockListWebsites.mockResolvedValue(remainingWebsites);
+      (useWebsites as jest.Mock).mockReturnValue({
+        data: remainingWebsites,
+        isLoading: false,
+        error: null,
+      });
 
       // Dispatch website-deleted event
       window.dispatchEvent(new CustomEvent('website-deleted'));
@@ -195,11 +224,17 @@ describe('Recent Apps Navigation Integration', () => {
       const twelveWebsites = Array.from({ length: 12 }, (_, i) => ({
         id: `site-${i}`,
         name: `Website ${i}`,
-        createdAt: '2024-01-01T10:00:00Z',
-        lastModified: '2024-01-01T10:00:00Z',
+        category: 'Business',
+        isActive: true,
+        createdAt: new Date('2024-01-01T10:00:00Z'),
+        updatedAt: new Date('2024-01-01T10:00:00Z'),
       }));
 
-      mockListWebsites.mockResolvedValue(twelveWebsites);
+      (useWebsites as jest.Mock).mockReturnValue({
+        data: twelveWebsites,
+        isLoading: false,
+        error: null,
+      });
       
       const { rerender } = render(<RecentApps maxItems={12} />);
 
@@ -213,11 +248,17 @@ describe('Recent Apps Navigation Integration', () => {
       const twentyWebsites = Array.from({ length: 20 }, (_, i) => ({
         id: `site-${i}`,
         name: `Website ${i}`,
-        createdAt: '2024-01-01T10:00:00Z',
-        lastModified: '2024-01-01T10:00:00Z',
+        category: 'Business',
+        isActive: true,
+        createdAt: new Date('2024-01-01T10:00:00Z'),
+        updatedAt: new Date('2024-01-01T10:00:00Z'),
       }));
 
-      mockListWebsites.mockResolvedValue(twentyWebsites);
+      (useWebsites as jest.Mock).mockReturnValue({
+        data: twentyWebsites,
+        isLoading: false,
+        error: null,
+      });
       rerender(<RecentApps maxItems={12} />);
 
       await waitFor(() => {

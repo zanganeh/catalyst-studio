@@ -1,16 +1,10 @@
 import { AIPromptProcessor } from '../ai-prompt-processor';
-import { WebsiteStorageService } from '@/lib/storage/website-storage.service';
-
-// Mock the storage service
-jest.mock('@/lib/storage/website-storage.service');
 
 describe('AIPromptProcessor', () => {
   let processor: AIPromptProcessor;
-  let mockStorageService: jest.Mocked<WebsiteStorageService>;
   
   beforeEach(() => {
     processor = new AIPromptProcessor();
-    mockStorageService = WebsiteStorageService as any;
     
     // Reset all mocks
     jest.clearAllMocks();
@@ -113,10 +107,11 @@ describe('AIPromptProcessor', () => {
   
   describe('createWebsiteFromPrompt', () => {
     beforeEach(() => {
-      // Mock storage service methods
-      mockStorageService.prototype.initializeDB = jest.fn().mockResolvedValue(undefined);
-      mockStorageService.prototype.createWebsite = jest.fn().mockResolvedValue('test-website-id');
-      mockStorageService.prototype.saveWebsiteData = jest.fn().mockResolvedValue(undefined);
+      // Mock fetch for API calls
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: { id: 'test-website-id' } })
+      }) as jest.Mock;
     });
     
     it('should create website with processed prompt data', async () => {
@@ -124,59 +119,61 @@ describe('AIPromptProcessor', () => {
       const websiteId = await processor.createWebsiteFromPrompt(prompt);
       
       expect(websiteId).toBe('test-website-id');
-      expect(mockStorageService.prototype.createWebsite).toHaveBeenCalled();
-      expect(mockStorageService.prototype.saveWebsiteData).toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalledWith('/api/websites', expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      }));
     });
     
-    it('should initialize database before creating website', async () => {
+    it('should call API to create website', async () => {
       const prompt = 'Test website';
       await processor.createWebsiteFromPrompt(prompt);
       
-      expect(mockStorageService.prototype.initializeDB).toHaveBeenCalledBefore(
-        mockStorageService.prototype.createWebsite as any
-      );
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+      expect(global.fetch).toHaveBeenCalledWith('/api/websites', expect.any(Object));
     });
     
     it('should save AI context with initial prompt', async () => {
       const prompt = 'E-commerce store with payment processing';
       await processor.createWebsiteFromPrompt(prompt);
       
-      const saveCall = (mockStorageService.prototype.saveWebsiteData as jest.Mock).mock.calls[0];
-      const savedData = saveCall[1];
+      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
       
-      expect(savedData.aiContext).toBeDefined();
-      expect(savedData.aiContext.history).toHaveLength(1);
-      expect(savedData.aiContext.history[0].prompt).toBe(prompt);
+      expect(body.metadata).toBeDefined();
+      expect(body.metadata.createdViaAI).toBe(true);
+      expect(body.metadata.originalPrompt).toBe(prompt);
     });
     
     it('should set appropriate theme based on category', async () => {
       const crmPrompt = 'CRM system for sales teams';
       await processor.createWebsiteFromPrompt(crmPrompt);
       
-      const saveCall = (mockStorageService.prototype.saveWebsiteData as jest.Mock).mock.calls[0];
-      const savedData = saveCall[1];
+      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
       
-      expect(savedData.config.theme).toBeDefined();
-      expect(savedData.config.theme.primary).toBe('#3B82F6'); // Blue for CRM
+      expect(body.settings.theme).toBeDefined();
+      expect(body.settings.theme.primary).toBe('#3B82F6'); // Blue for CRM
     });
     
     it('should suggest appropriate tech stack', async () => {
       const prompt = 'Platform with user authentication and payment processing';
       await processor.createWebsiteFromPrompt(prompt);
       
-      const saveCall = (mockStorageService.prototype.saveWebsiteData as jest.Mock).mock.calls[0];
-      const savedData = saveCall[1];
+      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
+      const body = JSON.parse(fetchCall[1].body);
       
-      expect(savedData.config.settings.techStack).toContain('NextAuth.js');
-      expect(savedData.config.settings.techStack).toContain('Stripe');
+      expect(body.settings.techStack).toContain('NextAuth.js');
+      expect(body.settings.techStack).toContain('Stripe');
     });
     
-    it('should handle storage errors gracefully', async () => {
-      mockStorageService.prototype.createWebsite = jest.fn().mockRejectedValue(
-        new Error('Storage quota exceeded')
-      );
+    it('should handle API errors gracefully', async () => {
+      global.fetch = jest.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: { message: 'Failed to create website' } })
+      }) as jest.Mock;
       
-      await expect(processor.createWebsiteFromPrompt('Test')).rejects.toThrow('Storage quota exceeded');
+      await expect(processor.createWebsiteFromPrompt('Test')).rejects.toThrow('Failed to create website');
     });
   });
   

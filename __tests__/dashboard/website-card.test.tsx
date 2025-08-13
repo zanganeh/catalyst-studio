@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { WebsiteCard } from '@/components/dashboard/website-card';
-import { WebsiteMetadata } from '@/lib/storage/types';
+import { Website } from '@/types/api';
 
 // Mock Next.js Link component
 jest.mock('next/link', () => {
@@ -17,15 +17,17 @@ jest.mock('date-fns', () => ({
 }));
 
 describe('WebsiteCard', () => {
-  const mockWebsite: WebsiteMetadata = {
+  const mockWebsite: Website = {
     id: 'test-site-1',
     name: 'My Test Website',
     icon: '🎨',
-    createdAt: new Date('2024-01-01'),
-    lastModified: new Date('2024-01-10'),
-    storageQuota: 100000,
+    createdAt: '2024-01-01T00:00:00.000Z',
+    updatedAt: '2024-01-10T00:00:00.000Z',
     category: 'Portfolio',
     description: 'This is a test website description that should be displayed',
+    isActive: true,
+    settings: {},
+    metadata: {}
   };
 
   it('should render website card with all information', () => {

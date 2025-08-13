@@ -1,35 +1,9 @@
-import { WebsiteStorageService } from '@/lib/storage/website-storage.service';
+// This test file is deprecated as we've moved from localStorage/IndexedDB to API-only approach
+// The WebsiteStorageService has been removed in favor of React Query hooks (useWebsites, useWebsite, etc.)
 
-// Mock indexedDB for tests
-const mockIndexedDB = {
-  open: jest.fn(() => ({
-    onsuccess: null,
-    onerror: null,
-    onupgradeneeded: null,
-    result: {
-      objectStoreNames: { contains: jest.fn(() => false) },
-      createObjectStore: jest.fn(() => ({ createIndex: jest.fn() })),
-      transaction: jest.fn(() => ({
-        objectStore: jest.fn(() => ({
-          put: jest.fn(() => ({ onsuccess: null, onerror: null })),
-          get: jest.fn(() => ({ onsuccess: null, onerror: null })),
-          getAll: jest.fn(() => ({ 
-            onsuccess: null, 
-            onerror: null,
-            result: []
-          })),
-          delete: jest.fn(() => ({ onsuccess: null, onerror: null }))
-        }))
-      }))
-    }
-  }))
-};
-
-// @ts-ignore
-global.indexedDB = mockIndexedDB;
-
-describe('WebsiteStorageService', () => {
-  let service: WebsiteStorageService;
+describe.skip('WebsiteStorageService - REMOVED (migrated to API-only approach)', () => {
+  // WebsiteStorageService has been completely removed
+  // All tests below are preserved for historical reference only
   
   beforeEach(() => {
     // Clear localStorage before each test

@@ -31,18 +31,18 @@ export function FieldTypeModal({ open, onOpenChange, contentTypeId }: FieldTypeM
       />
       
       {/* Modal Content */}
-      <div className="relative bg-background border rounded-lg shadow-lg max-w-3xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col">
+      <div className="relative bg-zinc-900 border border-zinc-800 rounded-lg shadow-lg max-w-3xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b">
+        <div className="p-6 border-b border-zinc-800">
           <button
             onClick={() => onOpenChange(false)}
-            className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100"
+            className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100 text-zinc-400 hover:text-white"
           >
             <X className="h-4 w-4" />
             <span className="sr-only">Close</span>
           </button>
-          <h2 className="text-lg font-semibold">Add a Field</h2>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h2 className="text-lg font-semibold text-white">Add a Field</h2>
+          <p className="text-sm text-zinc-400 mt-1">
             Choose a field type to add to your content type
           </p>
         </div>
@@ -52,21 +52,21 @@ export function FieldTypeModal({ open, onOpenChange, contentTypeId }: FieldTypeM
           <div className="space-y-6">
             {FIELD_CATEGORIES.map((category) => (
               <div key={category.name}>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-3">
+                <h3 className="text-sm font-semibold text-zinc-400 mb-3">
                   {category.label}
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
                   {category.fields.map((field) => (
                     <Card
                       key={field.type}
-                      className="p-4 cursor-pointer hover:bg-accent transition-colors"
+                      className="p-4 cursor-pointer bg-zinc-800 hover:bg-zinc-700 transition-colors border-zinc-700"
                       onClick={() => handleFieldTypeSelect(field.type)}
                     >
                       <div className="flex items-start gap-3">
                         <div className="text-2xl">{field.icon}</div>
                         <div className="flex-1">
-                          <h4 className="font-semibold">{field.label}</h4>
-                          <p className="text-sm text-muted-foreground mt-1">
+                          <h4 className="font-semibold text-white">{field.label}</h4>
+                          <p className="text-sm text-zinc-400 mt-1">
                             {field.description}
                           </p>
                         </div>

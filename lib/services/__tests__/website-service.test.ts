@@ -8,7 +8,15 @@ jest.mock('@/lib/db/client', () => ({
 }));
 
 describe('WebsiteService', () => {
-  let mockPrisma: any;
+  let mockPrisma: {
+    website: {
+      findMany: jest.Mock;
+      findUnique: jest.Mock;
+      create: jest.Mock;
+      update: jest.Mock;
+      delete: jest.Mock;
+    };
+  };
   let websiteService: WebsiteService;
 
   beforeEach(() => {

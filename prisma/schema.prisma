@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
   output   = "../lib/generated/prisma"
@@ -12,49 +9,46 @@ datasource db {
 }
 
 model Website {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  category    String
-  metadata    String?  // Using String for SQLite instead of Json
-  icon        String?
-  settings    String?  // Using String for SQLite instead of Json
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  contentTypes ContentType[]
+  id           String        @id @default(cuid())
+  name         String
+  description  String?
+  category     String
+  metadata     String?
+  icon         String?
+  settings     String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   contentItems ContentItem[]
+  contentTypes ContentType[]
 }
 
 model ContentType {
-  id        String   @id @default(cuid())
-  websiteId String
-  name      String
-  fields    String   // Using String for SQLite instead of Json
-  settings  String?  // Using String for SQLite instead of Json
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  website      Website       @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  id           String        @id @default(cuid())
+  websiteId    String
+  name         String
+  fields       String
+  settings     String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   contentItems ContentItem[]
+  website      Website       @relation(fields: [websiteId], references: [id], onDelete: Cascade)
 }
 
 model ContentItem {
-  id            String    @id @default(cuid())
+  id            String      @id @default(cuid())
   contentTypeId String
   websiteId     String
-  slug          String?
-  data          String    // Using String for SQLite instead of Json
-  metadata      String?   // Using String for SQLite instead of Json
-  status        String    @default("draft")
+  data          String
+  status        String      @default("draft")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  metadata      String?
   publishedAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  contentType ContentType @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
-  website     Website     @relation(fields: [websiteId], references: [id], onDelete: Cascade)
-  
+  slug          String?
+  website       Website     @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  contentType   ContentType @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
+
   @@index([websiteId, contentTypeId])
   @@index([slug])
   @@index([status, publishedAt])

@@ -2,10 +2,10 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { WebsiteGrid } from '@/components/dashboard/website-grid';
-import { WebsiteStorageService } from '@/lib/storage/website-storage.service';
+import { useWebsites } from '@/lib/api/hooks/use-websites';
 
-// Mock the storage service
-jest.mock('@/lib/storage/website-storage.service');
+// Mock the API hook
+jest.mock('@/lib/api/hooks/use-websites');
 
 // Mock Next.js Link component
 jest.mock('next/link', () => {
@@ -21,8 +21,8 @@ describe('WebsiteGrid', () => {
       name: 'Test Website 1',
       icon: '🌟',
       createdAt: new Date('2024-01-01'),
-      lastModified: new Date('2024-01-10'),
-      storageQuota: 100000,
+      updatedAt: new Date('2024-01-10'),
+      isActive: true,
       category: 'Business',
       description: 'A test business website',
     },
@@ -31,8 +31,8 @@ describe('WebsiteGrid', () => {
       name: 'Test Website 2',
       icon: '🚀',
       createdAt: new Date('2024-01-02'),
-      lastModified: new Date('2024-01-11'),
-      storageQuota: 100000,
+      updatedAt: new Date('2024-01-11'),
+      isActive: true,
       category: 'Portfolio',
       description: 'A test portfolio website',
     },
@@ -43,10 +43,12 @@ describe('WebsiteGrid', () => {
   });
 
   it('should display loading skeleton initially', () => {
-    const mockListWebsites = jest.fn().mockResolvedValue([]);
-    (WebsiteStorageService as jest.Mock).mockImplementation(() => ({
-      listWebsites: mockListWebsites,
-    }));
+    (useWebsites as jest.Mock).mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      error: null,
+      refetch: jest.fn(),
+    });
 
     render(<WebsiteGrid />);
     
@@ -56,10 +58,12 @@ describe('WebsiteGrid', () => {
   });
 
   it('should display websites after loading', async () => {
-    const mockListWebsites = jest.fn().mockResolvedValue(mockWebsites);
-    (WebsiteStorageService as jest.Mock).mockImplementation(() => ({
-      listWebsites: mockListWebsites,
-    }));
+    (useWebsites as jest.Mock).mockReturnValue({
+      data: mockWebsites,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
 
     render(<WebsiteGrid />);
 
@@ -73,10 +77,12 @@ describe('WebsiteGrid', () => {
   });
 
   it('should display empty state when no websites exist', async () => {
-    const mockListWebsites = jest.fn().mockResolvedValue([]);
-    (WebsiteStorageService as jest.Mock).mockImplementation(() => ({
-      listWebsites: mockListWebsites,
-    }));
+    (useWebsites as jest.Mock).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
 
     render(<WebsiteGrid />);
 
@@ -87,10 +93,12 @@ describe('WebsiteGrid', () => {
   });
 
   it('should handle error gracefully', async () => {
-    const mockListWebsites = jest.fn().mockRejectedValue(new Error('Failed to load'));
-    (WebsiteStorageService as jest.Mock).mockImplementation(() => ({
-      listWebsites: mockListWebsites,
-    }));
+    (useWebsites as jest.Mock).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      error: new Error('Failed to load'),
+      refetch: jest.fn(),
+    });
 
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
@@ -104,10 +112,12 @@ describe('WebsiteGrid', () => {
   });
 
   it('should render correct number of website cards', async () => {
-    const mockListWebsites = jest.fn().mockResolvedValue(mockWebsites);
-    (WebsiteStorageService as jest.Mock).mockImplementation(() => ({
-      listWebsites: mockListWebsites,
-    }));
+    (useWebsites as jest.Mock).mockReturnValue({
+      data: mockWebsites,
+      isLoading: false,
+      error: null,
+      refetch: jest.fn(),
+    });
 
     render(<WebsiteGrid />);
 

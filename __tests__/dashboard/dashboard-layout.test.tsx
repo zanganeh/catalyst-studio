@@ -32,11 +32,11 @@ describe('DashboardLayout', () => {
     );
 
     const wrapper = container.firstChild;
-    expect(wrapper).toHaveClass('min-h-screen', 'bg-background');
+    expect(wrapper).toHaveClass('min-h-screen', 'bg-dark-primary');
 
     const nav = container.querySelector('nav');
     expect(nav).toBeInTheDocument();
-    expect(nav).toHaveClass('border-b');
+    expect(nav).toHaveClass('border-b', 'border-gray-700', 'bg-gray-900');
 
     const main = container.querySelector('main');
     expect(main).toBeInTheDocument();
