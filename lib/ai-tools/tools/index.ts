@@ -8,26 +8,12 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
-/**
- * Placeholder tool for getting website information
- * Will be fully implemented in later stories
- */
-export const getWebsiteInfo = tool({
-  description: 'Get information about a website including its metadata and configuration',
-  parameters: z.object({
-    websiteId: z.string().describe('The ID of the website to retrieve information for')
-  }),
-  execute: async ({ websiteId }) => {
-    // Placeholder implementation - will be completed in Story 5.2+
-    return {
-      success: true,
-      data: {
-        message: `Website info for ${websiteId} will be available in Story 5.2`,
-        placeholder: true
-      }
-    };
-  }
-});
+// Import website management tools from Story 5.2
+import { 
+  getWebsiteContext,
+  updateBusinessRequirements,
+  validateContent 
+} from './website';
 
 /**
  * Placeholder tool for content type operations
@@ -107,9 +93,14 @@ export const echoTool = tool({
  * Export all tools as a collection
  */
 export const allTools = {
-  getWebsiteInfo,
+  // Website management tools (Story 5.2)
+  getWebsiteContext,
+  updateBusinessRequirements,
+  validateContent,
+  // Content type tools (placeholder for Story 5.3+)
   manageContentType,
   manageContentItem,
+  // Test tool
   echoTool
 };
 
