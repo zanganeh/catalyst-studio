@@ -1,6 +1,14 @@
+/**
+ * Test suite for /api/websites/[id] dynamic route handlers
+ * Updated for Next.js 15 App Router compatibility:
+ * - Async params handling with Promise<{ id: string }>
+ * - Proper NextRequest mocking for different HTTP methods
+ * - Console error suppression for expected errors
+ * - Enhanced error testing with Prisma error codes
+ */
 import { GET, PUT, DELETE } from '../[id]/route';
 import { getClient } from '@/lib/db/client';
-import { createTestRequest } from './test-helpers';
+import { createTestRequest, createTestParams, suppressConsoleError, restoreConsoleError } from './test-helpers';
 
 // Mock Prisma client
 jest.mock('@/lib/db/client', () => ({
@@ -8,6 +16,10 @@ jest.mock('@/lib/db/client', () => ({
 }));
 
 describe('/api/websites/[id]', () => {
+  // Mock global Response for Next.js 15
+  beforeAll(() => {
+    global.Response = Response;
+  });
   let mockPrisma: {
     website: {
       findUnique: jest.Mock;
@@ -15,7 +27,7 @@ describe('/api/websites/[id]', () => {
       delete: jest.Mock;
     };
   };
-  const params = Promise.resolve({ id: 'test-id' });
+  const params = createTestParams({ id: 'test-id' });
 
   beforeEach(() => {
     mockPrisma = {
@@ -26,10 +38,12 @@ describe('/api/websites/[id]', () => {
       }
     };
     (getClient as jest.Mock).mockReturnValue(mockPrisma);
+    suppressConsoleError();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+    restoreConsoleError();
   });
 
   describe('GET /api/websites/[id]', () => {
@@ -49,8 +63,8 @@ describe('/api/websites/[id]', () => {
 
       mockPrisma.website.findUnique.mockResolvedValue(mockWebsite);
 
-      const request = createTestRequest();
-      const response = await GET(request as Request, { params });
+      const request = createTestRequest(undefined, 'http://localhost:3000/api/websites/test-id', 'GET');
+      const response = await GET(request, { params });
       const data = await response.json();
 
       expect(mockPrisma.website.findUnique).toHaveBeenCalledWith({
@@ -71,8 +85,8 @@ describe('/api/websites/[id]', () => {
     it('should return 404 if website not found', async () => {
       mockPrisma.website.findUnique.mockResolvedValue(null);
 
-      const request = createTestRequest();
-      const response = await GET(request as Request, { params });
+      const request = createTestRequest(undefined, 'http://localhost:3000/api/websites/test-id', 'GET');
+      const response = await GET(request, { params });
       const data = await response.json();
 
       expect(response.status).toBe(404);
@@ -105,9 +119,9 @@ describe('/api/websites/[id]', () => {
       mockPrisma.website.findUnique.mockResolvedValue(existingWebsite);
       mockPrisma.website.update.mockResolvedValue(updatedWebsite);
 
-      const request = createTestRequest(updateData);
+      const request = createTestRequest(updateData, 'http://localhost:3000/api/websites/test-id', 'PUT');
 
-      const response = await PUT(request as Request, { params });
+      const response = await PUT(request, { params });
       const data = await response.json();
 
       expect(mockPrisma.website.update).toHaveBeenCalledWith({
@@ -132,13 +146,35 @@ describe('/api/websites/[id]', () => {
     it('should return 404 if website to update not found', async () => {
       mockPrisma.website.findUnique.mockResolvedValue(null);
 
-      const request = createTestRequest({ name: 'Updated' });
+      const request = createTestRequest({ name: 'Updated' }, 'http://localhost:3000/api/websites/test-id', 'PUT');
 
-      const response = await PUT(request as Request, { params });
+      const response = await PUT(request, { params });
       const data = await response.json();
 
       expect(response.status).toBe(404);
       expect(data.error.code).toBe('NOT_FOUND');
+    });
+
+    it('should handle validation errors on update', async () => {
+      const existingWebsite = {
+        id: 'test-id',
+        name: 'Old Name',
+        isActive: true
+      };
+
+      mockPrisma.website.findUnique.mockResolvedValue(existingWebsite);
+
+      const invalidUpdate = {
+        name: '' // Invalid empty name
+      };
+
+      const request = createTestRequest(invalidUpdate, 'http://localhost:3000/api/websites/test-id', 'PUT');
+
+      const response = await PUT(request, { params });
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error.code).toBe('VALIDATION_ERROR');
     });
   });
 
@@ -151,9 +187,9 @@ describe('/api/websites/[id]', () => {
 
       mockPrisma.website.update.mockResolvedValue(deletedWebsite);
 
-      const request = createTestRequest();
+      const request = createTestRequest(undefined, 'http://localhost:3000/api/websites/test-id', 'DELETE');
 
-      const response = await DELETE(request as Request, { params });
+      const response = await DELETE(request, { params });
       const data = await response.json();
 
       expect(mockPrisma.website.update).toHaveBeenCalledWith({
@@ -169,9 +205,9 @@ describe('/api/websites/[id]', () => {
     it('should return 404 if website to delete not found', async () => {
       mockPrisma.website.update.mockRejectedValue({ code: 'P2025' });
 
-      const request = createTestRequest();
+      const request = createTestRequest(undefined, 'http://localhost:3000/api/websites/test-id', 'DELETE');
 
-      const response = await DELETE(request as Request, { params });
+      const response = await DELETE(request, { params });
       const data = await response.json();
 
       expect(response.status).toBe(404);

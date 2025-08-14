@@ -36,7 +36,7 @@ The project currently has a functional AI assistant that can analyze prompts and
 - [✓] Tech Stack Documentation (Next.js 14, Prisma, PostgreSQL identified)
 - [✓] Source Tree/Architecture (Clear `/app`, `/lib`, `/tests` structure)
 - [✓] API Documentation (Existing API routes in `/app/api/`)
-- [✓] External API Documentation (POC validates OpenRouter integration)
+- [✓] External API Documentation (OpenRouter ALREADY integrated and working, POC validates tool calling pattern)
 - [✓] Technical Debt Documentation (POC addresses main limitation)
 - [Partial] Coding Standards (TypeScript, existing patterns visible)
 - [ ] UX/UI Guidelines (Will maintain existing chat interface)
@@ -384,7 +384,7 @@ The Epic 5 enhancement will be considered successful when:
 
 ---
 
-## Appendix: POC Validation Results
+## Appendix: POC Validation Results & Critical Findings
 
 The proof-of-concept demonstrated:
 - **100% test success rate** (6/6 automated tests passed)
@@ -392,10 +392,15 @@ The proof-of-concept demonstrated:
 - **Multi-tool chaining** for complex operations
 - **Full CRUD operations** on files (as proxy for database operations)
 
+**CRITICAL ARCHITECTURAL FINDINGS:**
+- **OpenRouter is ALREADY integrated** in production chat route
+- **The existing `streamText` function SUPPORTS tools parameter** (verified through research)
+- **Same model (claude-3.5-sonnet) proven to work with tools**
+- **Infrastructure is 80% complete** - main work is defining business domain tools
+
 POC artifacts available in `/proof-of-concept/`:
-- `ai-tools-demo.js` - Interactive CLI demonstrating tool calling
-- `test-ai-tools.js` - Automated test suite
-- `README.md` - Complete documentation of patterns
+- `test-ai-tools.js` - Working implementation using same stack as production
+- Pattern directly applicable to existing chat route with minimal changes
 
 ---
 

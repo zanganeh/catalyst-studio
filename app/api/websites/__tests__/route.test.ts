@@ -1,6 +1,14 @@
+/**
+ * Test suite for /api/websites route handlers
+ * Updated for Next.js 15 App Router compatibility:
+ * - Proper NextRequest mocking
+ * - Response.json() handling
+ * - Console error suppression for expected errors
+ * - Enhanced Prisma client mocking
+ */
 import { GET, POST } from '../route';
 import { getClient } from '@/lib/db/client';
-import { createTestRequest } from './test-helpers';
+import { createTestRequest, suppressConsoleError, restoreConsoleError } from './test-helpers';
 
 // Mock Prisma client
 jest.mock('@/lib/db/client', () => ({
@@ -8,6 +16,10 @@ jest.mock('@/lib/db/client', () => ({
 }));
 
 describe('/api/websites', () => {
+  // Mock global Response for Next.js 15
+  beforeAll(() => {
+    global.Response = Response;
+  });
   let mockPrisma: {
     website: {
       findMany: jest.Mock;
@@ -23,10 +35,12 @@ describe('/api/websites', () => {
       }
     };
     (getClient as jest.Mock).mockReturnValue(mockPrisma);
+    suppressConsoleError();
   });
 
   afterEach(() => {
     jest.clearAllMocks();
+    restoreConsoleError();
   });
 
   describe('GET /api/websites', () => {
@@ -101,7 +115,7 @@ describe('/api/websites', () => {
 
       const request = createTestRequest(newWebsite);
 
-      const response = await POST(request as Request);
+      const response = await POST(request);
       const data = await response.json();
 
       expect(response.status).toBe(201);
@@ -122,11 +136,38 @@ describe('/api/websites', () => {
 
       const request = createTestRequest(invalidWebsite);
 
-      const response = await POST(request as Request);
+      const response = await POST(request);
       const data = await response.json();
 
       expect(response.status).toBe(400);
       expect(data).toHaveProperty('error');
+      expect(data.error.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should handle prisma errors gracefully', async () => {
+      const newWebsite = {
+        name: 'New Website',
+        category: 'business'
+      };
+
+      mockPrisma.website.create.mockRejectedValue({ code: 'P2002', meta: { target: ['name'] } });
+
+      const request = createTestRequest(newWebsite);
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(409);
+      expect(data.error.code).toBe('DUPLICATE_ENTRY');
+    });
+
+    it('should handle empty request body', async () => {
+      const request = createTestRequest(undefined);
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
       expect(data.error.code).toBe('VALIDATION_ERROR');
     });
   });

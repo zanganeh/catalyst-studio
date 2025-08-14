@@ -18,6 +18,15 @@ describe('WebsiteCreator', () => {
   const mockCreateWebsiteFromPrompt = jest.fn();
   
   beforeEach(() => {
+    // Reset all mock functions explicitly
+    mockPush.mockReset();
+    mockToast.mockReset();
+    mockProcessPrompt.mockReset();
+    mockCreateWebsiteFromPrompt.mockReset();
+    
+    // Clear all mocks
+    jest.clearAllMocks();
+    
     // Setup mocks
     (useRouter as jest.Mock).mockReturnValue({
       push: mockPush
@@ -43,9 +52,6 @@ describe('WebsiteCreator', () => {
     });
     
     mockCreateWebsiteFromPrompt.mockResolvedValue('test-website-id-123');
-    
-    // Clear all mocks
-    jest.clearAllMocks();
     
     // Mock sessionStorage
     const sessionStorageMock = {
@@ -77,7 +83,14 @@ describe('WebsiteCreator', () => {
     
     await waitFor(() => {
       expect(mockProcessPrompt).toHaveBeenCalledWith('A CRM for small businesses');
-      expect(mockCreateWebsiteFromPrompt).toHaveBeenCalledWith('A CRM for small businesses');
+      expect(mockCreateWebsiteFromPrompt).toHaveBeenCalledWith('A CRM for small businesses', {
+        websiteName: 'Test Website',
+        description: 'Test description',
+        category: 'general',
+        suggestedFeatures: [],
+        technicalRequirements: [],
+        targetAudience: 'general users'
+      });
     });
   });
   
@@ -130,6 +143,21 @@ describe('WebsiteCreator', () => {
   });
   
   it('should handle creation errors gracefully', async () => {
+    // Create a fresh mock for this specific test
+    const localMockPush = jest.fn();
+    (useRouter as jest.Mock).mockReturnValue({
+      push: localMockPush
+    });
+    
+    // Reset the process mock to succeed but the create mock to fail
+    mockProcessPrompt.mockResolvedValue({
+      websiteName: 'Test Website',
+      description: 'Test description', 
+      category: 'general',
+      suggestedFeatures: [],
+      technicalRequirements: [],
+      targetAudience: 'general users'
+    });
     mockCreateWebsiteFromPrompt.mockRejectedValue(new Error('Storage quota exceeded'));
     
     render(<WebsiteCreator />);
@@ -148,8 +176,11 @@ describe('WebsiteCreator', () => {
       });
     });
     
+    // Wait a bit longer to ensure no navigation happens
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
     // Should not navigate on error
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(localMockPush).not.toHaveBeenCalled();
   });
   
   it('should show loading state during creation', async () => {

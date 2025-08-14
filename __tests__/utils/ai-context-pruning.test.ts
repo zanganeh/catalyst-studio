@@ -107,8 +107,8 @@ describe('AI Context Pruning', () => {
       
       const tokens = estimateTokenCount(messages);
       
-      // (11 + 9) / 4 = 5 tokens
-      expect(tokens).toBe(5);
+      // (ceil(11/4) + ceil(9/4)) * 1.1 = (3 + 3) * 1.1 = 6.6 -> 7 tokens
+      expect(tokens).toBe(7);
     });
     
     it('should include metadata in token count', () => {
