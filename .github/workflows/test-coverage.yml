@@ -14,19 +14,7 @@ jobs:
       matrix:
         node-version: [18.x, 20.x]
     
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: catalyst_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
+    # No services needed for SQLite
 
     steps:
     - name: Checkout code
@@ -47,13 +35,13 @@ jobs:
     - name: Setup test database
       run: npm run test:db:setup
       env:
-        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/catalyst_test
+        DATABASE_URL: file:./test.db
 
     - name: Run tests with coverage
       run: npm run test:coverage:ci
       env:
         NODE_ENV: test
-        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/catalyst_test
+        DATABASE_URL: file:./test.db
 
     - name: Run coverage analysis
       run: npm run test:coverage:analyze
@@ -111,13 +99,13 @@ jobs:
     - name: Setup test database
       run: npm run test:db:setup
       env:
-        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/catalyst_test
+        DATABASE_URL: file:./test.db
 
     - name: Run performance tests
       run: npm run test:performance
       env:
         NODE_ENV: test
-        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/catalyst_test
+        DATABASE_URL: file:./test.db
 
     - name: Benchmark test execution time
       run: |
