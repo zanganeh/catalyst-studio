@@ -16,7 +16,14 @@ function main() {
     process.exit(1);
   }
 
-  const coverage = JSON.parse(fs.readFileSync(coverageFile, 'utf8'));
+  let coverage;
+  try {
+    coverage = JSON.parse(fs.readFileSync(coverageFile, 'utf8'));
+  } catch (error) {
+    console.error('❌ Failed to parse coverage file:', error.message);
+    console.error('   Please ensure the coverage file is valid JSON.');
+    process.exit(1);
+  }
   
   console.log('\n📊 Coverage Analysis Report');
   console.log('==========================\n');

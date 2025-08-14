@@ -9,7 +9,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 4 : '75%', // Optimized worker count for better parallelization
+  workers: process.env.CI ? 2 : '50%', // Balanced worker count to prevent resource exhaustion
   reporter: [
     ['html', { outputFolder: 'playwright-report' }],
     ['junit', { outputFile: 'test-results/junit.xml' }],
@@ -34,11 +34,10 @@ export default defineConfig({
     // Optimized timeout settings
     actionTimeout: 30000,
     navigationTimeout: 60000,
-    // Performance optimizations
+    // Performance optimizations (removed --disable-web-security for security)
     launchOptions: {
       args: [
         '--disable-dev-shm-usage',
-        '--disable-web-security',
         '--disable-features=TranslateUI',
         '--disable-ipc-flooding-protection',
         '--disable-renderer-backgrounding',
