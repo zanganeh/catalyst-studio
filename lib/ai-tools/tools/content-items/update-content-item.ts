@@ -123,7 +123,7 @@ export const updateContentItem = tool({
                 });
               } else if (fieldDef.options) {
                 const validValues = fieldDef.options.map(opt => opt.value);
-                const invalidValues = value.filter((v: unknown) => !validValues.includes(v));
+                const invalidValues = value.filter((v: unknown) => !validValues.includes(v as string | number | boolean));
                 if (invalidValues.length > 0) {
                   validationErrors.push({
                     field: fieldDef.name,
