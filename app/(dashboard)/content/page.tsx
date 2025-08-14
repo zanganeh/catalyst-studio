@@ -29,7 +29,7 @@ export default function ContentPage() {
     if (websiteId) {
       contentStore.loadContent(websiteId);
     }
-  }, [websiteId, contentStore]);
+  }, [websiteId, contentStore.loadContent]);
   
   // Get selected content type for modal
   const selectedContentType = contentTypes.find(
