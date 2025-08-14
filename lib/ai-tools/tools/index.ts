@@ -15,32 +15,13 @@ import {
   validateContent 
 } from './website';
 
-/**
- * Placeholder tool for content type operations
- * Will be fully implemented in later stories
- */
-export const manageContentType = tool({
-  description: 'Create, update, or retrieve content types for a website',
-  parameters: z.object({
-    operation: z.enum(['create', 'update', 'get']).describe('The operation to perform'),
-    websiteId: z.string().describe('The ID of the website'),
-    contentTypeData: z.object({
-      name: z.string().optional(),
-      fields: z.array(z.any()).optional()
-    }).optional().describe('Data for create/update operations')
-  }),
-  execute: async ({ operation, websiteId, contentTypeData }) => {
-    // Placeholder implementation - will be completed in Story 5.3+
-    return {
-      success: true,
-      data: {
-        message: `Content type ${operation} for website ${websiteId} will be available in Story 5.3`,
-        placeholder: true,
-        contentTypeData
-      }
-    };
-  }
-});
+// Import content type management tools from Story 5.3
+import {
+  listContentTypes,
+  getContentType,
+  createContentType,
+  updateContentType
+} from './content-types';
 
 /**
  * Placeholder tool for content item operations
@@ -97,8 +78,12 @@ export const allTools = {
   getWebsiteContext,
   updateBusinessRequirements,
   validateContent,
-  // Content type tools (placeholder for Story 5.3+)
-  manageContentType,
+  // Content type management tools (Story 5.3)
+  listContentTypes,
+  getContentType,
+  createContentType,
+  updateContentType,
+  // Content item tools (placeholder for Story 5.4+)
   manageContentItem,
   // Test tool
   echoTool
