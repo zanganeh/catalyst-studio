@@ -192,7 +192,7 @@ export function ToolExecutionDisplay({
         </div>
       )}
       
-      {invocation.state === 'success' && invocation.result && (
+      {invocation.state === 'success' && invocation.result !== null && invocation.result !== undefined && (
         <div className="mt-2 text-sm">
           <span className="font-medium">✅ Success:</span>
           <span className="ml-2">
@@ -227,7 +227,7 @@ export function ToolExecutionDisplay({
           </div>
           
           {/* Result */}
-          {invocation.result && (
+          {invocation.result !== null && invocation.result !== undefined && (
             <div className="text-xs">
               <span className="font-medium">Result:</span>
               <pre className="mt-1 p-2 bg-black/5 dark:bg-white/5 rounded text-xs overflow-x-auto max-h-40 overflow-y-auto">
