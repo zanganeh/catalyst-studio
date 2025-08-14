@@ -1,3 +1,8 @@
+/**
+ * Jest Global Setup
+ * Runs before all tests to set up the test environment
+ */
+
 const { execSync } = require('child_process');
 
 module.exports = async () => {
@@ -22,6 +27,12 @@ module.exports = async () => {
     // Deploy migrations to test database
     console.log('🗄️ Setting up test database...');
     execSync('npx prisma migrate deploy', { stdio: 'pipe' });
+    
+    // Alternative method if test:db:reset is available
+    if (process.env.USE_DB_RESET_SCRIPT) {
+      console.log('📦 Using test:db:reset script...');
+      execSync('npm run test:db:reset', { stdio: 'inherit' });
+    }
     
     console.log('✅ Test environment setup complete');
   } catch (error) {
