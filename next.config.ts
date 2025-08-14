@@ -2,9 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   eslint: {
-    // Only run ESLint on dashboard files during production builds for now
-    // This allows build to succeed despite existing lint errors
-    ignoreDuringBuilds: true,
+    // ESLint enabled for production builds
+    // All lint errors should be fixed before deployment
+    ignoreDuringBuilds: false,
   },
   experimental: {
     // Disable worker threads to fix Jest worker errors
