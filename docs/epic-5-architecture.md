@@ -14,7 +14,13 @@ This document supplements existing project architecture by defining how new AI t
 - Tools execute on the server with direct database access via Prisma
 - The ONLY public endpoint is the enhanced `/api/chat` route
 - Client never sees or calls tools directly - only sends chat messages
-- This follows the proven POC pattern from `proof-of-concept/ai-tools-demo.js`
+- This follows the proven POC pattern from `proof-of-concept/test-ai-tools.js`
+
+**IMPORTANT UPDATE:** The existing infrastructure already supports tools:
+- OpenRouter integration is ALREADY IN PLACE and working
+- The chat route already uses `streamText` which supports the tools parameter
+- The POC proves the exact same stack (OpenRouter + Vercel AI SDK) works with tools
+- Main work is defining business domain tools, not building infrastructure
 
 ### Existing Project Analysis
 
@@ -45,6 +51,7 @@ This document supplements existing project architecture by defining how new AI t
 |--------|------|---------|-------------|--------|
 | Initial Draft | 2025-01-13 | 1.0 | Created brownfield architecture for Epic 5 | Winston (Architect) |
 | Major Revision | 2025-01-14 | 2.0 | Corrected tool implementation - server functions not API endpoints | Winston (Architect) |
+| POC Analysis | 2025-01-14 | 2.1 | Updated based on POC analysis - existing infrastructure supports tools | Winston (Architect) |
 
 ---
 
@@ -59,9 +66,10 @@ This document supplements existing project architecture by defining how new AI t
 
 **Code Integration Strategy:** 
 - New `/lib/ai-tools/` directory for server-side tool functions (NOT API endpoints)
-- Enhance `/app/api/chat/route.ts` to include tool calling capabilities
+- Enhance `/app/api/chat/route.ts` by adding tools parameter to existing streamText call
 - Leverage existing service classes (WebsiteService, ContentTypeService, ContentItemService) without modification
 - Tool executor wrapper to maintain transaction consistency
+- MINIMAL CHANGES: Existing chat route already uses streamText which supports tools
 
 **Database Integration:** 
 - All operations through existing Prisma client instance
@@ -268,28 +276,30 @@ graph TD
 
 #### Enhanced Chat Route with Tool Calling
 ```typescript
-// /app/api/chat/route.ts (enhanced version)
-import { streamText } from 'ai';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { allTools } from '@/lib/ai-tools';
+// /app/api/chat/route.ts (enhanced version - minimal changes from existing)
+import { streamText } from 'ai';  // EXISTING IMPORT
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';  // EXISTING IMPORT
+import { allTools } from '@/lib/ai-tools';  // NEW: Tool definitions
+import { loadWebsiteContext } from '@/lib/ai-tools/context-provider';  // NEW: Context
 
 export async function POST(request: Request) {
   const { messages, websiteId } = await request.json();
   
-  // Load context for the website
-  const context = await loadWebsiteContext(websiteId);
+  // NEW: Load context for the website
+  const context = websiteId ? await loadWebsiteContext(websiteId) : null;
   
+  // EXISTING streamText call with added tools parameter
   const result = streamText({
-    model: openrouter('anthropic/claude-3.5-sonnet'),
-    messages,
-    system: generateSystemPrompt(context),
-    tools: allTools,  // Server-side tool objects
-    toolChoice: 'auto',
-    maxSteps: 5,
-    onStepFinish: logToolExecution
+    model: openrouter('anthropic/claude-3.5-sonnet'),  // EXISTING
+    messages,  // EXISTING
+    system: context ? generateSystemPrompt(context) : undefined,  // NEW: Optional
+    tools: allTools,  // NEW: Add tools parameter (proven to work in POC)
+    toolChoice: 'auto',  // NEW: Let AI decide when to use tools
+    maxSteps: 5,  // NEW: Enable multi-step operations (proven in POC)
+    onStepFinish: logToolExecution  // NEW: Optional logging
   });
   
-  return result.toDataStreamResponse();
+  return result.toDataStreamResponse();  // EXISTING
 }
 ```
 
