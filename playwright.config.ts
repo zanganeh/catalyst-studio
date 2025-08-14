@@ -9,10 +9,11 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 2 : '50%', // Use 50% of CPU cores locally, 2 workers in CI
+  workers: process.env.CI ? 4 : '75%', // Optimized worker count for better parallelization
   reporter: [
-    ['html'],
+    ['html', { outputFolder: 'playwright-report' }],
     ['junit', { outputFile: 'test-results/junit.xml' }],
+    ['json', { outputFile: 'test-results/results.json' }],
     ['github']
   ],
   
@@ -30,9 +31,21 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    // Improved timeout settings for mobile devices
+    // Optimized timeout settings
     actionTimeout: 30000,
     navigationTimeout: 60000,
+    // Performance optimizations
+    launchOptions: {
+      args: [
+        '--disable-dev-shm-usage',
+        '--disable-web-security',
+        '--disable-features=TranslateUI',
+        '--disable-ipc-flooding-protection',
+        '--disable-renderer-backgrounding',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-background-networking',
+      ],
+    },
   },
 
   projects: [

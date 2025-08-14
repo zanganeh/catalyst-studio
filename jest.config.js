@@ -51,10 +51,28 @@ const customJestConfig = {
       functions: 80,
       lines: 80,
       statements: 80
+    },
+    './components/': {
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80
+    },
+    './hooks/': {
+      branches: 85,
+      functions: 85,
+      lines: 85,
+      statements: 85
+    },
+    './lib/': {
+      branches: 75,
+      functions: 75,
+      lines: 75,
+      statements: 75
     }
   },
   
-  coverageReporters: ['text', 'lcov', 'html', 'json'],
+  coverageReporters: ['text', 'lcov', 'html', 'json', 'clover'],
   
   testMatch: [
     '**/__tests__/**/*.{js,jsx,ts,tsx}',
