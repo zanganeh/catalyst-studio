@@ -4,11 +4,11 @@ import { AIMessage } from '@/types/ai-context';
 describe('AI Context Pruning Verification', () => {
   it('should correctly estimate token count', () => {
     const messages: AIMessage[] = [
-      { role: 'user', content: 'test', timestamp: new Date() } // 4 chars = 1 token
+      { role: 'user', content: 'test', timestamp: new Date() } // 4 chars = ceil(4/4) * 1.1 = 1 * 1.1 = 2 tokens
     ];
     
     const tokens = estimateTokenCount(messages);
-    expect(tokens).toBe(1);
+    expect(tokens).toBe(2);
   });
 
   it('should prune when exceeding token limit', () => {
