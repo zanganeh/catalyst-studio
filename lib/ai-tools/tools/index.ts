@@ -23,32 +23,12 @@ import {
   updateContentType
 } from './content-types';
 
-/**
- * Placeholder tool for content item operations
- * Will be fully implemented in later stories
- */
-export const manageContentItem = tool({
-  description: 'Create, update, or retrieve content items',
-  parameters: z.object({
-    operation: z.enum(['create', 'update', 'get', 'list']).describe('The operation to perform'),
-    contentTypeId: z.string().describe('The ID of the content type'),
-    itemData: z.record(z.any()).optional().describe('Data for create/update operations'),
-    itemId: z.string().optional().describe('The ID of the item for update/get operations')
-  }),
-  execute: async ({ operation, contentTypeId, itemData, itemId }) => {
-    // Placeholder implementation - will be completed in Story 5.4+
-    return {
-      success: true,
-      data: {
-        message: `Content item ${operation} will be available in Story 5.4`,
-        placeholder: true,
-        contentTypeId,
-        itemData,
-        itemId
-      }
-    };
-  }
-});
+// Import content item management tools from Story 5.4
+import {
+  listContentItems,
+  createContentItem,
+  updateContentItem
+} from './content-items';
 
 /**
  * Test tool for verifying tool execution
@@ -83,8 +63,10 @@ export const allTools = {
   getContentType,
   createContentType,
   updateContentType,
-  // Content item tools (placeholder for Story 5.4+)
-  manageContentItem,
+  // Content item management tools (Story 5.4)
+  listContentItems,
+  createContentItem,
+  updateContentItem,
   // Test tool
   echoTool
 };
