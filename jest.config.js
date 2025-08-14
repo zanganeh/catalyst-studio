@@ -9,6 +9,18 @@ const createJestConfig = nextJest({
 const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testEnvironment: 'jest-environment-jsdom',
+  
+  // Performance optimizations
+  maxWorkers: '50%', // Use half available CPU cores
+  cache: true,
+  cacheDirectory: '<rootDir>/.jest-cache',
+  
+  // Test sequencer for optimal execution order
+  testSequencer: '<rootDir>/jest.sequencer.js',
+  
+  // Parallel test execution
+  testRunner: 'jest-circus/runner',
+  
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
@@ -67,9 +79,16 @@ const customJestConfig = {
   moduleDirectories: ['node_modules', '<rootDir>/'],
   testPathIgnorePatterns: ['/node_modules/', '/.next/', '/tests/', '/e2e/', 'test-helpers.ts', 'test-helpers.js'],
   transformIgnorePatterns: [
-    '/node_modules/',
+    '/node_modules/(?!(monaco-editor|@monaco-editor)/)',
     '^.+\\.module\\.(css|sass|scss)$',
   ],
+  
+  // Database optimization for tests
+  globalSetup: '<rootDir>/jest.global-setup.js',
+  globalTeardown: '<rootDir>/jest.global-teardown.js',
+  
+  // Timeout optimizations
+  testTimeout: 30000,
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
