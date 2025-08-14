@@ -17,6 +17,9 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    // Improved timeout settings for mobile devices
+    actionTimeout: 30000,
+    navigationTimeout: 60000,
   },
 
   projects: [
@@ -35,14 +38,48 @@ export default defineConfig({
       use: { ...devices['Desktop Safari'] },
     },
 
-    /* Test against mobile viewports */
+    /* Test against mobile viewports with enhanced settings */
     {
       name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      use: { 
+        ...devices['Pixel 5'],
+        // Enhanced mobile settings
+        hasTouch: true,
+        isMobile: true,
+        actionTimeout: 45000,
+        navigationTimeout: 90000,
+        // Ensure JavaScript is enabled
+        javaScriptEnabled: true,
+        // Reduce motion for more stable tests
+        reducedMotion: 'reduce',
+      },
     },
     {
       name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
+      use: { 
+        ...devices['iPhone 12'],
+        // Enhanced mobile settings
+        hasTouch: true,
+        isMobile: true,
+        actionTimeout: 45000,
+        navigationTimeout: 90000,
+        // Ensure JavaScript is enabled
+        javaScriptEnabled: true,
+        // Reduce motion for more stable tests
+        reducedMotion: 'reduce',
+      },
+    },
+    // Add tablet testing
+    {
+      name: 'iPad',
+      use: {
+        ...devices['iPad Pro'],
+        hasTouch: true,
+        isMobile: true,
+        actionTimeout: 45000,
+        navigationTimeout: 90000,
+        javaScriptEnabled: true,
+      },
     },
   ],
 
