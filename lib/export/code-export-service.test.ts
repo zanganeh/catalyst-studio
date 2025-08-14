@@ -7,9 +7,11 @@ const mockJSZipInstance = {
   generateAsync: jest.fn().mockResolvedValue(new Blob(['mock zip'])),
 };
 
+const mockJSZipConstructor = jest.fn(() => mockJSZipInstance);
+
 jest.mock('jszip', () => ({
   __esModule: true,
-  default: jest.fn(() => mockJSZipInstance),
+  default: mockJSZipConstructor,
 }));
 
 describe('CodeExportService', () => {
@@ -23,6 +25,11 @@ describe('CodeExportService', () => {
 
   beforeEach(() => {
     service = CodeExportService.getInstance();
+    
+    // Clear all mock calls and reset mock state
+    mockJSZipConstructor.mockClear();
+    mockJSZipInstance.file.mockClear();
+    mockJSZipInstance.generateAsync.mockClear();
     
     clickSpy = jest.fn();
     const mockAnchor = {
@@ -121,13 +128,6 @@ describe('CodeExportService', () => {
     });
 
     it('should normalize file paths in ZIP', async () => {
-      const mockZip = {
-        file: jest.fn(),
-        generateAsync: jest.fn().mockResolvedValue(new Blob(['mock zip'])),
-      };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (global as any).JSZip = jest.fn().mockReturnValue(mockZip);
-      
       const files = new Map([
         ['/src/index.js', 'content1'],
         ['src/app.js', 'content2'],
@@ -135,38 +135,26 @@ describe('CodeExportService', () => {
       
       await service.exportProject(files);
       
-      expect(mockZip.file).toHaveBeenCalledWith('src/index.js', 'content1');
-      expect(mockZip.file).toHaveBeenCalledWith('src/app.js', 'content2');
+      expect(mockJSZipInstance.file).toHaveBeenCalledWith('src/index.js', 'content1');
+      expect(mockJSZipInstance.file).toHaveBeenCalledWith('src/app.js', 'content2');
     });
 
     it('should handle ZIP generation errors', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (global as any).JSZip = jest.fn().mockImplementation(() => ({
-        file: jest.fn(),
-        generateAsync: jest.fn().mockRejectedValue(new Error('ZIP error')),
-      }));
+      // Mock generateAsync to reject for this test
+      mockJSZipInstance.generateAsync.mockRejectedValueOnce(new Error('ZIP error'));
       
       const files = new Map([['test.js', 'content']]);
       
       await expect(service.exportProject(files)).rejects.toThrow(
         'Failed to export project as ZIP'
       );
+      
+      // Reset the mock for other tests
+      mockJSZipInstance.generateAsync.mockResolvedValue(new Blob(['mock zip']));
     });
   });
 
   describe('exportFileTree', () => {
-    beforeEach(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (global as any).JSZip = jest.fn().mockImplementation(() => ({
-        file: jest.fn(),
-        generateAsync: jest.fn().mockResolvedValue(new Blob(['mock zip'])),
-      }));
-    });
-
-    afterEach(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (global as any).JSZip;
-    });
 
     it('should export file tree with content', async () => {
       const fileTree: FileNode[] = [
@@ -207,13 +195,6 @@ describe('CodeExportService', () => {
     });
 
     it('should generate mock content for files without content', async () => {
-      const mockZip = {
-        file: jest.fn(),
-        generateAsync: jest.fn().mockResolvedValue(new Blob(['mock zip'])),
-      };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (global as any).JSZip = jest.fn().mockReturnValue(mockZip);
-      
       const fileTree: FileNode[] = [
         {
           id: '1',
@@ -228,7 +209,7 @@ describe('CodeExportService', () => {
       
       await service.exportFileTree(fileTree, fileContents);
       
-      expect(mockZip.file).toHaveBeenCalledWith(
+      expect(mockJSZipInstance.file).toHaveBeenCalledWith(
         'Component.tsx',
         expect.stringContaining('export default function Component')
       );
