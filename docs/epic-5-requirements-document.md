@@ -12,7 +12,7 @@
 
 ## Executive Summary
 
-Transform Catalyst Studio's AI assistant from a passive advisor into an active content management system that directly creates and manages database content through structured tool execution. Users can describe what they need in natural language (e.g., "create a blog structure") and have it automatically executed with appropriate business rules and validation.
+Extend Catalyst Studio's AI chat with tool execution capabilities by adding a tools parameter to the existing OpenRouter/Vercel AI SDK integration. This enables the AI to directly create and manage database content when users describe what they need in natural language (e.g., "create a blog structure"), with appropriate business rules and validation.
 
 ---
 

@@ -5,7 +5,7 @@
 ### Scope Assessment
 
 This is a **SIGNIFICANT enhancement** to the existing Catalyst Studio CMS that warrants a full PRD process. The enhancement involves:
-- Transforming the existing AI chat interface from passive advisor to active executor
+- Adding tool execution capability to the existing AI chat interface
 - Implementing 10 new AI tools with database manipulation capabilities
 - Adding new context management and business rule systems
 - Integrating with existing Prisma ORM and services
@@ -49,7 +49,7 @@ The project currently has a functional AI assistant that can analyze prompts and
 - [✓] Integration with New Systems - OpenRouter API, Vercel AI SDK
 
 #### Enhancement Description
-Transform the existing AI chat interface to execute content management operations directly in the database through structured tool calling, enabling users to manage content through natural language commands with automatic business rule application.
+Add tool execution capability to the existing AI chat interface by extending the OpenRouter/Vercel AI SDK integration with a tools parameter, enabling users to manage content through natural language commands with automatic business rule application.
 
 #### Impact Assessment
 - [✓] Moderate Impact (some existing code changes) - AI prompt processor needs enhancement
@@ -78,7 +78,7 @@ The existing AI assistant in Catalyst Studio operates as a read-only advisor, cr
 
 ### Functional Requirements
 
-**FR1:** The enhancement SHALL integrate AI tool execution capability into the existing chat interface without breaking current advisory functionality.
+**FR1:** The enhancement SHALL add AI tool execution capability to the existing chat interface by adding the tools parameter to the existing streamText call.
 
 **FR2:** The system SHALL implement 10 MVP tools as TypeScript functions using Vercel AI SDK, organized into three categories (Website Management: 3, Content Type Management: 4, Content Item Management: 3).
 
@@ -166,7 +166,7 @@ The existing AI assistant in Catalyst Studio operates as a read-only advisor, cr
 - Token limits for large contexts - Implement context pruning strategies
 
 **Integration Risks**: 
-- Conflicts with existing chat functionality - Maintain separate code paths for advisory vs execution modes
+- Conflicts with existing chat functionality - Tools are added as optional parameter to existing streamText call
 - Service layer modifications affecting other features - Use existing service methods without modification where possible
 
 **Deployment Risks**: 
@@ -198,7 +198,7 @@ The existing AI assistant in Catalyst Studio operates as a read-only advisor, cr
 **Epic Goal**: Transform the existing AI chat interface into an active content management system that executes database operations through natural language commands, reducing content setup time by 80% while maintaining full compatibility with existing functionality.
 
 **Integration Requirements**: 
-- Preserve existing chat advisory functionality alongside new execution capabilities
+- Add tools parameter to existing OpenRouter/Vercel AI SDK integration
 - Integrate with existing WebsiteService, ContentTypeService, and ContentItemService
 - Maintain current chat UI/UX patterns with streaming response enhancements
 - Ensure all database operations are reversible with clear audit trails
@@ -316,7 +316,7 @@ so that I experience a unified content management interface.
 5. Ensure backward compatibility with existing chat
 
 **Acceptance Criteria:**
-1. Chat recognizes tool execution requests vs advisory requests
+1. AI model automatically determines when to use tools based on user request
 2. Streaming UI shows real-time progress during execution
 3. Error messages are clear and actionable
 4. Success confirmations include what was created/modified
@@ -324,7 +324,7 @@ so that I experience a unified content management interface.
 
 **Integration Verification:**
 - IV1: Existing chat conversations continue to display correctly
-- IV2: Advisory mode still available when execution not needed
+- IV2: Chat continues to work normally when tools aren't needed
 - IV3: UI performance remains responsive during tool execution
 
 ### Story 5.6: Testing, Error Handling, and Production Readiness
@@ -377,7 +377,7 @@ The Epic 5 enhancement will be considered successful when:
    - Audit trail captures all AI operations
 
 4. **User Experience Success**
-   - Clear distinction between advisory and execution modes
+   - AI automatically uses tools when appropriate for the request
    - Error messages are actionable and user-friendly
    - Streaming UI provides real-time feedback
    - Natural language commands work without training

@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This document outlines the architectural approach for enhancing Catalyst Studio with AI-powered content management tool integration. Its primary goal is to serve as the guiding architectural blueprint for transforming the existing AI chat interface from a passive advisor to an active executor, enabling direct database operations through natural language commands while ensuring seamless integration with the existing system.
+This document outlines the architectural approach for enhancing Catalyst Studio with AI-powered content management tool integration. Its primary goal is to serve as the guiding architectural blueprint for adding tool execution capabilities to the existing AI chat interface by extending the current OpenRouter/Vercel AI SDK integration with a tools parameter, enabling direct database operations through natural language commands.
 
 **Relationship to Existing Architecture:**
 This document supplements existing project architecture by defining how new AI tool components will integrate with current systems. Where conflicts arise between new and existing patterns, this document provides guidance on maintaining consistency while implementing enhancements.
@@ -25,7 +25,7 @@ This document supplements existing project architecture by defining how new AI t
 ### Existing Project Analysis
 
 #### Current Project State
-- **Primary Purpose:** Next.js-based Content Management System (CMS) with AI advisory capabilities
+- **Primary Purpose:** Next.js-based Content Management System (CMS) with AI chat capabilities
 - **Current Tech Stack:** Next.js 15.4.5, React 19.1.0, TypeScript 5, Prisma ORM with SQLite, Vercel AI SDK
 - **Architecture Style:** Server Components with App Router pattern, Service layer abstraction, API routes for data operations
 - **Deployment Method:** Vercel platform with environment-based configuration
@@ -40,7 +40,7 @@ This document supplements existing project architecture by defining how new AI t
 
 #### Identified Constraints
 - Cannot modify existing Prisma schema structure (only additions allowed)
-- Must maintain backward compatibility with existing chat advisory functionality
+- Must maintain backward compatibility with existing chat functionality
 - Must work within existing service layer patterns
 - SQLite limitations require JSON string storage for complex fields
 - No authentication/authorization in MVP phase (open access)
@@ -92,7 +92,7 @@ This document supplements existing project architecture by defining how new AI t
 ### Compatibility Requirements
 - **Existing API Compatibility:** All current endpoints at `/api/websites`, `/api/content-types`, `/api/content-items` continue functioning without modification
 - **Database Schema Compatibility:** No modifications to existing Prisma schema. Tool metadata stored in existing JSON fields
-- **UI/UX Consistency:** Tool execution responses maintain same visual style as advisory messages. Streaming updates follow existing patterns
+- **UI/UX Consistency:** Tool execution responses maintain same visual style as regular chat messages. Streaming updates follow existing patterns
 - **Performance Impact:** Tool execution target <2s, context loading <500ms, no degradation of existing chat response times
 
 ---
@@ -252,13 +252,13 @@ This document supplements existing project architecture by defining how new AI t
 ```mermaid
 graph TD
     A[Chat Interface] -->|Enhanced Request| B[AI Chat Route]
-    B -->|Tool Detection| C[Tool Executor]
+    B -->|AI Uses Tools| C[Tool Executor]
     C -->|Load Context| D[Context Provider]
     D -->|Query| E[Existing Services]
     C -->|Validate| F[Business Rule Engine]
     C -->|Execute| G[Tool Functions]
     G -->|Database Ops| E
-    B -->|Advisory Mode| H[Existing AI Processor]
+    B -->|Text Response| H[Existing AI Processor]
     E -->|Prisma| I[SQLite Database]
     D -->|Prune| J[Context Pruning Helper]
     C -->|Rollback| K[Rollback Helper]
@@ -377,7 +377,7 @@ export async function loadWebsiteContext(websiteId: string) {
 **Key Endpoints Used:**
 - `POST /chat/completions` - Tool-enabled chat completions
 
-**Error Handling:** 3 retries with exponential backoff, fallback to advisory mode on failure
+**Error Handling:** 3 retries with exponential backoff, fallback to text-only response on failure
 
 ---
 
@@ -502,7 +502,7 @@ catalyst-studio/
 - **New Feature Testing:** All 10 tools with success/failure paths
 
 #### Regression Testing
-- **Existing Feature Verification:** Advisory mode continues working
+- **Existing Feature Verification:** Chat without tools continues working
 - **Automated Regression Suite:** Add to existing Playwright tests
 - **Manual Testing Requirements:** Complex multi-tool chains
 
@@ -575,7 +575,7 @@ catalyst-studio/
 **Existing System Constraints:**
 - SQLite requires JSON string storage for complex data
 - No authentication in MVP phase
-- Must preserve advisory mode functionality
+- Must preserve existing chat functionality
 
 **First Story to Implement:** Story 5.1 - Foundation (Tool Infrastructure and Context Provider)
 - Set up `/lib/ai-tools/` directory structure for server-side functions
@@ -606,7 +606,7 @@ catalyst-studio/
 - JSON string storage for complex fields
 
 **Existing System Compatibility:**
-1. Test advisory mode after each tool implementation
+1. Test chat responses after each tool implementation
 2. Verify existing API endpoints remain functional
 3. Ensure UI components render tool responses correctly
 4. Validate database transactions don't conflict

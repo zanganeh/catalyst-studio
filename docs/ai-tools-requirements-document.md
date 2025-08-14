@@ -15,7 +15,7 @@
 This document defines requirements for integrating AI-powered content management capabilities into Catalyst Studio CMS, enabling the AI assistant to actively create and manage content rather than just providing advice.
 
 ### 1.2 Business Objective
-Transform the existing AI chat interface from a passive advisor to an active content creator that understands business context and executes content management tasks directly in the database.
+Extend the existing AI chat interface with tool execution capabilities by adding a tools parameter to the OpenRouter/Vercel AI SDK integration, enabling direct database operations.
 
 ### 1.3 Key Finding from Research
 Modern AI systems (Cursor, GitHub Copilot, bolt.diy) do NOT work by describing available tools in text prompts. Instead, they pass tools as structured code objects that AI models understand natively. This approach is more reliable, testable, and maintainable.
