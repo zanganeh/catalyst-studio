@@ -231,7 +231,7 @@ export function ToolExecutionDisplay({
             <div className="text-xs">
               <span className="font-medium">Result:</span>
               <pre className="mt-1 p-2 bg-black/5 dark:bg-white/5 rounded text-xs overflow-x-auto max-h-40 overflow-y-auto">
-                {typeof invocation.result === 'object' 
+                {typeof invocation.result === 'object' && invocation.result !== null
                   ? JSON.stringify(invocation.result, null, 2)
                   : String(invocation.result)}
               </pre>

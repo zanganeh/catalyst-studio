@@ -3,6 +3,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { ErrorBoundary } from '@/components/error-boundary';
+import { ChatErrorBoundary } from './chat-error-boundary';
 import { ProjectContextProvider } from '@/lib/context/project-context';
 
 // Dynamically import the enhanced base chat with tool execution display
@@ -46,25 +47,27 @@ export default function EnhancedChatPanel({ className }: EnhancedChatPanelProps)
   return (
     <ErrorBoundary fallback={<div>Chat temporarily unavailable</div>}>
       <ProjectContextProvider>
-        <EnhancedChatProvider>
-          <div className={`enhanced-chat-panel h-full ${className || ''}`}>
-            {/* Original chat remains the core */}
-            <BaseChat />
-            
-            {/* Enhanced features will be composed here */}
-            {/* These components will overlay/integrate with the original chat */}
-            {/* For now, they're placeholders that will be implemented in subsequent tasks */}
-            
-            {/* Suggestion chips will be positioned below the input */}
-            <SuggestionChips />
-            
-            {/* Typing indicator will be integrated into the message list */}
-            <TypingIndicator />
-            
-            {/* Enhanced message list will replace the default rendering if needed */}
-            {/* This will be handled via React Context in Task 6 */}
-          </div>
-        </EnhancedChatProvider>
+        <ChatErrorBoundary>
+          <EnhancedChatProvider>
+            <div className={`enhanced-chat-panel h-full ${className || ''}`}>
+              {/* Original chat remains the core */}
+              <BaseChat />
+              
+              {/* Enhanced features will be composed here */}
+              {/* These components will overlay/integrate with the original chat */}
+              {/* For now, they're placeholders that will be implemented in subsequent tasks */}
+              
+              {/* Suggestion chips will be positioned below the input */}
+              <SuggestionChips />
+              
+              {/* Typing indicator will be integrated into the message list */}
+              <TypingIndicator />
+              
+              {/* Enhanced message list will replace the default rendering if needed */}
+              {/* This will be handled via React Context in Task 6 */}
+            </div>
+          </EnhancedChatProvider>
+        </ChatErrorBoundary>
       </ProjectContextProvider>
     </ErrorBoundary>
   );

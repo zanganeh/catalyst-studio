@@ -78,9 +78,10 @@ export default function EnhancedBaseChat({
     }
   }, [error]);
 
-  // Process tool invocations from messages
-  useEffect(() => {
+  // Process tool invocations from messages with memoization for performance
+  const processedToolExecutions = useMemo(() => {
     const newExecutions = new Map<string, ToolInvocation>();
+    const newErrors: ChatError[] = [];
     
     messages.forEach((message) => {
       // Check both toolInvocations and experimental_toolInvocations
@@ -122,10 +123,7 @@ export default function EnhancedBaseChat({
               ? (invocation.result as any).fieldErrors
               : undefined
           };
-          setChatErrors(prev => {
-            const exists = prev.some(e => e.id === toolError.id);
-            return exists ? prev : [...prev, toolError];
-          });
+          newErrors.push(toolError);
         }
         
         if (state === 'success' || state === 'error') {
@@ -136,8 +134,22 @@ export default function EnhancedBaseChat({
       });
     });
     
-    setToolExecutions(newExecutions);
+    return { executions: newExecutions, errors: newErrors };
   }, [messages]);
+
+  // Update state from memoized values
+  useEffect(() => {
+    setToolExecutions(processedToolExecutions.executions);
+    
+    // Only add new errors that don't already exist
+    if (processedToolExecutions.errors.length > 0) {
+      setChatErrors(prev => {
+        const existingIds = new Set(prev.map(e => e.id));
+        const newErrors = processedToolExecutions.errors.filter(e => !existingIds.has(e.id));
+        return newErrors.length > 0 ? [...prev, ...newErrors] : prev;
+      });
+    }
+  }, [processedToolExecutions]);
 
   // Auto-scroll to bottom
   useEffect(() => {
