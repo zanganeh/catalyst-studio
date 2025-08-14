@@ -1,0 +1,136 @@
+name: Test Coverage
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test-coverage:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Setup test database
+      run: |
+        npm run db:generate
+        npm run test:db:setup
+        
+    - name: Run unit tests with coverage
+      run: npm run test:coverage:ci
+      
+    - name: Check coverage thresholds
+      run: |
+        echo "Checking coverage thresholds..."
+        if ! npm run test:coverage:ci; then
+          echo "❌ Coverage thresholds not met"
+          exit 1
+        fi
+        echo "✅ Coverage thresholds met"
+        
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: true
+        
+    - name: Upload coverage reports to GitHub
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-reports-${{ matrix.node-version }}
+        path: |
+          coverage/
+          !coverage/tmp/
+        retention-days: 7
+        
+    - name: Comment coverage on PR
+      if: github.event_name == 'pull_request'
+      uses: romeovs/lcov-reporter-action@v0.3.1
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        lcov-file: ./coverage/lcov.info
+        delete-old-comments: true
+
+  e2e-coverage:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Install Playwright browsers
+      run: npx playwright install --with-deps
+      
+    - name: Setup test database
+      run: |
+        npm run db:generate
+        npm run test:db:setup
+        
+    - name: Run E2E tests
+      run: npm run test:e2e
+      
+    - name: Upload E2E test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: e2e-test-results
+        path: |
+          test-results/
+          playwright-report/
+        retention-days: 7
+
+  coverage-summary:
+    runs-on: ubuntu-latest
+    needs: [test-coverage]
+    if: always()
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download coverage artifacts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: coverage-reports-*
+        merge-multiple: true
+        path: coverage-combined/
+        
+    - name: Generate coverage summary
+      run: |
+        echo "## 📊 Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "| Metric | Threshold | Actual |" >> $GITHUB_STEP_SUMMARY
+        echo "|--------|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Lines | 80% | TBD |" >> $GITHUB_STEP_SUMMARY
+        echo "| Branches | 80% | TBD |" >> $GITHUB_STEP_SUMMARY
+        echo "| Functions | 80% | TBD |" >> $GITHUB_STEP_SUMMARY
+        echo "| Statements | 80% | TBD |" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "View detailed coverage reports in the artifacts section." >> $GITHUB_STEP_SUMMARY
