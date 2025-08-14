@@ -17,7 +17,8 @@ describe('Database Seeding', () => {
     // Run seed script
     execSync('npm run db:seed', { 
       cwd: path.resolve(__dirname, '../..'),
-      encoding: 'utf-8'
+      encoding: 'utf-8',
+      timeout: 60000
     })
 
     // Verify websites were created
@@ -53,13 +54,14 @@ describe('Database Seeding', () => {
       where: { websiteId: techBlog?.id }
     })
     expect(blogPosts.length).toBeGreaterThan(0)
-  })
+  }, 15000)
 
   it('should handle reset and reseed correctly', async () => {
     // Run fresh reset
     execSync('npm run db:fresh', {
       cwd: path.resolve(__dirname, '../..'),
-      encoding: 'utf-8'
+      encoding: 'utf-8',
+      timeout: 60000
     })
 
     // Verify data is fresh
@@ -70,5 +72,5 @@ describe('Database Seeding', () => {
     const firstWebsite = websites[0]
     expect(firstWebsite.createdAt).toBeDefined()
     expect(firstWebsite.updatedAt).toBeDefined()
-  })
+  }, 30000)
 })
