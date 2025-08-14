@@ -39,6 +39,16 @@ global.IntersectionObserver = class IntersectionObserver {
   }
 }
 
+// Mock ResizeObserver
+global.ResizeObserver = class ResizeObserver {
+  constructor(callback) {
+    this.callback = callback;
+  }
+  disconnect() {}
+  observe() {}
+  unobserve() {}
+}
+
 // Mock URL.createObjectURL and URL.revokeObjectURL
 if (typeof URL.createObjectURL === 'undefined') {
   URL.createObjectURL = jest.fn(() => 'blob:mock-url');
