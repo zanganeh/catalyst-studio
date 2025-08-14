@@ -9,8 +9,21 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
-  reporter: 'html',
+  workers: process.env.CI ? 2 : '50%', // Use 50% of CPU cores locally, 2 workers in CI
+  reporter: [
+    ['html'],
+    ['junit', { outputFile: 'test-results/junit.xml' }],
+    ['github']
+  ],
+  
+  // Global timeout settings
+  globalTimeout: 60 * 60 * 1000, // 1 hour
+  timeout: 60 * 1000, // 60 seconds per test
+  
+  // Expect settings
+  expect: {
+    timeout: 10 * 1000, // 10 seconds for assertions
+  },
   
   use: {
     baseURL: 'http://localhost:3000',
