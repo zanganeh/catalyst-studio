@@ -139,6 +139,8 @@ You can use any model available on OpenRouter. Popular options include:
 - `npm test` - Run tests
 - `npm run test:watch` - Run tests in watch mode
 - `npm run test:coverage` - Run tests with coverage
+- `npm run test:e2e` - Run end-to-end tests with Playwright
+- `npm run test:performance` - Run performance tests
 
 ### Database Management
 - `npm run db:setup` - Complete database setup (generate, migrate, seed)
@@ -148,6 +150,54 @@ You can use any model available on OpenRouter. Popular options include:
 - `npm run db:reset` - Reset database
 - `npm run db:fresh` - Reset and reseed database
 - `npm run db:studio` - Open Prisma Studio (visual database browser)
+
+## Testing
+
+### Epic 5 - AI-Powered Content Management Tools
+
+The application includes comprehensive testing for AI-powered content management features:
+
+#### Test Structure
+- **Unit/Integration Tests** (`/tests/epic-5/`)
+  - `ai-tools.test.ts` - POC scenario adaptations
+  - `website-tools.test.ts` - Website management tool tests
+  - `content-type-tools.test.ts` - Content type tool tests
+  - `content-item-tools.test.ts` - Content item tool tests
+  - `error-recovery.test.ts` - Error handling and rollback tests
+  - `performance.test.ts` - Performance benchmarks
+
+- **E2E Tests** (`/tests/e2e/`)
+  - `epic-5-ai-tools.spec.ts` - Complete user workflows
+
+#### Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run Epic 5 tests only
+npm test -- tests/epic-5
+
+# Run specific test file
+npm test -- ai-tools.test.ts
+
+# Run E2E tests
+npm run test:e2e
+
+# Run performance tests
+npm test -- performance.test.ts
+
+# Generate coverage report
+npm run test:coverage
+```
+
+#### Performance Benchmarks
+- Simple operations: < 1 second
+- Complex operations: < 2 seconds
+- Context loading: < 500ms for large websites
+- Bulk operations: Linear scaling
+
+See `/docs/epic-5-testing-guide.md` for detailed testing documentation.
 
 ### Database Viewer
 
