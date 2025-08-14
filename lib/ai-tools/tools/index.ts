@@ -13,7 +13,7 @@ import {
   getWebsiteContext,
   updateBusinessRequirements,
   validateContent 
-} from './website';
+} from './website/index';
 
 // Import content type management tools from Story 5.3
 import {
@@ -21,14 +21,14 @@ import {
   getContentType,
   createContentType,
   updateContentType
-} from './content-types';
+} from './content-types/index';
 
 // Import content item management tools from Story 5.4
 import {
   listContentItems,
   createContentItem,
   updateContentItem
-} from './content-items';
+} from './content-items/index';
 
 /**
  * Test tool for verifying tool execution
@@ -51,9 +51,30 @@ export const echoTool = tool({
 });
 
 /**
- * Export all tools as a collection
+ * Export all tools as an array for test compatibility
  */
-export const allTools = {
+export const allTools = [
+  // Website management tools (Story 5.2)
+  getWebsiteContext,
+  updateBusinessRequirements,
+  validateContent,
+  // Content type management tools (Story 5.3)
+  listContentTypes,
+  getContentType,
+  createContentType,
+  updateContentType,
+  // Content item management tools (Story 5.4)
+  listContentItems,
+  createContentItem,
+  updateContentItem,
+  // Test tool
+  echoTool
+];
+
+/**
+ * Export tools as an object for named access
+ */
+export const tools = {
   // Website management tools (Story 5.2)
   getWebsiteContext,
   updateBusinessRequirements,
@@ -74,4 +95,4 @@ export const allTools = {
 /**
  * Export tool names for reference
  */
-export const toolNames = Object.keys(allTools);
+export const toolNames = Object.keys(tools);

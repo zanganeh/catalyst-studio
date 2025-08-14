@@ -1,6 +1,6 @@
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import { streamText, Message } from 'ai';
-import { allTools } from '@/lib/ai-tools/tools';
+import { tools as baseTools } from '@/lib/ai-tools/tools';
 import { loadWebsiteContext, generateSystemPrompt } from '@/lib/ai-tools/context/context-provider';
 
 // Allow streaming responses up to 30 seconds
@@ -23,17 +23,35 @@ export async function POST(req: Request) {
     if (websiteId) {
       const context = await loadWebsiteContext(websiteId);
       system = generateSystemPrompt(context);
+      // Enhance system prompt to include websiteId
+      system = `${system}\n\nIMPORTANT: When using tools that require a websiteId parameter, use: ${websiteId}`;
     }
   } catch (error) {
     console.error('Failed to load website context:', error);
     // Continue without context rather than failing the request
   }
 
+  // Wrap tools to inject websiteId when needed
+  const tools = Object.entries(baseTools).reduce((acc, [key, tool]) => {
+    // Create a wrapped version of the tool that automatically includes websiteId
+    acc[key] = {
+      ...tool,
+      execute: async (args: any) => {
+        // If the tool has a websiteId parameter and it's not provided, inject it
+        if (websiteId && tool.parameters && 'websiteId' in tool.parameters.shape && !args.websiteId) {
+          args = { ...args, websiteId };
+        }
+        return tool.execute(args);
+      }
+    };
+    return acc;
+  }, {} as typeof baseTools);
+
   const result = streamText({
     model,
     messages,
     system,
-    tools: allTools,
+    tools: tools,
     toolChoice: 'auto',
     maxSteps: 5,
     onStepFinish: async (event) => {

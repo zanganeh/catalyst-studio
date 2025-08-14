@@ -80,7 +80,7 @@ const customJestConfig = {
   ],
   
   moduleDirectories: ['node_modules', '<rootDir>/'],
-  testPathIgnorePatterns: ['/node_modules/', '/.next/', '/tests/', '/e2e/', 'test-helpers.ts', 'test-helpers.js'],
+  testPathIgnorePatterns: ['/node_modules/', '/.next/', '/e2e/', 'test-helpers.ts', 'test-helpers.js'],
   
   transformIgnorePatterns: [
     '/node_modules/(?!(monaco-editor|@monaco-editor)/)',
