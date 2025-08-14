@@ -25,7 +25,7 @@ export const getWebsiteContext = tool({
       }
 
       // Extract business requirements from metadata
-      const metadata = website.metadata ? JSON.parse(website.metadata as string) : {};
+      const metadata = website.metadata ? JSON.parse(String(website.metadata)) : {};
       const businessRequirements = {
         category: website.category || 'general',
         contentTypes: metadata.contentTypes || [],

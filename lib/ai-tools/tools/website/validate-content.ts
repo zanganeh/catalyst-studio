@@ -30,7 +30,7 @@ export const validateContent = tool({
       const category = website.category || 'general';
       
       // Parse metadata for custom rules
-      const metadata = website.metadata ? JSON.parse(website.metadata as string) : {};
+      const metadata = website.metadata ? JSON.parse(String(website.metadata)) : {};
       
       // Validate against category-specific rules
       const categoryValidation = await businessRules.validateForCategory(content, category);

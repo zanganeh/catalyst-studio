@@ -51,7 +51,7 @@ export const updateBusinessRequirements = tool({
         }
 
         // Parse existing metadata
-        const existingMetadata = existingWebsite.metadata ? JSON.parse(existingWebsite.metadata as string) : {};
+        const existingMetadata = existingWebsite.metadata ? JSON.parse(String(existingWebsite.metadata)) : {};
         
         // Prepare the metadata update
         const updatedMetadata = { ...existingMetadata };
@@ -106,7 +106,7 @@ export const updateBusinessRequirements = tool({
       }
 
       // Parse the updated metadata from result
-      const resultMetadata = result.metadata ? JSON.parse(result.metadata as string) : {};
+      const resultMetadata = result.metadata ? JSON.parse(String(result.metadata)) : {};
       
       return {
         success: true,
