@@ -26,6 +26,9 @@ export function ChatWithPersistence({
   const [isInitialized, setIsInitialized] = useState(false);
   const [showLoadingState, setShowLoadingState] = useState(true);
   const websiteId = useWebsiteId();
+  
+  // Disable persistence if no valid websiteId
+  const effectiveEnabled = enabled && websiteId !== 'default' && !!websiteId;
 
   const {
     isSaving,
@@ -36,9 +39,9 @@ export function ChatWithPersistence({
     loadMessages,
     contextData
   } = useChatPersistence({
-    websiteId,
+    websiteId: effectiveEnabled ? websiteId : null,
     sessionId,
-    enabled,
+    enabled: effectiveEnabled,
     autoSaveDelay: 500,
     onLoadComplete: (loadedMessages) => {
       console.log('Messages loaded from persistence:', loadedMessages);
@@ -67,25 +70,25 @@ export function ChatWithPersistence({
 
   // Load messages when context data is available
   useEffect(() => {
-    if (enabled && !isInitialized && contextData !== undefined) {
+    if (effectiveEnabled && !isInitialized && contextData !== undefined) {
       loadMessages().then(() => {
         // Messages loaded
       });
-    } else if (!enabled) {
+    } else if (!effectiveEnabled) {
       setIsInitialized(true);
       setShowLoadingState(false);
     }
-  }, [enabled, isInitialized, contextData, loadMessages]);
+  }, [effectiveEnabled, isInitialized, contextData, loadMessages]);
 
   // Auto-save messages when they change
   useEffect(() => {
-    if (enabled && isInitialized && messages.length > 0) {
+    if (effectiveEnabled && isInitialized && messages.length > 0) {
       saveMessages(messages);
     }
-  }, [enabled, isInitialized, messages, saveMessages]);
+  }, [effectiveEnabled, isInitialized, messages, saveMessages]);
 
   // Show loading state while recovering messages
-  if (showLoadingState && enabled) {
+  if (showLoadingState && effectiveEnabled) {
     return (
       <div className="flex flex-col h-full">
         <div className="flex-1 p-4 space-y-4">
@@ -114,7 +117,7 @@ export function ChatWithPersistence({
       {children}
       
       {/* Persistence Status Indicator (optional, can be hidden) */}
-      {enabled && process.env.NODE_ENV === 'development' && (
+      {effectiveEnabled && process.env.NODE_ENV === 'development' && (
         <div className="fixed bottom-4 right-4 z-50 pointer-events-none">
           <div className="bg-background/80 backdrop-blur border rounded-lg p-2 text-xs space-y-1 opacity-50">
             <div className="flex items-center space-x-2">

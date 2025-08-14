@@ -53,7 +53,7 @@ export function useAIContexts(
 }
 
 // Fetch specific context
-export function useAIContext(websiteId: string, sessionId: string) {
+export function useAIContext(websiteId: string, sessionId: string, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: aiContextKeys.detail(websiteId, sessionId),
     queryFn: async () => {
@@ -68,7 +68,7 @@ export function useAIContext(websiteId: string, sessionId: string) {
       const data = await response.json();
       return data.data as AIContext;
     },
-    enabled: !!websiteId && !!sessionId,
+    enabled: options?.enabled !== undefined ? options.enabled : (!!websiteId && !!sessionId && websiteId !== 'skip'),
   });
 }
 

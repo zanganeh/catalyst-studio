@@ -10,7 +10,7 @@ import {
 import { AIMessage as ContextAIMessage } from '@/types/ai-context';
 
 interface UseChatPersistenceOptions {
-  websiteId: string;
+  websiteId: string | null;
   sessionId: string;
   enabled?: boolean;
   autoSaveDelay?: number;
@@ -63,20 +63,21 @@ export function useChatPersistence({
   const hasCreatedContextRef = useRef(false);
   const isCreatingContextRef = useRef(false); // Mutex for context creation
 
-  // Use the new AI Context API hooks
+  // Use the new AI Context API hooks - only if websiteId is valid
   const { data: contextData, isLoading: isContextLoading, error: contextError } = useAIContext(
-    websiteId,
-    sessionId
+    websiteId || 'skip',
+    sessionId,
+    { enabled: !!websiteId && websiteId !== 'default' }
   );
   
   const createContext = useCreateAIContext();
-  const appendMessage = useAppendMessage(websiteId, sessionId);
-  const clearContext = useClearContext(websiteId, sessionId);
+  const appendMessage = useAppendMessage(websiteId || '', sessionId);
+  const clearContext = useClearContext(websiteId || '', sessionId);
   const deleteContextMutation = useDeleteAIContext();
 
   // Initialize context if needed
   useEffect(() => {
-    if (!enabled || !websiteId || !sessionId || hasCreatedContextRef.current || isCreatingContextRef.current) return;
+    if (!enabled || !websiteId || websiteId === 'default' || !sessionId || hasCreatedContextRef.current || isCreatingContextRef.current) return;
     
     const initContext = async () => {
       // Prevent concurrent creation attempts
@@ -138,7 +139,7 @@ export function useChatPersistence({
 
   // Save messages immediately (for critical paths like unmount)
   const saveMessagesImmediate = useCallback(async (messages: AIMessage[]) => {
-    if (!enabled || !websiteId || !sessionId) return;
+    if (!enabled || !websiteId || websiteId === 'default' || !sessionId) return;
 
     // Clear any pending saves
     if (saveTimeoutRef.current) {
@@ -239,7 +240,7 @@ export function useChatPersistence({
 
   // Save messages with debouncing
   const saveMessages = useCallback(async (messages: AIMessage[]) => {
-    if (!enabled || !websiteId || !sessionId) return;
+    if (!enabled || !websiteId || websiteId === 'default' || !sessionId) return;
 
     // Clear existing timeout
     if (saveTimeoutRef.current) {
@@ -297,7 +298,7 @@ export function useChatPersistence({
 
   // Clear messages
   const clearMessages = useCallback(async () => {
-    if (!enabled || !websiteId || !sessionId) return;
+    if (!enabled || !websiteId || websiteId === 'default' || !sessionId) return;
 
     try {
       await clearContext.mutateAsync();
@@ -335,7 +336,7 @@ export function useChatPersistence({
 
   // Import messages from JSON
   const importMessages = useCallback(async (jsonData: string) => {
-    if (!enabled || !websiteId || !sessionId) return;
+    if (!enabled || !websiteId || websiteId === 'default' || !sessionId) return;
 
     try {
       const data = JSON.parse(jsonData);
