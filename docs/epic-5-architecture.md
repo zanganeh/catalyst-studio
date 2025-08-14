@@ -7,6 +7,15 @@ This document outlines the architectural approach for enhancing Catalyst Studio 
 **Relationship to Existing Architecture:**
 This document supplements existing project architecture by defining how new AI tool components will integrate with current systems. Where conflicts arise between new and existing patterns, this document provides guidance on maintaining consistency while implementing enhancements.
 
+### 🚨 Critical Architecture Decision
+
+**Tools are NOT API endpoints - they are server-side functions:**
+- Tools are JavaScript/TypeScript objects passed directly to the AI model
+- Tools execute on the server with direct database access via Prisma
+- The ONLY public endpoint is the enhanced `/api/chat` route
+- Client never sees or calls tools directly - only sends chat messages
+- This follows the proven POC pattern from `proof-of-concept/ai-tools-demo.js`
+
 ### Existing Project Analysis
 
 #### Current Project State
@@ -35,6 +44,7 @@ This document supplements existing project architecture by defining how new AI t
 | Change | Date | Version | Description | Author |
 |--------|------|---------|-------------|--------|
 | Initial Draft | 2025-01-13 | 1.0 | Created brownfield architecture for Epic 5 | Winston (Architect) |
+| Major Revision | 2025-01-14 | 2.0 | Corrected tool implementation - server functions not API endpoints | Winston (Architect) |
 
 ---
 
@@ -48,8 +58,8 @@ This document supplements existing project architecture by defining how new AI t
 ### Integration Approach
 
 **Code Integration Strategy:** 
-- New `/app/api/ai-tools/` directory for tool endpoints following existing API patterns
-- Enhance `ai-prompt-processor.ts` to support tool execution mode alongside advisory mode
+- New `/lib/ai-tools/` directory for server-side tool functions (NOT API endpoints)
+- Enhance `/app/api/chat/route.ts` to include tool calling capabilities
 - Leverage existing service classes (WebsiteService, ContentTypeService, ContentItemService) without modification
 - Tool executor wrapper to maintain transaction consistency
 
@@ -60,9 +70,9 @@ This document supplements existing project architecture by defining how new AI t
 - Atomic transactions using Prisma's transaction API
 
 **API Integration:** 
-- New endpoints under `/app/api/ai-tools/` namespace to avoid conflicts
-- Enhanced chat endpoint at `/app/api/chat/` with tool-calling support
-- Maintain existing REST API patterns and response structures
+- NO new public API endpoints - all tools are internal server functions
+- Enhanced chat endpoint at `/app/api/chat/` is the ONLY client-facing endpoint
+- Tools are passed to AI model as code objects, not exposed as HTTP endpoints
 - Streaming responses using Vercel AI SDK's existing patterns
 
 **UI Integration:** 
@@ -88,7 +98,7 @@ This document supplements existing project architecture by defining how new AI t
 | UI Library | React | 19.1.0 | Tool response components | Server Components |
 | Language | TypeScript | 5.x | Type-safe tool definitions | Strict mode |
 | Database ORM | Prisma | 6.13.0 | All database operations | Transaction support |
-| Database | SQLite | - | Store tool execution logs | JSON string fields |
+| Database | SQLite | 3.x | Store tool execution logs | JSON string fields |
 | AI SDK | Vercel AI SDK | 4.3.19 | Tool calling implementation | Native tool support |
 | AI Provider | OpenRouter | 0.0.5 | AI model access | Tool-capable models |
 | Validation | Zod | 3.25.76 | Tool parameter validation | Schema definitions |
@@ -199,6 +209,36 @@ This document supplements existing project architecture by defining how new AI t
 
 **Technology Stack:** TypeScript, Zod schemas
 
+#### Context Pruning Helper
+**Responsibility:** Manage large contexts to stay within token limits
+**Integration Points:** Context Provider, AI SDK
+
+**Key Interfaces:**
+- pruneContext(context, maxTokens): Intelligently reduce context size
+- prioritizeContent(items): Rank content by relevance
+- estimateTokens(content): Calculate token usage
+
+**Dependencies:**
+- **Existing Components:** None
+- **New Components:** Context Provider
+
+**Technology Stack:** TypeScript, token counting library
+
+#### Rollback Helper
+**Responsibility:** Provide transaction rollback for complex multi-step operations
+**Integration Points:** Tool Executor, Prisma transactions
+
+**Key Interfaces:**
+- createRollbackPoint(): Mark transaction start
+- rollback(transactionId): Revert to previous state
+- cleanup(): Remove old rollback data
+
+**Dependencies:**
+- **Existing Components:** Prisma client
+- **New Components:** Tool Executor
+
+**Technology Stack:** TypeScript, Prisma $transaction API
+
 ### Component Interaction Diagram
 
 ```mermaid
@@ -212,90 +252,106 @@ graph TD
     G -->|Database Ops| E
     B -->|Advisory Mode| H[Existing AI Processor]
     E -->|Prisma| I[SQLite Database]
+    D -->|Prune| J[Context Pruning Helper]
+    C -->|Rollback| K[Rollback Helper]
 ```
 
 ---
 
 ## API Design and Integration
 
-### API Integration Strategy
-**API Integration Strategy:** Additive approach - new endpoints supplement existing APIs
+### Enhanced Chat Route Implementation
+
+**Single Endpoint Strategy:** All AI tool interactions go through the enhanced `/api/chat` route
 **Authentication:** No authentication in MVP phase (matches existing approach)
-**Versioning:** Not required - new endpoints in separate namespace
+**Tool Access:** Tools are server-side only - never exposed to client
 
-### New API Endpoints
+#### Enhanced Chat Route with Tool Calling
+```typescript
+// /app/api/chat/route.ts (enhanced version)
+import { streamText } from 'ai';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
+import { allTools } from '@/lib/ai-tools';
 
-#### POST /api/ai-tools/execute
-- **Method:** POST
-- **Endpoint:** /api/ai-tools/execute
-- **Purpose:** Execute single or multiple AI tools
-- **Integration:** Calls existing service methods internally
+export async function POST(request: Request) {
+  const { messages, websiteId } = await request.json();
+  
+  // Load context for the website
+  const context = await loadWebsiteContext(websiteId);
+  
+  const result = streamText({
+    model: openrouter('anthropic/claude-3.5-sonnet'),
+    messages,
+    system: generateSystemPrompt(context),
+    tools: allTools,  // Server-side tool objects
+    toolChoice: 'auto',
+    maxSteps: 5,
+    onStepFinish: logToolExecution
+  });
+  
+  return result.toDataStreamResponse();
+}
+```
 
-**Request:**
-```json
-{
-  "websiteId": "string",
-  "tools": [
-    {
-      "name": "create-content-type",
-      "parameters": {
-        "name": "Blog Post",
-        "fields": [...]
+### Tool Implementation (Server-Side Functions)
+
+**IMPORTANT:** Tools are NOT exposed as API endpoints. They are server-side functions that only the AI can call through the enhanced chat endpoint.
+
+#### Tool Execution Flow
+1. **Client Request** → `/api/chat` (only public endpoint)
+2. **Chat Route** → Processes message with AI
+3. **AI Decision** → Determines which tools to use
+4. **Tool Calling** → AI invokes server-side tool functions
+5. **Tool Execution** → Functions execute with database access
+6. **Response Stream** → Results streamed back to client
+
+#### Example Tool Function Structure
+```typescript
+// /lib/ai-tools/content-types/create-content-type.ts
+export const createContentTypeTool = tool({
+  description: 'Create a new content type structure',
+  parameters: z.object({
+    websiteId: z.string(),
+    name: z.string(),
+    fields: z.array(fieldSchema)
+  }),
+  execute: async ({ websiteId, name, fields }) => {
+    // Direct database access via Prisma
+    const contentType = await prisma.contentType.create({
+      data: {
+        websiteId,
+        name,
+        fields: JSON.stringify(fields)
       }
-    }
-  ],
-  "context": {
-    "sessionId": "string"
+    });
+    return {
+      success: true,
+      data: contentType
+    };
   }
-}
+});
 ```
 
-**Response:**
-```json
-{
-  "success": true,
-  "results": [
-    {
-      "tool": "create-content-type",
-      "status": "success",
-      "data": {
-        "id": "cuid",
-        "name": "Blog Post"
-      }
+#### Context Loading Function
+```typescript
+// /lib/ai-tools/context-provider.ts
+export async function loadWebsiteContext(websiteId: string) {
+  // Internal function - not an API endpoint
+  const [website, contentTypes, items] = await Promise.all([
+    prisma.website.findUnique({ where: { id: websiteId } }),
+    prisma.contentType.findMany({ where: { websiteId } }),
+    prisma.contentItem.count({ where: { websiteId } })
+  ]);
+  
+  return {
+    website,
+    contentTypes,
+    statistics: {
+      totalItems: items,
+      totalTypes: contentTypes.length
     }
-  ],
-  "executionId": "string"
+  };
 }
-```
-
-#### GET /api/ai-tools/context/:websiteId
-- **Method:** GET
-- **Endpoint:** /api/ai-tools/context/:websiteId
-- **Purpose:** Load current context for AI interaction
-- **Integration:** Aggregates data from existing services
-
-**Request:**
-```json
-// Path parameter: websiteId
-```
-
-**Response:**
-```json
-{
-  "website": {
-    "id": "string",
-    "name": "string",
-    "category": "string",
-    "settings": {}
-  },
-  "contentTypes": [...],
-  "statistics": {
-    "totalItems": 0,
-    "totalTypes": 0
-  },
-  "businessRules": {}
-}
-```
 
 ---
 
@@ -311,7 +367,7 @@ graph TD
 **Key Endpoints Used:**
 - `POST /chat/completions` - Tool-enabled chat completions
 
-**Error Handling:** Retry with exponential backoff, fallback to advisory mode on failure
+**Error Handling:** 3 retries with exponential backoff, fallback to advisory mode on failure
 
 ---
 
@@ -336,26 +392,6 @@ catalyst-studio/
 catalyst-studio/
 ├── app/
 │   ├── api/
-│   │   ├── ai-tools/              # New AI tools directory
-│   │   │   ├── execute/
-│   │   │   │   └── route.ts       # Tool execution endpoint
-│   │   │   ├── context/
-│   │   │   │   └── [websiteId]/
-│   │   │   │       └── route.ts   # Context loading endpoint
-│   │   │   └── tools/             # Tool definitions
-│   │   │       ├── website/       # Website management tools
-│   │   │       │   ├── get-website-context.ts
-│   │   │       │   ├── update-business-requirements.ts
-│   │   │       │   └── validate-content.ts
-│   │   │       ├── content-types/ # Content type tools
-│   │   │       │   ├── list-content-types.ts
-│   │   │       │   ├── get-content-type.ts
-│   │   │       │   ├── create-content-type.ts
-│   │   │       │   └── update-content-type.ts
-│   │   │       └── content-items/ # Content item tools
-│   │   │           ├── list-content-items.ts
-│   │   │           ├── create-content-item.ts
-│   │   │           └── update-content-item.ts
 │   │   └── chat/                  # Existing (enhanced)
 │   │       └── route.ts           # Add tool calling support
 ├── lib/
@@ -364,6 +400,23 @@ catalyst-studio/
 │   │   ├── executor.ts           # Tool execution engine
 │   │   ├── context-provider.ts   # Context management
 │   │   ├── business-rules.ts     # Rule engine
+│   │   ├── helpers/              # Utility functions
+│   │   │   ├── context-pruning.ts # Manage large contexts
+│   │   │   └── rollback.ts       # Transaction rollback
+│   │   ├── tools/                # Tool definitions
+│   │   │   ├── website/          # Website management tools
+│   │   │   │   ├── get-website-context.ts
+│   │   │   │   ├── update-business-requirements.ts
+│   │   │   │   └── validate-content.ts
+│   │   │   ├── content-types/    # Content type tools
+│   │   │   │   ├── list-content-types.ts
+│   │   │   │   ├── get-content-type.ts
+│   │   │   │   ├── create-content-type.ts
+│   │   │   │   └── update-content-type.ts
+│   │   │   └── content-items/    # Content item tools
+│   │   │       ├── list-content-items.ts
+│   │   │       ├── create-content-item.ts
+│   │   │       └── update-content-item.ts
 │   │   └── schemas/              # Zod schemas
 │   │       ├── website.ts
 │   │       ├── content-type.ts
@@ -391,7 +444,7 @@ catalyst-studio/
 
 ### Rollback Strategy
 **Rollback Method:** Git revert + Vercel instant rollback
-**Risk Mitigation:** Feature flag for gradual rollout (AI_TOOLS_ENABLED env var)
+**Risk Mitigation:** Feature flag for gradual rollout (ENABLE_AI_TOOLS env var)
 **Monitoring:** Vercel Analytics + custom tool execution metrics
 
 ---
@@ -504,7 +557,8 @@ catalyst-studio/
 
 **Key Integration Requirements:**
 - All tools must use existing service classes without modification
-- New endpoints under `/app/api/ai-tools/` namespace only
+- Tools are server-side functions in `/lib/ai-tools/` - NOT API endpoints
+- Enhanced chat endpoint at `/api/chat` is the ONLY client-facing interface
 - Maintain streaming response patterns from existing chat
 - Store tool metadata in existing JSON fields
 
@@ -514,10 +568,11 @@ catalyst-studio/
 - Must preserve advisory mode functionality
 
 **First Story to Implement:** Story 5.1 - Foundation (Tool Infrastructure and Context Provider)
-- Set up `/app/api/ai-tools/` directory structure
+- Set up `/lib/ai-tools/` directory structure for server-side functions
 - Create base tool executor with Zod validation
 - Implement context provider using existing services
 - Add Vercel AI SDK tool calling to chat endpoint
+- NO new API endpoints - tools are internal functions only
 
 **Emphasis:** Test each integration point with existing functionality before proceeding to next story
 
