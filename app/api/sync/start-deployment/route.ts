@@ -1,8 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 
-// Store active deployments in memory (in production, use Redis or similar)
-const activeDeployments = new Map<string, any>();
+interface ActiveDeployment {
+  id: string;
+  websiteId: string;
+  selectedTypes?: string[];
+  status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+  progress: number;
+  logs: Array<{
+    timestamp: string;
+    level: 'info' | 'warning' | 'error';
+    message: string;
+  }>;
+  startedAt: string;
+  completedAt?: string;
+  error?: string;
+}
+
+// Store active deployments in memory (for MVP/local development)
+const activeDeployments = new Map<string, ActiveDeployment>();
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +29,7 @@ export async function POST(request: NextRequest) {
     const deploymentId = uuidv4();
     
     // Create the deployment job
-    const job = {
+    const job: ActiveDeployment = {
       id: deploymentId,
       websiteId,
       selectedTypes,
@@ -43,7 +59,13 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function startDeploymentAsync(deploymentId: string, provider: any) {
+interface CMSProviderInfo {
+  id: string;
+  name: string;
+  config?: Record<string, unknown>;
+}
+
+async function startDeploymentAsync(deploymentId: string, provider: CMSProviderInfo) {
   const job = activeDeployments.get(deploymentId);
   if (!job) return;
 
@@ -67,7 +89,7 @@ async function startDeploymentAsync(deploymentId: string, provider: any) {
     ];
 
     for (const step of steps) {
-      if (job.status === 'cancelled') break;
+      if ((job as ActiveDeployment).status === 'cancelled') break;
       
       job.progress = step.progress;
       job.logs.push({
@@ -80,13 +102,13 @@ async function startDeploymentAsync(deploymentId: string, provider: any) {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
-    if (job.status !== 'cancelled') {
+    if ((job as ActiveDeployment).status !== 'cancelled') {
       job.status = 'completed';
       job.completedAt = new Date().toISOString();
     }
-  } catch (error: any) {
+  } catch (error) {
     job.status = 'failed';
-    job.error = error.message || 'Deployment failed';
+    job.error = error instanceof Error ? error.message : 'Deployment failed';
     job.completedAt = new Date().toISOString();
     job.logs.push({
       timestamp: new Date().toISOString(),

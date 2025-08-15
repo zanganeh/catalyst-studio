@@ -12,8 +12,13 @@ export async function GET() {
       const extractedTypes = await extractor.extractContentTypes();
       
       // Transform to our component format
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const types = extractedTypes.map((type: any) => ({
+      interface ExtractedType {
+        id?: string;
+        name: string;
+        fields?: Array<{ name: string; type: string }>;
+      }
+      
+      const types = extractedTypes.map((type: ExtractedType) => ({
         id: type.id || type.name.toLowerCase().replace(/\s+/g, '_'),
         name: type.name,
         fields: type.fields || []

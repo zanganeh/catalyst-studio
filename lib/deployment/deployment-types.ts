@@ -33,6 +33,8 @@ export interface DeploymentLog {
 export interface DeploymentJob {
   id: string;
   providerId: CMSProviderId;
+  websiteId?: string;
+  selectedTypes?: string[];
   status: DeploymentStatus;
   progress: number;
   startedAt: Date;

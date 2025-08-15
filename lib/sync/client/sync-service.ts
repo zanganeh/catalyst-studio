@@ -44,7 +44,7 @@ class ClientSyncService {
               ...statusResult.job,
               startedAt: new Date(statusResult.job.startedAt),
               completedAt: statusResult.job.completedAt ? new Date(statusResult.job.completedAt) : undefined,
-              logs: statusResult.job.logs.map((log: any) => ({
+              logs: statusResult.job.logs.map((log: { timestamp: string; level: string; message: string }) => ({
                 ...log,
                 timestamp: new Date(log.timestamp),
               })),
@@ -81,11 +81,11 @@ class ClientSyncService {
           });
         },
       };
-    } catch (error: any) {
+    } catch (error) {
       const errorJob: DeploymentJob = {
         ...job,
         status: 'failed',
-        error: error.message || 'Failed to start deployment',
+        error: error instanceof Error ? error.message : 'Failed to start deployment',
         completedAt: new Date(),
       };
       onUpdate(errorJob);
@@ -100,13 +100,18 @@ class ClientSyncService {
     const history = JSON.parse(historyStr);
     
     // Convert date strings back to Date objects
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return history.map((job: any) => ({
+    interface StoredJob {
+      startedAt: string;
+      completedAt?: string;
+      logs: Array<{ timestamp: string; level: string; message: string }>;
+      [key: string]: unknown;
+    }
+    
+    return history.map((job: StoredJob) => ({
       ...job,
       startedAt: new Date(job.startedAt),
       completedAt: job.completedAt ? new Date(job.completedAt) : undefined,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      logs: job.logs.map((log: any) => ({
+      logs: job.logs.map((log) => ({
         ...log,
         timestamp: new Date(log.timestamp),
       })),
