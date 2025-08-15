@@ -6,8 +6,8 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { ChatErrorBoundary } from './chat-error-boundary';
 import { ProjectContextProvider } from '@/lib/context/project-context';
 
-// Dynamically import the enhanced base chat with tool execution display
-const BaseChat = dynamic(() => import('@/components/chat/enhanced-base-chat'), {
+// Dynamically import the base chat component
+const BaseChat = dynamic(() => import('@/components/chat/base-chat'), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center h-screen">
