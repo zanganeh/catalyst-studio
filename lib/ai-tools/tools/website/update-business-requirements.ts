@@ -43,15 +43,21 @@ export const updateBusinessRequirements = tool({
       
       // Use transaction for atomic updates
       const result = await prisma.$transaction(async (tx) => {
-        // First, verify the website exists
-        const existingWebsite = await websiteService.getWebsite(websiteId);
+        // First, verify the website exists using transaction context
+        const existingWebsite = await tx.website.findUnique({
+          where: { id: websiteId }
+        });
         
         if (!existingWebsite) {
           throw new Error(`Website with ID ${websiteId} not found`);
         }
 
-        // Parse existing metadata
-        const existingMetadata = existingWebsite.metadata ? JSON.parse(String(existingWebsite.metadata)) : {};
+        // Parse existing metadata (handle both string and object)
+        const existingMetadata = existingWebsite.metadata 
+          ? (typeof existingWebsite.metadata === 'string' 
+              ? JSON.parse(existingWebsite.metadata) 
+              : existingWebsite.metadata)
+          : {};
         
         // Prepare the metadata update
         const updatedMetadata = { ...existingMetadata };
@@ -89,8 +95,11 @@ export const updateBusinessRequirements = tool({
           updateData.category = category;
         }
 
-        // Update the website using the service
-        const updatedWebsite = await websiteService.updateWebsite(websiteId, updateData);
+        // Update the website directly using transaction context
+        const updatedWebsite = await tx.website.update({
+          where: { id: websiteId },
+          data: updateData
+        });
         
         return updatedWebsite;
       });

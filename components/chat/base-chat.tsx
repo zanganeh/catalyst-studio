@@ -10,11 +10,15 @@ import { ChatPersistence } from './chat-persistence';
 
 interface BaseChatProps {
   initialMessage?: string;
+  websiteId?: string;
   onInitialMessageSent?: () => void;
 }
 
-export default function BaseChat({ initialMessage, onInitialMessageSent }: BaseChatProps = {}) {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages, append } = useChat();
+export default function BaseChat({ initialMessage, websiteId, onInitialMessageSent }: BaseChatProps = {}) {
+  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages, append } = useChat({
+    api: '/api/chat',
+    body: websiteId ? { websiteId } : undefined,
+  });
   const hasInitialized = useRef(false);
 
   // Send initial message if provided
