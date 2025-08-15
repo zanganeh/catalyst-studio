@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     system,
     tools: tools,
     toolChoice: 'auto',
-    maxSteps: 5,
+    maxSteps: 10,
     onStepFinish: async (event) => {
       // Optional: Log tool executions for debugging
       if (event.toolCalls && event.toolCalls.length > 0) {

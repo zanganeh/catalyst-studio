@@ -61,5 +61,9 @@ export function StudioChatWrapper() {
     console.log('Initial message sent to AI');
   };
   
-  return <BaseChat initialMessage={initialMessage || undefined} onInitialMessageSent={handleInitialMessageSent} />;
+  return <BaseChat 
+    initialMessage={initialMessage || undefined} 
+    websiteId={websiteId}
+    onInitialMessageSent={handleInitialMessageSent} 
+  />;
 }

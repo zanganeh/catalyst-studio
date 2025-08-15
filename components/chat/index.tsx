@@ -2,9 +2,9 @@
 
 import dynamic from 'next/dynamic';
 
-// Export the enhanced chat as the default
+// Export the base chat as the default
 export const Chat = dynamic(
-  () => import('./enhanced-base-chat'),
+  () => import('./base-chat'),
   {
     ssr: false,
     loading: () => (
@@ -17,7 +17,6 @@ export const Chat = dynamic(
 
 // Export individual components for flexibility
 export { default as BaseChat } from './base-chat';
-export { default as EnhancedBaseChat } from './enhanced-base-chat';
 export { AIContextChat } from './ai-context-chat';
 export { default as EnhancedChatPanel } from './enhanced-chat-panel';
 export { ChatPersistence } from './chat-persistence';
