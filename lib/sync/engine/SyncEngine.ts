@@ -155,8 +155,7 @@ class SyncEngine {
             syncProgress += syncStep;
             addLog(`Successfully synced ${type.name}`, 'info', Math.floor(syncProgress));
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (error: any) {
+          } catch (error: any) {
             failed++;
             const message = error.message || 'Unknown error';
             details.push({ type: type.name, status: 'failed', message });
