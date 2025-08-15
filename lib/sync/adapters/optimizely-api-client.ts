@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import pLimit from 'p-limit';
+import * as pLimit from 'p-limit';
 import { OptimizelyContentType } from '../transformers/optimizely-transformer';
 
 export interface OptimizelyConfig {

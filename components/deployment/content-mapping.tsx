@@ -15,11 +15,12 @@ interface ContentType {
 
 interface ContentMappingProps {
   providerId: string;
+  websiteId?: string;
   onMappingComplete?: (types: ContentType[]) => void;
   className?: string;
 }
 
-export function ContentMapping({ providerId, onMappingComplete, className }: ContentMappingProps) {
+export function ContentMapping({ providerId, websiteId, onMappingComplete, className }: ContentMappingProps) {
   const [loading, setLoading] = useState(true);
   const [contentTypes, setContentTypes] = useState<ContentType[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +28,7 @@ export function ContentMapping({ providerId, onMappingComplete, className }: Con
   useEffect(() => {
     extractContentTypes();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [websiteId]);
 
   const extractContentTypes = async () => {
     try {
@@ -35,7 +36,10 @@ export function ContentMapping({ providerId, onMappingComplete, className }: Con
       setError(null);
 
       // Call the API endpoint to extract content types from the database
-      const response = await fetch('/api/extract-content-types');
+      const url = websiteId 
+        ? `/api/extract-content-types?websiteId=${websiteId}`
+        : '/api/extract-content-types';
+      const response = await fetch(url);
       const result = await response.json();
 
       if (result.success) {

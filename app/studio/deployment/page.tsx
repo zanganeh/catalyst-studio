@@ -197,6 +197,7 @@ function DeploymentPageContent() {
 
             <TabsContent value="deploy" className="mt-8">
               <DeploymentWizard
+                websiteId={websiteId}
                 onComplete={handleDeploymentComplete}
                 onCancel={() => router.push(`/studio/${websiteId}/development`)}
               />

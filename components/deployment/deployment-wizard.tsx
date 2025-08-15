@@ -19,6 +19,7 @@ export type DeploymentStep = 'provider' | 'mapping' | 'deploying' | 'complete';
 interface DeploymentWizardProps {
   onComplete?: (job: DeploymentJob) => void;
   onCancel?: () => void;
+  websiteId?: string;
 }
 
 const STEPS: Array<{ id: DeploymentStep; label: string; description: string }> = [
@@ -28,7 +29,7 @@ const STEPS: Array<{ id: DeploymentStep; label: string; description: string }> =
   { id: 'complete', label: 'Complete', description: 'Deployment successful' },
 ];
 
-export function DeploymentWizard({ onComplete, onCancel }: DeploymentWizardProps) {
+export function DeploymentWizard({ onComplete, onCancel, websiteId }: DeploymentWizardProps) {
   const [currentStep, setCurrentStep] = useState<DeploymentStep>('provider');
   const [selectedProvider, setSelectedProvider] = useState<CMSProvider | null>(null);
   const [deploymentJob, setDeploymentJob] = useState<DeploymentJob | null>(null);
@@ -207,6 +208,7 @@ export function DeploymentWizard({ onComplete, onCancel }: DeploymentWizardProps
               
               <ContentMapping 
                 providerId={selectedProvider.id}
+                websiteId={websiteId}
                 onMappingComplete={(types) => {
                   console.log(`Mapped ${types.length} content types for sync`);
                 }}

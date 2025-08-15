@@ -5,14 +5,19 @@ import {
   DeploymentStatus,
 } from '../../deployment/deployment-types';
 import { SyncEngineConfig } from '../types/sync';
+import { DatabaseExtractor } from '../extractors/database-extractor';
+import { OptimizelyTransformer } from '../transformers/optimizely-transformer';
+import { OptimizelyApiClient } from '../adapters/optimizely-api-client';
+import { SyncOrchestrator, SyncStorage, SyncState } from './sync-orchestrator';
+import { DatabaseStorage } from '../storage/database-storage';
 
 const DEPLOYMENT_HISTORY_KEY = 'deployment-history';
 
 interface SyncComponents {
-  orchestrator?: unknown;
-  extractor?: unknown;
-  transformer?: unknown;
-  apiClient?: unknown;
+  orchestrator?: any; // SyncOrchestrator - using any to avoid circular dependency
+  extractor?: any; // DatabaseExtractor
+  transformer?: any; // OptimizelyTransformer  
+  apiClient?: any; // OptimizelyApiClient
 }
 
 class SyncEngine {
@@ -29,14 +34,11 @@ class SyncEngine {
 
   private async initializeComponents(): Promise<void> {
     if (!this.components.extractor) {
-      // Dynamic import for better code splitting
-      const { DatabaseExtractor } = await import('../extractors/database-extractor');
       const dbPath = this.config?.dbPath || process.env.DATABASE_PATH || './data/catalyst.db';
       this.components.extractor = new DatabaseExtractor(dbPath);
     }
 
     if (!this.components.transformer) {
-      const { OptimizelyTransformer } = await import('../transformers/optimizely-transformer');
       this.components.transformer = new OptimizelyTransformer();
     }
 
@@ -46,7 +48,6 @@ class SyncEngine {
       const clientSecret = this.config?.clientSecret || process.env.OPTIMIZELY_CLIENT_SECRET;
 
       if (clientId && clientSecret) {
-        const { OptimizelyApiClient } = await import('../adapters/optimizely-api-client');
         this.components.apiClient = new OptimizelyApiClient({
           baseUrl: apiUrl,
           clientId,
@@ -56,13 +57,14 @@ class SyncEngine {
     }
 
     if (!this.components.orchestrator) {
-      const storageDir = this.config?.storageDir || './sync-data';
-      const { SyncOrchestrator } = await import('./sync-orchestrator');
+      // Use DatabaseStorage that reads from actual database
+      const storage = new DatabaseStorage(this.components.extractor);
+      
       this.components.orchestrator = new SyncOrchestrator(
-        this.components.extractor as any,
-        { loadAllContentTypes: async () => [], saveContentType: async () => {}, loadSyncState: async () => ({ contentTypes: {} }), saveSyncState: async () => {} },
-        this.components.transformer as any,
-        this.components.apiClient as any
+        this.components.extractor,
+        storage,
+        this.components.transformer,
+        this.components.apiClient
       );
     }
   }
@@ -189,8 +191,12 @@ class SyncEngine {
       }
     };
 
-    // Start deployment asynchronously
-    runDeployment();
+    // Start deployment asynchronously and ensure cleanup on error
+    runDeployment().catch((error) => {
+      console.error('Deployment failed with unhandled error:', error);
+      // Ensure cleanup even if there's an unhandled error
+      this.activeDeployments.delete(job.id);
+    });
 
     return { cancel };
   }
@@ -207,7 +213,14 @@ class SyncEngine {
       // Keep only last 50 deployments
       const trimmedHistory = history.slice(0, 50);
       
-      localStorage.setItem(DEPLOYMENT_HISTORY_KEY, JSON.stringify(trimmedHistory));
+      try {
+        localStorage.setItem(DEPLOYMENT_HISTORY_KEY, JSON.stringify(trimmedHistory));
+      } catch (quotaError) {
+        // Handle QuotaExceededError by removing oldest entries
+        console.warn('localStorage quota exceeded, removing old deployments');
+        const reducedHistory = trimmedHistory.slice(0, 25); // Keep only 25 most recent
+        localStorage.setItem(DEPLOYMENT_HISTORY_KEY, JSON.stringify(reducedHistory));
+      }
     } catch (error) {
       console.error('Failed to save deployment to history:', error);
     }

@@ -1,5 +1,5 @@
-import sqlite3 from 'sqlite3';
-import path from 'path';
+import * as sqlite3 from 'sqlite3';
+import * as path from 'path';
 
 export interface ExtractedContentType {
   id: string;
@@ -26,30 +26,53 @@ export interface Website {
 export class DatabaseExtractor {
   private dbPath: string;
   private db: sqlite3.Database | null = null;
+  private isConnected: boolean = false;
+  private connectionPromise: Promise<void> | null = null;
 
   constructor(dbPath?: string) {
     this.dbPath = dbPath || path.join(process.cwd(), 'prisma/dev.db');
   }
 
   async connect(): Promise<void> {
-    return new Promise((resolve, reject) => {
+    // If already connected, return immediately
+    if (this.isConnected && this.db) {
+      return Promise.resolve();
+    }
+    
+    // If connection is in progress, wait for it
+    if (this.connectionPromise) {
+      return this.connectionPromise;
+    }
+    
+    // Start new connection
+    this.connectionPromise = new Promise((resolve, reject) => {
       this.db = new sqlite3.Database(this.dbPath, (err) => {
         if (err) {
+          this.connectionPromise = null;
           reject(err);
         } else {
           console.log(`Connected to database: ${this.dbPath}`);
+          this.isConnected = true;
+          this.connectionPromise = null;
           resolve();
         }
       });
     });
+    
+    return this.connectionPromise;
   }
 
   async close(): Promise<void> {
-    if (this.db) {
+    if (this.db && this.isConnected) {
       return new Promise((resolve, reject) => {
         this.db!.close((err) => {
-          if (err) reject(err);
-          else resolve();
+          if (err) {
+            reject(err);
+          } else {
+            this.isConnected = false;
+            this.db = null;
+            resolve();
+          }
         });
       });
     }

@@ -1,4 +1,4 @@
-import chalk from 'chalk';
+import * as chalk from 'chalk';
 import { DatabaseExtractor, ExtractedContentType } from '../extractors/database-extractor';
 import { OptimizelyTransformer, TransformationResult } from '../transformers/optimizely-transformer';
 import { OptimizelyApiClient, OptimizelyContentTypeResponse } from '../adapters/optimizely-api-client';

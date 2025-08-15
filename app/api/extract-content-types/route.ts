@@ -1,17 +1,25 @@
 import { NextResponse } from 'next/server';
+import { DatabaseExtractor } from '@/lib/sync/extractors/database-extractor';
+import * as path from 'path';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    // Import the database extractor on the server side only using dynamic import
-    const { DatabaseExtractor } = await import('@/lib/sync/extractors/database-extractor');
+    // Get websiteId from query parameters
+    const { searchParams } = new URL(request.url);
+    const websiteId = searchParams.get('websiteId');
     
-    const dbPath = process.env.DATABASE_PATH || './data/catalyst.db';
+    console.log('API: Extracting content types for websiteId:', websiteId);
+    
+    const dbPath = process.env.DATABASE_PATH || path.join(process.cwd(), 'prisma', 'dev.db');
+    console.log('API: Using database path:', dbPath);
     const extractor = new DatabaseExtractor(dbPath);
     
     try {
       await extractor.connect();
-      const extractedTypes = await extractor.extractContentTypes();
+      const extractedTypes = await extractor.extractContentTypes(websiteId);
       await extractor.close();
+      
+      console.log('API: Extracted types:', extractedTypes.length, extractedTypes.map(t => t.name));
       
       // Transform to our component format
       const types = extractedTypes.map((type) => ({
@@ -19,6 +27,8 @@ export async function GET() {
         name: type.name,
         fields: type.fields?.fields || []
       }));
+      
+      console.log('API: Transformed types:', types);
       
       return NextResponse.json({ success: true, data: types });
     } catch (error) {
