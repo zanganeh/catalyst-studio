@@ -34,7 +34,7 @@ import {
   DeploymentJob,
   CMSProviderId,
 } from '@/lib/deployment/deployment-types';
-import { mockDeploymentService } from '@/lib/deployment/mock-deployment-service';
+import { syncEngine } from '@/lib/sync/engine/SyncEngine';
 import { CMS_PROVIDERS } from '@/lib/deployment/cms-providers';
 
 interface DeploymentHistoryProps {
@@ -52,7 +52,7 @@ export function DeploymentHistory({ onRedeploy, className }: DeploymentHistoryPr
   }, []);
 
   const loadHistory = () => {
-    const deploymentHistory = mockDeploymentService.getDeploymentHistory();
+    const deploymentHistory = syncEngine.getDeploymentHistory();
     setHistory(deploymentHistory);
   };
 
@@ -73,7 +73,7 @@ export function DeploymentHistory({ onRedeploy, className }: DeploymentHistoryPr
   };
 
   const handleClearHistory = () => {
-    mockDeploymentService.clearHistory();
+    syncEngine.clearHistory();
     setHistory([]);
   };
 

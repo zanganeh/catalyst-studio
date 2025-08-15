@@ -12,7 +12,8 @@ import {
   DeploymentLog,
   CMSProvider,
 } from '@/lib/deployment/deployment-types';
-import { mockDeploymentService } from '@/lib/deployment/mock-deployment-service';
+// Use real sync engine instead of mock service
+import { syncEngine } from '@/lib/sync/engine/SyncEngine';
 
 interface DeploymentProgressProps {
   job: DeploymentJob;
@@ -61,7 +62,7 @@ export function DeploymentProgress({ job, provider, onComplete }: DeploymentProg
   }, [currentJob.status]);
 
   const startDeployment = async () => {
-    const deployment = mockDeploymentService.startDeployment(
+    const deployment = syncEngine.startDeployment(
       job,
       provider,
       (updatedJob) => {
