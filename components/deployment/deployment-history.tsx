@@ -34,7 +34,7 @@ import {
   DeploymentJob,
   CMSProviderId,
 } from '@/lib/deployment/deployment-types';
-import { syncEngine } from '@/lib/sync/engine/SyncEngine';
+import { clientSyncService } from '@/lib/sync/client/sync-service';
 import { CMS_PROVIDERS } from '@/lib/deployment/cms-providers';
 
 interface DeploymentHistoryProps {
@@ -49,10 +49,31 @@ export function DeploymentHistory({ onRedeploy, className }: DeploymentHistoryPr
 
   useEffect(() => {
     loadHistory();
+    
+    // Also refresh on visibility change (when switching tabs)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadHistory();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Refresh periodically while visible
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        loadHistory();
+      }
+    }, 5000);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(interval);
+    };
   }, []);
 
   const loadHistory = () => {
-    const deploymentHistory = syncEngine.getDeploymentHistory();
+    const deploymentHistory = clientSyncService.getDeploymentHistory();
     setHistory(deploymentHistory);
   };
 
@@ -73,7 +94,7 @@ export function DeploymentHistory({ onRedeploy, className }: DeploymentHistoryPr
   };
 
   const handleClearHistory = () => {
-    syncEngine.clearHistory();
+    clientSyncService.clearHistory();
     setHistory([]);
   };
 

@@ -12,8 +12,8 @@ import {
   DeploymentLog,
   CMSProvider,
 } from '@/lib/deployment/deployment-types';
-// Use real sync engine instead of mock service
-import { syncEngine } from '@/lib/sync/engine/SyncEngine';
+// Use client-side sync service that calls the API
+import { clientSyncService } from '@/lib/sync/client/sync-service';
 
 interface DeploymentProgressProps {
   job: DeploymentJob;
@@ -62,13 +62,15 @@ export function DeploymentProgress({ job, provider, onComplete }: DeploymentProg
   }, [currentJob.status]);
 
   const startDeployment = async () => {
-    const deployment = syncEngine.startDeployment(
+    const deployment = await clientSyncService.startDeployment(
       job,
       provider,
       (updatedJob) => {
         setCurrentJob(updatedJob);
         
         if (updatedJob.status === 'completed' || updatedJob.status === 'failed') {
+          // Save to history when deployment completes
+          clientSyncService.saveDeploymentToHistory(updatedJob);
           onComplete(updatedJob);
         }
       }
@@ -97,6 +99,8 @@ export function DeploymentProgress({ job, provider, onComplete }: DeploymentProg
         ],
       };
       setCurrentJob(cancelledJob);
+      // Save cancelled deployment to history
+      clientSyncService.saveDeploymentToHistory(cancelledJob);
       onComplete(cancelledJob);
     }
   };
