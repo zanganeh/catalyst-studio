@@ -30,6 +30,8 @@ class SyncEngine {
   private apiClient: any;
 
   constructor(config?: SyncEngineConfig) {
+    // Validate configuration on startup
+    this.validateConfiguration(config);
     // Initialize the sync components
     const dbPath = config?.dbPath || process.env.DATABASE_PATH || './data/catalyst.db';
     const storageDir = config?.storageDir || './sync-data';
@@ -60,6 +62,40 @@ class SyncEngine {
     });
   }
 
+  private validateConfiguration(config?: SyncEngineConfig): void {
+    // Check if credentials are provided via config or environment
+    const clientId = config?.clientId || process.env.OPTIMIZELY_CLIENT_ID;
+    const clientSecret = config?.clientSecret || process.env.OPTIMIZELY_CLIENT_SECRET;
+    
+    if (!clientId || !clientSecret) {
+      console.warn(
+        '⚠️ Optimizely OAuth credentials not configured. ' +
+        'Sync engine will work in limited mode. ' +
+        'Please set OPTIMIZELY_CLIENT_ID and OPTIMIZELY_CLIENT_SECRET in .env.local'
+      );
+    }
+  }
+
+  /**
+   * Sanitizes content type name for API safety
+   * Removes special characters and ensures valid naming
+   */
+  private sanitizeContentTypeName(name: string): string {
+    // Remove any potentially dangerous characters
+    // Allow only alphanumeric, spaces, underscores, and hyphens
+    return name
+      .replace(/[^a-zA-Z0-9\s_-]/g, '')
+      .trim()
+      .substring(0, 100); // Limit length to prevent overflow
+  }
+
+  /**
+   * Starts a deployment job to sync content types to the CMS provider
+   * @param job - The deployment job configuration
+   * @param provider - The CMS provider to sync to
+   * @param onUpdate - Callback function called with job updates
+   * @returns Object with cancel function to abort the deployment
+   */
   startDeployment(
     job: DeploymentJob,
     provider: CMSProvider,
@@ -148,12 +184,18 @@ class SyncEngine {
           if (cancelled) return;
           
           try {
-            addLog(`Syncing ${type.name} to Optimizely...`, 'info');
-            await this.apiClient.createContentType(type);
+            // Sanitize content type name for API safety
+            const sanitizedType = {
+              ...type,
+              name: this.sanitizeContentTypeName(type.name)
+            };
+            
+            addLog(`Syncing ${sanitizedType.name} to Optimizely...`, 'info');
+            await this.apiClient.createContentType(sanitizedType);
             successful++;
-            details.push({ type: type.name, status: 'success' });
+            details.push({ type: sanitizedType.name, status: 'success' });
             syncProgress += syncStep;
-            addLog(`Successfully synced ${type.name}`, 'info', Math.floor(syncProgress));
+            addLog(`Successfully synced ${sanitizedType.name}`, 'info', Math.floor(syncProgress));
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } catch (error: any) {
             failed++;
@@ -212,11 +254,18 @@ class SyncEngine {
         
         onUpdate(currentJob);
         this.saveToHistory(currentJob);
+        // Clean up from active deployments on error
+        this.activeDeployments.delete(job.id);
       }
     };
 
     // Start the sync process
-    performSync();
+    performSync().then(() => {
+      // Clean up from active deployments on completion
+      this.activeDeployments.delete(job.id);
+    }).catch(() => {
+      // Cleanup is already handled in the catch block above
+    });
 
     const cancel = () => {
       cancelled = true;
@@ -237,6 +286,8 @@ class SyncEngine {
       
       onUpdate(currentJob);
       this.saveToHistory(currentJob);
+      // Clean up from active deployments on cancel
+      this.activeDeployments.delete(job.id);
     };
     
     this.activeDeployments.set(job.id, { cancel });
@@ -244,6 +295,11 @@ class SyncEngine {
     return { cancel };
   }
 
+  /**
+   * Cancels an active deployment by job ID
+   * @param jobId - The ID of the job to cancel
+   * @returns true if the job was found and cancelled, false otherwise
+   */
   cancelDeployment(jobId: string): boolean {
     const deployment = this.activeDeployments.get(jobId);
     if (deployment) {
@@ -255,30 +311,48 @@ class SyncEngine {
   }
 
   private saveToHistory(job: DeploymentJob) {
-    const historyStr = localStorage.getItem(DEPLOYMENT_HISTORY_KEY);
-    const history = historyStr ? JSON.parse(historyStr) : [];
-    
-    // Convert dates to strings for storage
-    const jobToStore = {
-      ...job,
-      startedAt: job.startedAt.toISOString(),
-      completedAt: job.completedAt?.toISOString(),
-      logs: job.logs.map(log => ({
-        ...log,
-        timestamp: log.timestamp.toISOString(),
-      })),
-    };
-    
-    history.unshift(jobToStore);
-    
-    // Keep only last 50 deployments
-    if (history.length > 50) {
-      history.splice(50);
+    try {
+      const historyStr = localStorage.getItem(DEPLOYMENT_HISTORY_KEY);
+      const history = historyStr ? JSON.parse(historyStr) : [];
+      
+      // Convert dates to strings for storage
+      const jobToStore = {
+        ...job,
+        startedAt: job.startedAt.toISOString(),
+        completedAt: job.completedAt?.toISOString(),
+        logs: job.logs.map(log => ({
+          ...log,
+          timestamp: log.timestamp.toISOString(),
+        })),
+      };
+      
+      history.unshift(jobToStore);
+      
+      // Keep only last 50 deployments
+      if (history.length > 50) {
+        history.splice(50);
+      }
+      
+      localStorage.setItem(DEPLOYMENT_HISTORY_KEY, JSON.stringify(history));
+    } catch (error) {
+      // Handle QuotaExceededError or other localStorage errors
+      console.error('Failed to save deployment history:', error);
+      // Try to clear old history if quota exceeded
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        try {
+          localStorage.removeItem(DEPLOYMENT_HISTORY_KEY);
+          console.warn('Cleared deployment history due to storage quota');
+        } catch {
+          // Ignore if we can't even clear
+        }
+      }
     }
-    
-    localStorage.setItem(DEPLOYMENT_HISTORY_KEY, JSON.stringify(history));
   }
 
+  /**
+   * Retrieves the deployment history from localStorage
+   * @returns Array of past deployment jobs
+   */
   getDeploymentHistory(): DeploymentJob[] {
     const historyStr = localStorage.getItem(DEPLOYMENT_HISTORY_KEY);
     if (!historyStr) return [];
@@ -299,11 +373,20 @@ class SyncEngine {
     }));
   }
 
+  /**
+   * Clears all deployment history from localStorage
+   */
   clearHistory() {
     localStorage.removeItem(DEPLOYMENT_HISTORY_KEY);
   }
 
-  // Retry deployment with exponential backoff
+  /**
+   * Retries a failed deployment with exponential backoff
+   * @param originalJob - The original job that failed
+   * @param provider - The CMS provider to sync to  
+   * @param onUpdate - Callback function called with job updates
+   * @returns Object with cancel function to abort the retry
+   */
   retryDeployment(
     originalJob: DeploymentJob,
     provider: CMSProvider,

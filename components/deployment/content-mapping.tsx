@@ -38,7 +38,8 @@ export function ContentMapping({ providerId, onMappingComplete, className }: Con
       // For now, we'll simulate extracted content types
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const DatabaseExtractor = require('@/lib/sync/extractors/database-extractor.js');
-      const dbPath = process.env.DATABASE_PATH || './data/catalyst.db';
+      // Use default path - environment variables should be handled server-side
+      const dbPath = './data/catalyst.db';
       const extractor = new DatabaseExtractor(dbPath);
 
       try {
