@@ -3,25 +3,21 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     // Import the database extractor on the server side only using dynamic import
-    const { DatabaseExtractor } = await import('@/lib/sync/extractors/database-extractor.js');
+    const { DatabaseExtractor } = await import('@/lib/sync/extractors/database-extractor');
     
     const dbPath = process.env.DATABASE_PATH || './data/catalyst.db';
     const extractor = new DatabaseExtractor(dbPath);
     
     try {
+      await extractor.connect();
       const extractedTypes = await extractor.extractContentTypes();
+      await extractor.close();
       
       // Transform to our component format
-      interface ExtractedType {
-        id?: string;
-        name: string;
-        fields?: Array<{ name: string; type: string }>;
-      }
-      
-      const types = extractedTypes.map((type: ExtractedType) => ({
+      const types = extractedTypes.map((type) => ({
         id: type.id || type.name.toLowerCase().replace(/\s+/g, '_'),
         name: type.name,
-        fields: type.fields || []
+        fields: type.fields?.fields || []
       }));
       
       return NextResponse.json({ success: true, data: types });

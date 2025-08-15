@@ -1,18 +1,37 @@
 import sqlite3 from 'sqlite3';
-import { promisify } from 'util';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+export interface ExtractedContentType {
+  id: string;
+  websiteId: string;
+  websiteName: string | null;
+  name: string;
+  fields: Record<string, any>;
+  settings: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+  metadata: {
+    extractedAt: string;
+    source: string;
+  };
+}
+
+export interface Website {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export class DatabaseExtractor {
-  constructor(dbPath) {
-    this.dbPath = dbPath || path.join(__dirname, '../../../prisma/dev.db');
-    this.db = null;
+  private dbPath: string;
+  private db: sqlite3.Database | null = null;
+
+  constructor(dbPath?: string) {
+    this.dbPath = dbPath || path.join(process.cwd(), 'prisma/dev.db');
   }
 
-  async connect() {
+  async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.db = new sqlite3.Database(this.dbPath, (err) => {
         if (err) {
@@ -25,10 +44,10 @@ export class DatabaseExtractor {
     });
   }
 
-  async close() {
+  async close(): Promise<void> {
     if (this.db) {
       return new Promise((resolve, reject) => {
-        this.db.close((err) => {
+        this.db!.close((err) => {
           if (err) reject(err);
           else resolve();
         });
@@ -36,16 +55,20 @@ export class DatabaseExtractor {
     }
   }
 
-  async getAll(query, params = []) {
+  private async getAll<T = any>(query: string, params: any[] = []): Promise<T[]> {
     return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error('Database not connected'));
+        return;
+      }
       this.db.all(query, params, (err, rows) => {
         if (err) reject(err);
-        else resolve(rows);
+        else resolve(rows as T[]);
       });
     });
   }
 
-  async extractContentTypes(websiteId = null) {
+  async extractContentTypes(websiteId?: string | null): Promise<ExtractedContentType[]> {
     try {
       let query = `
         SELECT 
@@ -61,7 +84,7 @@ export class DatabaseExtractor {
         LEFT JOIN Website w ON ct.websiteId = w.id
       `;
       
-      const params = [];
+      const params: any[] = [];
       if (websiteId) {
         query += ' WHERE ct.websiteId = ?';
         params.push(websiteId);
@@ -69,16 +92,27 @@ export class DatabaseExtractor {
       
       query += ' ORDER BY ct.name, ct.createdAt';
 
-      const rows = await this.getAll(query, params);
+      interface RawContentType {
+        id: string;
+        websiteId: string;
+        name: string;
+        fields: string;
+        settings: string | null;
+        createdAt: string;
+        updatedAt: string;
+        websiteName: string | null;
+      }
+
+      const rows = await this.getAll<RawContentType>(query, params);
       
       return rows.map(row => {
-        let fields = {};
-        let settings = {};
+        let fields: Record<string, any> = {};
+        let settings: Record<string, any> = {};
         
         try {
           fields = JSON.parse(row.fields);
         } catch (e) {
-          console.warn(`Failed to parse fields for content type ${row.id}:`, e.message);
+          console.warn(`Failed to parse fields for content type ${row.id}:`, (e as Error).message);
         }
         
         try {
@@ -86,7 +120,7 @@ export class DatabaseExtractor {
             settings = JSON.parse(row.settings);
           }
         } catch (e) {
-          console.warn(`Failed to parse settings for content type ${row.id}:`, e.message);
+          console.warn(`Failed to parse settings for content type ${row.id}:`, (e as Error).message);
         }
         
         return {
@@ -110,7 +144,7 @@ export class DatabaseExtractor {
     }
   }
 
-  async getWebsites() {
+  async getWebsites(): Promise<Website[]> {
     try {
       const query = `
         SELECT 
@@ -122,7 +156,7 @@ export class DatabaseExtractor {
         ORDER BY name
       `;
       
-      return await this.getAll(query);
+      return await this.getAll<Website>(query);
     } catch (error) {
       console.error('Error fetching websites:', error);
       throw error;

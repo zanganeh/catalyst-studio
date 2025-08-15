@@ -41,7 +41,7 @@ export async function POST(req: Request) {
         if (websiteId && tool.parameters && 'websiteId' in tool.parameters.shape && !args.websiteId) {
           args = { ...args, websiteId };
         }
-        return tool.execute(args, websiteContext);
+        return tool.execute(args);
       }
     };
     return acc;

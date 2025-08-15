@@ -1,30 +1,98 @@
 import chalk from 'chalk';
+import { DatabaseExtractor, ExtractedContentType } from '../extractors/database-extractor';
+import { OptimizelyTransformer, TransformationResult } from '../transformers/optimizely-transformer';
+import { OptimizelyApiClient, OptimizelyContentTypeResponse } from '../adapters/optimizely-api-client';
+
+export interface SyncStorage {
+  loadAllContentTypes(): Promise<ExtractedContentType[]>;
+  saveContentType(contentType: ExtractedContentType): Promise<void>;
+  loadSyncState(): Promise<SyncState>;
+  saveSyncState(state: SyncState): Promise<void>;
+}
+
+export interface SyncState {
+  lastSync?: string;
+  statistics?: SyncStatistics;
+  contentTypes: Record<string, {
+    lastSynced: string;
+    etag: string | null;
+    status: string;
+  }>;
+}
+
+export interface SyncStatistics {
+  extracted: number;
+  transformed: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: number;
+}
+
+export interface SyncOptions {
+  websiteId?: string;
+}
+
+export interface DiscoveryResult {
+  local: ExtractedContentType[];
+  stored: ExtractedContentType[];
+  remote: OptimizelyContentTypeResponse[];
+}
+
+export interface AnalysisResult {
+  toCreate: TransformationResult[];
+  toUpdate: Array<TransformationResult & { existing: OptimizelyContentTypeResponse; etag: string | null }>;
+  toSkip: TransformationResult[];
+  conflicts: any[];
+}
+
+export interface ExecutionResult {
+  created: any[];
+  updated: any[];
+  skipped: TransformationResult[];
+  failed: Array<{ item: any; error: string }>;
+}
 
 export class SyncOrchestrator {
-  constructor(extractor, storage, transformer, apiClient) {
+  private extractor: DatabaseExtractor;
+  private storage: SyncStorage;
+  private transformer: OptimizelyTransformer;
+  private apiClient: OptimizelyApiClient | null;
+  private dryRun: boolean = false;
+  private statistics: SyncStatistics = {
+    extracted: 0,
+    transformed: 0,
+    created: 0,
+    updated: 0,
+    skipped: 0,
+    errors: 0
+  };
+
+  constructor(
+    extractor: DatabaseExtractor,
+    storage: SyncStorage,
+    transformer: OptimizelyTransformer,
+    apiClient: OptimizelyApiClient | null
+  ) {
     this.extractor = extractor;
     this.storage = storage;
     this.transformer = transformer;
     this.apiClient = apiClient;
-    this.dryRun = false;
-    this.statistics = {
-      extracted: 0,
-      transformed: 0,
-      created: 0,
-      updated: 0,
-      skipped: 0,
-      errors: 0
-    };
   }
 
-  setDryRun(value) {
+  setDryRun(value: boolean): void {
     this.dryRun = value;
     if (this.apiClient) {
       this.apiClient.setDryRun(value);
     }
   }
 
-  async sync(options = {}) {
+  async sync(options: SyncOptions = {}): Promise<{
+    success: boolean;
+    statistics: SyncStatistics;
+    results?: ExecutionResult;
+    error?: string;
+  }> {
     console.log(chalk.blue('\n━━━ Content Type Sync Started ━━━\n'));
     
     if (this.dryRun) {
@@ -51,17 +119,18 @@ export class SyncOrchestrator {
         results: executionResult
       };
     } catch (error) {
-      console.error(chalk.red(`\n❌ Sync failed: ${error.message}`));
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(chalk.red(`\n❌ Sync failed: ${errorMessage}`));
       return {
         success: false,
-        error: error.message,
+        error: errorMessage,
         statistics: this.statistics
       };
     }
   }
 
-  async discoveryPhase(options) {
-    const results = {
+  private async discoveryPhase(options: SyncOptions): Promise<DiscoveryResult> {
+    const results: DiscoveryResult = {
       local: [],
       stored: [],
       remote: []
@@ -85,15 +154,16 @@ export class SyncOrchestrator {
         console.log(chalk.green(`  ✓ Found ${results.remote.length} content types in Optimizely`));
       }
     } catch (error) {
-      console.error(chalk.red(`  ✗ Discovery failed: ${error.message}`));
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error(chalk.red(`  ✗ Discovery failed: ${errorMessage}`));
       throw error;
     }
     
     return results;
   }
 
-  async analysisPhase(discoveryResult) {
-    const analysis = {
+  private async analysisPhase(discoveryResult: DiscoveryResult): Promise<AnalysisResult> {
+    const analysis: AnalysisResult = {
       toCreate: [],
       toUpdate: [],
       toSkip: [],
@@ -147,7 +217,8 @@ export class SyncOrchestrator {
           analysis.toCreate.push(transformed);
         }
       } catch (error) {
-        console.error(chalk.red(`  ✗ Failed to process ${localType.name}: ${error.message}`));
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error(chalk.red(`  ✗ Failed to process ${localType.name}: ${errorMessage}`));
         this.statistics.errors++;
       }
     }
@@ -160,8 +231,8 @@ export class SyncOrchestrator {
     return analysis;
   }
 
-  async executionPhase(analysisResult) {
-    const results = {
+  private async executionPhase(analysisResult: AnalysisResult): Promise<ExecutionResult> {
+    const results: ExecutionResult = {
       created: [],
       updated: [],
       skipped: analysisResult.toSkip,
@@ -185,8 +256,9 @@ export class SyncOrchestrator {
           results.created.push(item);
         }
       } catch (error) {
-        console.error(chalk.red(`  ✗ Failed to create ${item.transformed.displayName}: ${error.message}`));
-        results.failed.push({ item, error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error(chalk.red(`  ✗ Failed to create ${item.transformed.displayName}: ${errorMessage}`));
+        results.failed.push({ item, error: errorMessage });
         this.statistics.errors++;
       }
     }
@@ -198,7 +270,7 @@ export class SyncOrchestrator {
           const updated = await this.apiClient.updateContentType(
             item.transformed.key,
             item.transformed,
-            item.etag
+            item.etag || undefined
           );
           results.updated.push(updated);
           this.statistics.updated++;
@@ -207,8 +279,9 @@ export class SyncOrchestrator {
           results.updated.push(item);
         }
       } catch (error) {
-        console.error(chalk.red(`  ✗ Failed to update ${item.transformed.displayName}: ${error.message}`));
-        results.failed.push({ item, error: error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error(chalk.red(`  ✗ Failed to update ${item.transformed.displayName}: ${errorMessage}`));
+        results.failed.push({ item, error: errorMessage });
         this.statistics.errors++;
       }
     }
@@ -218,7 +291,7 @@ export class SyncOrchestrator {
     return results;
   }
 
-  detectChanges(local, remote) {
+  private detectChanges(local: any, remote: any): boolean {
     const localProps = JSON.stringify(local.properties || {});
     const remoteProps = JSON.stringify(remote.properties || {});
     
@@ -227,19 +300,19 @@ export class SyncOrchestrator {
            local.description !== remote.description;
   }
 
-  async saveSyncState(executionResult) {
+  private async saveSyncState(executionResult: ExecutionResult): Promise<void> {
     const state = await this.storage.loadSyncState();
     
     state.lastSync = new Date().toISOString();
     state.statistics = this.statistics;
-    state.contentTypes = {};
+    state.contentTypes = state.contentTypes || {};
     
     for (const item of [...executionResult.created, ...executionResult.updated]) {
-      const key = item.transformed?.key || item.key;
+      const key = (item as any).transformed?.key || (item as any).key;
       if (key) {
         state.contentTypes[key] = {
           lastSynced: new Date().toISOString(),
-          etag: item.etag || null,
+          etag: (item as any).etag || null,
           status: 'synced'
         };
       }
@@ -248,7 +321,7 @@ export class SyncOrchestrator {
     await this.storage.saveSyncState(state);
   }
 
-  printSummary() {
+  private printSummary(): void {
     console.log(chalk.blue('\n━━━ Sync Summary ━━━\n'));
     console.log(`  📊 Statistics:`);
     console.log(`     Extracted: ${this.statistics.extracted}`);

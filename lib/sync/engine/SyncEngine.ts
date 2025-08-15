@@ -30,14 +30,13 @@ class SyncEngine {
   private async initializeComponents(): Promise<void> {
     if (!this.components.extractor) {
       // Dynamic import for better code splitting
-      const { DatabaseExtractor } = await import('../extractors/database-extractor.js');
+      const { DatabaseExtractor } = await import('../extractors/database-extractor');
       const dbPath = this.config?.dbPath || process.env.DATABASE_PATH || './data/catalyst.db';
       this.components.extractor = new DatabaseExtractor(dbPath);
     }
 
     if (!this.components.transformer) {
-      const OptimizelyTransformerModule = await import('../transformers/optimizely-transformer.js');
-      const OptimizelyTransformer = OptimizelyTransformerModule.default || OptimizelyTransformerModule;
+      const { OptimizelyTransformer } = await import('../transformers/optimizely-transformer');
       this.components.transformer = new OptimizelyTransformer();
     }
 
@@ -47,10 +46,9 @@ class SyncEngine {
       const clientSecret = this.config?.clientSecret || process.env.OPTIMIZELY_CLIENT_SECRET;
 
       if (clientId && clientSecret) {
-        const OptimizelyApiClientModule = await import('../adapters/optimizely-api-client.js');
-        const OptimizelyApiClient = OptimizelyApiClientModule.default || OptimizelyApiClientModule;
+        const { OptimizelyApiClient } = await import('../adapters/optimizely-api-client');
         this.components.apiClient = new OptimizelyApiClient({
-          apiUrl,
+          baseUrl: apiUrl,
           clientId,
           clientSecret
         });
@@ -59,14 +57,13 @@ class SyncEngine {
 
     if (!this.components.orchestrator) {
       const storageDir = this.config?.storageDir || './sync-data';
-      const SyncOrchestratorModule = await import('./sync-orchestrator.js');
-      const SyncOrchestrator = SyncOrchestratorModule.default || SyncOrchestratorModule;
-      this.components.orchestrator = new SyncOrchestrator({
-        extractor: this.components.extractor,
-        transformer: this.components.transformer,
-        apiClient: this.components.apiClient,
-        storageDir
-      });
+      const { SyncOrchestrator } = await import('./sync-orchestrator');
+      this.components.orchestrator = new SyncOrchestrator(
+        this.components.extractor as any,
+        { loadAllContentTypes: async () => [], saveContentType: async () => {}, loadSyncState: async () => ({ contentTypes: {} }), saveSyncState: async () => {} },
+        this.components.transformer as any,
+        this.components.apiClient as any
+      );
     }
   }
 

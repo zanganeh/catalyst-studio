@@ -1,31 +1,70 @@
-export class OptimizelyTransformer {
-  constructor() {
-    this.baseType = '_component'; // Valid base type for Optimizely
-    
-    // Type mapping from Catalyst to Optimizely
-    this.typeMapping = {
-      'text': 'String',
-      'textarea': 'String', 
-      'richtext': 'String',
-      'number': 'String', // No number type in Optimizely, use String
-      'boolean': 'Boolean',
-      'date': 'DateTime',
-      'datetime': 'DateTime',
-      'select': 'String',
-      'multiselect': 'String',
-      'image': 'String',
-      'media': 'String',
-      'reference': 'String',
-      'relation': 'String',
-      'tags': 'String',
-      'json': 'String'
-    };
-  }
+import { ExtractedContentType } from '../extractors/database-extractor';
 
-  transformContentType(catalystContentType) {
+export interface OptimizelyProperty {
+  type: string;
+  displayName: string;
+  required: boolean;
+  description?: string;
+}
+
+export interface OptimizelyContentType {
+  key: string;
+  displayName: string;
+  description: string;
+  baseType: string;
+  source: string;
+  sortOrder: number;
+  mayContainTypes: string[];
+  properties: Record<string, OptimizelyProperty>;
+}
+
+export interface FieldMapping {
+  catalystName: string;
+  catalystType: string;
+  label: string;
+  required: boolean;
+}
+
+export interface TransformationResult {
+  original: ExtractedContentType;
+  transformed: OptimizelyContentType;
+  mapping: {
+    catalystId: string;
+    optimizelyKey: string;
+    fieldMappings: FieldMapping[];
+  };
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+}
+
+export class OptimizelyTransformer {
+  private readonly baseType = '_component';
+  private readonly typeMapping: Record<string, string> = {
+    'text': 'String',
+    'textarea': 'String', 
+    'richtext': 'String',
+    'number': 'String',
+    'boolean': 'Boolean',
+    'date': 'DateTime',
+    'datetime': 'DateTime',
+    'select': 'String',
+    'multiselect': 'String',
+    'image': 'String',
+    'media': 'String',
+    'reference': 'String',
+    'relation': 'String',
+    'tags': 'String',
+    'json': 'String'
+  };
+
+  transformContentType(catalystContentType: ExtractedContentType): TransformationResult {
     const optimizelyKey = this.generateOptimizelyKey(catalystContentType.name);
     
-    const optimizelyContentType = {
+    const optimizelyContentType: OptimizelyContentType = {
       key: optimizelyKey,
       displayName: catalystContentType.fields?.name || catalystContentType.name || 'Untitled',
       description: catalystContentType.fields?.description || 
@@ -48,7 +87,7 @@ export class OptimizelyTransformer {
     };
   }
 
-  generateOptimizelyKey(name) {
+  private generateOptimizelyKey(name: string): string {
     if (!name) return 'UntitledType';
     
     let key = name
@@ -66,8 +105,8 @@ export class OptimizelyTransformer {
     return key.substring(0, 255);
   }
 
-  transformProperties(fields) {
-    const properties = {};
+  private transformProperties(fields: any[]): Record<string, OptimizelyProperty> {
+    const properties: Record<string, OptimizelyProperty> = {};
     
     fields.forEach((field) => {
       const propKey = this.generatePropertyKey(field.name || field.id);
@@ -80,13 +119,11 @@ export class OptimizelyTransformer {
         required: field.required || false
       };
       
-      // Add description if available
       if (field.description || field.help) {
         properties[propKey].description = field.description || field.help;
       }
     });
     
-    // Ensure at least one property exists
     if (Object.keys(properties).length === 0) {
       properties['title'] = {
         type: 'String',
@@ -98,15 +135,13 @@ export class OptimizelyTransformer {
     return properties;
   }
   
-  generatePropertyKey(name) {
+  private generatePropertyKey(name: string): string {
     if (!name) return 'field';
     
-    // Convert to camelCase and remove invalid characters
     let key = name
       .replace(/[^a-zA-Z0-9_]/g, '')
       .replace(/^[0-9]/, 'field$&');
     
-    // Ensure it starts with lowercase
     if (key && /^[A-Z]/.test(key)) {
       key = key.charAt(0).toLowerCase() + key.slice(1);
     }
@@ -114,9 +149,8 @@ export class OptimizelyTransformer {
     return key || 'field';
   }
 
-  // Field mapping for future use when properties can be added
-  getFieldMapping(fields) {
-    const mapping = [];
+  private getFieldMapping(fields?: any[]): FieldMapping[] {
+    const mapping: FieldMapping[] = [];
     fields?.forEach(field => {
       mapping.push({
         catalystName: field.name || field.id,
@@ -128,18 +162,17 @@ export class OptimizelyTransformer {
     return mapping;
   }
 
-  createFieldMappings(fields) {
-    // Store field mappings for future property creation
+  private createFieldMappings(fields: any[]): FieldMapping[] {
     return this.getFieldMapping(fields);
   }
 
-  transformBatch(catalystContentTypes) {
+  transformBatch(catalystContentTypes: ExtractedContentType[]): TransformationResult[] {
     return catalystContentTypes.map(ct => this.transformContentType(ct));
   }
 
-  validateTransformation(transformedType) {
-    const errors = [];
-    const warnings = [];
+  validateTransformation(transformedType: TransformationResult): ValidationResult {
+    const errors: string[] = [];
+    const warnings: string[] = [];
     
     if (!transformedType.transformed.key) {
       errors.push('Missing required field: key');
@@ -158,7 +191,6 @@ export class OptimizelyTransformer {
       errors.push(`Invalid key format: ${transformedType.transformed.key}`);
     }
     
-    // Check if properties are defined
     if (!transformedType.transformed.properties || Object.keys(transformedType.transformed.properties).length === 0) {
       warnings.push('No properties defined for content type');
     }
