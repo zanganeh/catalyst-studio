@@ -1,6 +1,5 @@
 import { tool } from 'ai';
 import { z } from 'zod';
-import { WebsiteService } from '@/lib/services/website-service';
 import { getClient } from '@/lib/db/client';
 
 export const updateBusinessRequirements = tool({
@@ -38,7 +37,6 @@ export const updateBusinessRequirements = tool({
     const startTime = Date.now();
     
     try {
-      const websiteService = new WebsiteService();
       const prisma = getClient();
       
       // Use transaction for atomic updates
