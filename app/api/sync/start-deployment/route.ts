@@ -9,6 +9,7 @@ import { DatabaseStorage } from '@/lib/sync/storage/database-storage';
 import { startDeploymentSchema } from '@/lib/api/validation/deployment';
 import { safeJsonParse } from '@/lib/utils/safe-json';
 import { withTransaction } from '@/lib/sync/utils/transaction-manager';
+import { validateCSRFToken } from '@/lib/security/csrf';
 
 interface CMSProviderInfo {
   id: string;
@@ -18,6 +19,15 @@ interface CMSProviderInfo {
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate CSRF token
+    const isValidCSRF = await validateCSRFToken(request);
+    if (!isValidCSRF) {
+      return NextResponse.json(
+        { error: 'Invalid CSRF token' },
+        { status: 403 }
+      );
+    }
+    
     const body = await request.json();
     
     // Validate input
@@ -325,7 +335,7 @@ export async function GET(request: NextRequest) {
         providerId: deployment.providerId,
         status: deployment.status,
         progress: deployment.progress,
-        logs: JSON.parse(deployment.logs),
+        logs: safeJsonParse(deployment.logs, []),
         startedAt: deployment.startedAt,
         completedAt: deployment.completedAt,
         error: deployment.error,
@@ -344,6 +354,15 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  // Validate CSRF token
+  const isValidCSRF = await validateCSRFToken(request);
+  if (!isValidCSRF) {
+    return NextResponse.json(
+      { error: 'Invalid CSRF token' },
+      { status: 403 }
+    );
+  }
+  
   const searchParams = request.nextUrl.searchParams;
   const deploymentId = searchParams.get('id');
   
@@ -360,7 +379,7 @@ export async function DELETE(request: NextRequest) {
       where: { id: deploymentId },
     });
     
-    const cancelLogs = currentDeployment?.logs ? JSON.parse(currentDeployment.logs) : [];
+    const cancelLogs: any[] = currentDeployment?.logs ? safeJsonParse(currentDeployment.logs, []) || [] : [];
     cancelLogs.push({
       timestamp: new Date().toISOString(),
       level: 'warning',
