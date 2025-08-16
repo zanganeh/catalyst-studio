@@ -17,6 +17,7 @@ interface FormGeneratorProps {
   contentType: ContentType;
   contentItem?: ContentItem | null;
   onSubmit: (data: Record<string, unknown>) => void;
+  onChange?: () => void;
 }
 
 // Create dynamic Zod schema based on field configuration
@@ -439,7 +440,7 @@ function renderField(field: Field, control: Control<Record<string, unknown>>, er
   }
 }
 
-export function FormGenerator({ contentType, contentItem, onSubmit }: FormGeneratorProps) {
+export function FormGenerator({ contentType, contentItem, onSubmit, onChange }: FormGeneratorProps) {
   const schema = createDynamicSchema(contentType.fields);
   
   const {
@@ -447,6 +448,7 @@ export function FormGenerator({ contentType, contentItem, onSubmit }: FormGenera
     handleSubmit,
     formState: { errors },
     reset,
+    watch,
   } = useForm<Record<string, unknown>>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -454,6 +456,14 @@ export function FormGenerator({ contentType, contentItem, onSubmit }: FormGenera
       ...contentItem?.data || {},
     },
   });
+  
+  // Watch for form changes and trigger onChange callback
+  useEffect(() => {
+    if (onChange) {
+      const subscription = watch(() => onChange());
+      return () => subscription.unsubscribe();
+    }
+  }, [watch, onChange]);
   
   // Reset form when content item changes
   useEffect(() => {
