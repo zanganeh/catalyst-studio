@@ -24,7 +24,7 @@ export async function withTransaction<T>(
   }, {
     maxWait: 5000, // Maximum time to wait for a transaction slot
     timeout: 30000, // Maximum time a transaction can run
-    isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+    // SQLite doesn't support isolation levels, removed to fix "Invalid enum value: ReadCommitted" error
   });
 }
 

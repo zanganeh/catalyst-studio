@@ -27,9 +27,11 @@ export function DeploymentProgress({ job, provider, onComplete }: DeploymentProg
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const deploymentRef = useRef<{ cancel: () => void } | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const hasStartedDeployment = useRef(false);
 
   useEffect(() => {
-    if (job.status === 'pending') {
+    if (job.status === 'pending' && !hasStartedDeployment.current) {
+      hasStartedDeployment.current = true;
       startDeployment();
     }
     

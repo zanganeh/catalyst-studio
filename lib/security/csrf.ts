@@ -1,4 +1,4 @@
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 
@@ -17,7 +17,7 @@ export function generateCSRFToken(): string {
  * Gets or creates a CSRF token for the current session
  */
 export async function getCSRFToken(): Promise<string> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const existingToken = cookieStore.get(CSRF_TOKEN_COOKIE);
   
   if (existingToken?.value) {
@@ -47,7 +47,7 @@ export async function validateCSRFToken(request: NextRequest): Promise<boolean> 
     return true;
   }
   
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const cookieToken = cookieStore.get(CSRF_TOKEN_COOKIE)?.value;
   
   if (!cookieToken) {

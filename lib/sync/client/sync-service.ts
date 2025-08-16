@@ -5,6 +5,16 @@ import {
 
 class ClientSyncService {
   private pollingIntervals = new Map<string, NodeJS.Timeout>();
+  private csrfToken: string | null = null;
+
+  private async getCSRFToken(): Promise<string> {
+    if (!this.csrfToken) {
+      const response = await fetch('/api/csrf-token');
+      const data = await response.json();
+      this.csrfToken = data.token;
+    }
+    return this.csrfToken;
+  }
 
   async startDeployment(
     job: DeploymentJob,
@@ -12,10 +22,16 @@ class ClientSyncService {
     onUpdate: (job: DeploymentJob) => void
   ): Promise<{ cancel: () => void }> {
     try {
+      // Get CSRF token
+      const csrfToken = await this.getCSRFToken();
+      
       // Start the deployment via API
       const response = await fetch('/api/sync/start-deployment', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
         body: JSON.stringify({
           websiteId: job.websiteId,
           provider,
@@ -75,9 +91,15 @@ class ClientSyncService {
             this.pollingIntervals.delete(deploymentId);
           }
           
+          // Get CSRF token for DELETE request
+          const deleteToken = await this.getCSRFToken();
+          
           // Cancel deployment via API
           await fetch(`/api/sync/start-deployment?id=${deploymentId}`, {
             method: 'DELETE',
+            headers: {
+              'x-csrf-token': deleteToken,
+            },
           });
         },
       };

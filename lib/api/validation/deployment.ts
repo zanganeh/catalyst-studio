@@ -4,12 +4,18 @@ import { z } from 'zod';
  * Schema for starting a deployment
  */
 export const startDeploymentSchema = z.object({
-  websiteId: z.string().uuid('Invalid website ID format'),
+  websiteId: z.string().min(1, 'Website ID is required'),
   provider: z.object({
     id: z.string().min(1, 'Provider ID is required'),
     name: z.string().min(1, 'Provider name is required'),
     config: z.record(z.unknown()).optional(),
-  }),
+    // Allow additional properties from the provider object
+    description: z.string().optional(),
+    logo: z.string().optional(),
+    connectionStatus: z.string().optional(),
+    lastConnected: z.string().optional(),
+    connectionExpiry: z.string().optional(),
+  }).passthrough(), // Allow additional unknown properties
   selectedTypes: z.array(z.string()).optional().default([]),
 });
 

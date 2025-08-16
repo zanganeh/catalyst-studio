@@ -96,10 +96,17 @@ function DeploymentPageContent() {
   const handleRetry = async () => {
     if (lastDeployment) {
       try {
+        // Get CSRF token first
+        const csrfResponse = await fetch('/api/csrf-token');
+        const csrfData = await csrfResponse.json();
+        
         // Retry deployment by creating a new deployment with same configuration
         const response = await fetch('/api/sync/start-deployment', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfData.token,
+          },
           body: JSON.stringify({
             websiteId: lastDeployment.job.websiteId,
             provider: {
