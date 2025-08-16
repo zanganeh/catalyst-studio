@@ -225,9 +225,67 @@ This backlog contains enhancement features for the Content Type Builder that wer
 
 ---
 
+### 10. Next.js App Router Architecture Improvements
+**Priority**: Medium  
+**Story Points**: 5  
+**Description**: Modernize components to use Next.js App Router best practices and server components where appropriate.
+
+**Tasks:**
+- [ ] Convert client components to server components where data fetching is primary purpose
+- [ ] Move data fetching logic from client-side API calls to server components
+- [ ] Implement proper separation of server and client component boundaries
+- [ ] Review and optimize component tree for minimal client-side JavaScript
+- [ ] Ensure proper hydration boundaries
+
+**Acceptance Criteria:**
+- Components that don't require interactivity are server components
+- Data fetching happens on the server where possible
+- Client bundle size is reduced
+- Page load performance is improved
+- No hydration errors occur
+
+**Technical Details:**
+- Current issue: Many components are marked as 'use client' unnecessarily
+- Files to review:
+  - `app/(dashboard)/content/page.tsx` - Could be partially server component
+  - API route handlers could become server actions
+- Benefits: Reduced bundle size, better SEO, improved performance
+
+---
+
+### 11. Server Actions Implementation
+**Priority**: Medium  
+**Story Points**: 3  
+**Description**: Replace API routes with Next.js Server Actions for better performance and simpler data mutations.
+
+**Tasks:**
+- [ ] Convert POST/PUT/DELETE API routes to server actions
+- [ ] Implement proper server action error handling
+- [ ] Add server action validation with zod
+- [ ] Update client components to use server actions
+- [ ] Add optimistic updates where appropriate
+
+**Acceptance Criteria:**
+- All data mutations use server actions instead of API routes
+- Form submissions work without client-side JavaScript
+- Proper loading and error states are shown
+- Optimistic updates improve perceived performance
+- Type safety is maintained between client and server
+
+**Technical Details:**
+- Current implementation: Using traditional API routes in `/app/api/`
+- Target: Server actions with 'use server' directive
+- Benefits: Reduced latency, progressive enhancement, simpler code
+- Files affected:
+  - `/app/api/content-items/route.ts` → server actions
+  - `/lib/stores/content-store.ts` → update to use server actions
+
+---
+
 ## Change Log
 | Date | Version | Description | Author |
 |------|---------|-------------|--------|
 | 2025-01-09 | 1.0 | Initial backlog created from Story 1.3 remaining items | James (Dev) |
 | 2025-01-09 | 1.1 | Added TypeScript type safety improvements from code review | James (Dev) |
 | 2025-08-12 | 1.2 | Added missing UI components for multi-website support from Story 3.6 | James (Dev) |
+| 2025-08-16 | 1.3 | Added Next.js architecture improvements from PR #2 review | Claude |
