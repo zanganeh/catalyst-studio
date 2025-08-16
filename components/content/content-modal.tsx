@@ -97,9 +97,14 @@ export function ContentModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className="max-w-2xl bg-gray-900/95 backdrop-blur-md border-gray-700"
-        onPointerDownOutside={() => {
-          // Allow closing by clicking backdrop
-          onOpenChange(false);
+        onPointerDownOutside={(e) => {
+          // Check for unsaved changes before closing
+          if (hasUnsavedChanges) {
+            e.preventDefault();
+            setShowUnsavedAlert(true);
+          } else {
+            onOpenChange(false);
+          }
         }}
       >
         <DialogHeader className="border-b border-gray-800 pb-4">

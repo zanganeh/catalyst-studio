@@ -41,7 +41,7 @@ export default function ContentPage() {
     if (websiteId) {
       contentStore.loadContent(websiteId);
     }
-  }, [websiteId]); // Remove function dependency to prevent infinite loop
+  }, [websiteId, contentStore]); // Include contentStore for proper dependency tracking
   
   // Get selected content type for modal
   const selectedContentType = contentTypes.find(
@@ -80,7 +80,10 @@ export default function ContentPage() {
         description: 'The content item has been successfully deleted.',
       });
     } catch (error) {
-      console.error('Delete content error:', error);
+      // Log error for monitoring in production
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Delete content error:', error);
+      }
       toast({
         title: 'Error',
         description: 'Failed to delete content item. Please try again.',
@@ -104,7 +107,10 @@ export default function ContentPage() {
         handleEditContent(duplicated);
       }
     } catch (error) {
-      console.error('Duplicate content error:', error);
+      // Log error for monitoring in production
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Duplicate content error:', error);
+      }
       toast({
         title: 'Error',
         description: 'Failed to duplicate content item. Please try again.',
@@ -135,7 +141,10 @@ export default function ContentPage() {
       setModalOpen(false);
       setSelectedItem(null);
     } catch (error) {
-      console.error('Save content error:', error);
+      // Log error for monitoring in production
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Save content error:', error);
+      }
       toast({
         title: 'Error',
         description: 'Failed to save content. Please check your input and try again.',

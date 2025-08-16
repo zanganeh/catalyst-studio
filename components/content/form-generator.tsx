@@ -294,10 +294,12 @@ function ImageField({ field, control, errors }: FieldProps) {
   const errorId = `${field.name}-error`;
   const helpId = `${field.name}-help`;
   const [urlError, setUrlError] = React.useState<string>('');
+  const [imageLoadError, setImageLoadError] = React.useState<boolean>(false);
   
   const validateImageUrl = (url: string) => {
     if (!url) {
       setUrlError('');
+      setImageLoadError(false); // Reset image load error when URL changes
       return;
     }
     
@@ -308,6 +310,7 @@ function ImageField({ field, control, errors }: FieldProps) {
         return;
       }
       setUrlError('');
+      setImageLoadError(false); // Reset image load error when URL is valid
     } catch {
       setUrlError('Please enter a valid URL');
     }
@@ -340,16 +343,20 @@ function ImageField({ field, control, errors }: FieldProps) {
               aria-invalid={!!errors[field.name] || !!urlError}
               aria-describedby={`${field.helpText ? helpId : ''} ${errors[field.name] || urlError ? errorId : ''}`.trim()}
             />
-            {(formField.value as string) && !urlError && (
+            {(formField.value as string) && !urlError && !imageLoadError && (
               <div className="relative w-full h-32 bg-gray-800 rounded-md overflow-hidden" role="img" aria-label="Image preview">
                 <img
                   src={formField.value as string}
                   alt="Preview of uploaded image"
                   className="w-full h-full object-cover"
                   loading="lazy"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
+                  onError={() => {
+                    setImageLoadError(true);
                     setUrlError('Failed to load image');
+                  }}
+                  onLoad={() => {
+                    setImageLoadError(false);
+                    setUrlError('');
                   }}
                 />
               </div>
@@ -373,7 +380,8 @@ function ReferenceField({ field, control, errors }: FieldProps) {
   const errorId = `${field.name}-error`;
   const helpId = `${field.name}-help`;
   
-  // TODO: This would need to fetch and display available references
+  // Note: Reference field requires proper data loading implementation
+  // This is a placeholder that shows empty state
   return (
     <div className="space-y-2">
       <Label htmlFor={field.name} className="text-gray-300">
@@ -396,11 +404,8 @@ function ReferenceField({ field, control, errors }: FieldProps) {
               <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
             </SelectTrigger>
             <SelectContent className="bg-gray-900 border-gray-700">
-              <SelectItem value="ref1" className="text-gray-300 hover:bg-gray-800">
-                Reference Item 1
-              </SelectItem>
-              <SelectItem value="ref2" className="text-gray-300 hover:bg-gray-800">
-                Reference Item 2
+              <SelectItem value="" disabled className="text-gray-500 italic">
+                No references available
               </SelectItem>
             </SelectContent>
           </Select>
@@ -412,6 +417,9 @@ function ReferenceField({ field, control, errors }: FieldProps) {
       {errors[field.name] && (
         <p id={errorId} role="alert" className="text-sm text-red-500">{errors[field.name]?.message}</p>
       )}
+      <p className="text-xs text-gray-500 italic">
+        Reference data loading not yet implemented
+      </p>
     </div>
   );
 }
@@ -442,6 +450,7 @@ function renderField(field: Field, control: Control<Record<string, unknown>>, er
 
 export function FormGenerator({ contentType, contentItem, onSubmit, onChange }: FormGeneratorProps) {
   const schema = createDynamicSchema(contentType.fields);
+  const formRef = React.useRef<HTMLFormElement>(null);
   
   const {
     control,
@@ -479,9 +488,9 @@ export function FormGenerator({ contentType, contentItem, onSubmit, onChange }: 
       // Ctrl+S or Cmd+S to save
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
-        const form = document.getElementById('content-form') as HTMLFormElement;
-        if (form) {
-          form.requestSubmit();
+        // Use React ref instead of direct DOM manipulation
+        if (formRef.current) {
+          formRef.current.requestSubmit();
         }
       }
     };
@@ -521,7 +530,7 @@ export function FormGenerator({ contentType, contentItem, onSubmit, onChange }: 
   };
 
   return (
-    <form id="content-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form ref={formRef} id="content-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       {/* Always render title field first */}
       {renderField(titleField, control, formattedErrors)}
       
