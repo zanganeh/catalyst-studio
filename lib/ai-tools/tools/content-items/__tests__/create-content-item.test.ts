@@ -59,6 +59,15 @@ describe('create-content-item Tool', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    
+    // Mock the website exists
+    mockPrisma.website.findUnique.mockResolvedValue({
+      id: 'website1',
+      name: 'Test Website',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    
     (getClient as jest.Mock).mockReturnValue(mockPrisma);
     (getContentType as jest.Mock).mockResolvedValue(mockContentType);
     (businessRules.validateForCategory as jest.Mock).mockResolvedValue({ valid: true });

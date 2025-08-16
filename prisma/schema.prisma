@@ -19,9 +19,9 @@ model Website {
   isActive     Boolean       @default(true)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  aiContexts   AIContext[]
   contentItems ContentItem[]
   contentTypes ContentType[]
-  aiContexts   AIContext[]
 }
 
 model ContentType {
@@ -56,18 +56,37 @@ model ContentItem {
 }
 
 model AIContext {
-  id           String   @id @default(cuid())
-  websiteId    String
-  sessionId    String
-  messages     String   // JSON array of conversation messages (SQLite limitation)
-  metadata     String?  // JSON context metadata (tokens, model, etc.) (SQLite limitation)
-  summary      String?  // Summarized context for long conversations
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
-  website Website @relation(fields: [websiteId], references: [id], onDelete: Cascade)
-  
-  @@index([websiteId, sessionId])
+  id        String   @id @default(cuid())
+  websiteId String
+  sessionId String
+  messages  String
+  metadata  String?
+  summary   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  website   Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
   @@unique([websiteId, sessionId])
+  @@index([websiteId, sessionId])
+}
+
+model Deployment {
+  id            String    @id @default(cuid())
+  websiteId     String
+  providerId    String
+  providerName  String
+  selectedTypes String
+  status        String    @default("pending")
+  progress      Int       @default(0)
+  logs          String    @default("[]")
+  error         String?
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([websiteId])
+  @@index([status])
+  @@index([startedAt])
 }

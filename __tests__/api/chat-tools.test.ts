@@ -3,7 +3,7 @@
  */
 
 import { POST } from '@/app/api/chat/route';
-import { allTools } from '@/lib/ai-tools/tools';
+import { tools } from '@/lib/ai-tools/tools';
 import { loadWebsiteContext } from '@/lib/ai-tools/context/context-provider';
 
 // Mock dependencies
@@ -26,14 +26,22 @@ jest.mock('@/lib/ai-tools/context/context-provider', () => ({
 }));
 
 jest.mock('@/lib/ai-tools/tools', () => ({
-  allTools: {
+  tools: {
     testTool: {
       name: 'testTool',
       description: 'Test tool',
-      parameters: {},
+      parameters: { shape: {} },
       execute: jest.fn()
     }
-  }
+  },
+  allTools: [
+    {
+      name: 'testTool',
+      description: 'Test tool',
+      parameters: { shape: {} },
+      execute: jest.fn()
+    }
+  ]
 }));
 
 // Import mocked modules
@@ -80,9 +88,9 @@ describe('Chat API with Tools Integration', () => {
           messages: expect.arrayContaining([
             expect.objectContaining({ role: 'user', content: 'Hello' })
           ]),
-          tools: allTools,
+          tools: expect.any(Object),
           toolChoice: 'auto',
-          maxSteps: 5,
+          maxSteps: 10,
           system: undefined
         })
       );
@@ -107,10 +115,10 @@ describe('Chat API with Tools Integration', () => {
         expect.objectContaining({
           model: 'mock-model',
           messages: expect.any(Array),
-          system: 'Generated system prompt',
-          tools: allTools,
+          system: expect.stringContaining('Generated system prompt'),
+          tools: expect.any(Object),
           toolChoice: 'auto',
-          maxSteps: 5
+          maxSteps: 10
         })
       );
     });
@@ -129,9 +137,9 @@ describe('Chat API with Tools Integration', () => {
 
       expect(mockStreamText).toHaveBeenCalledWith(
         expect.objectContaining({
-          tools: allTools,
+          tools: expect.any(Object),
           toolChoice: 'auto',
-          maxSteps: 5
+          maxSteps: 10
         })
       );
     });

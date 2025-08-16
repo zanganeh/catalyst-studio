@@ -133,12 +133,11 @@ export const createContentType = tool({
       const result = await createContentTypeService({
         websiteId,
         name,
-        pluralName: settings.pluralName as string || `${name}s`,
-        icon: settings.icon as string,
-        description: settings.description as string,
+        pluralName: (settings.pluralName as string) || `${name}s`,
+        icon: (settings.icon as string) || '📋',
+        description: (settings.description as string) || '',
         fields: preparedFields,
-        relationships: [],
-        ...settings
+        relationships: []
       });
       
       const executionTime = Date.now() - startTime;

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { ContentItem } from '@/lib/content-types/types';
 import { generateId } from '@/lib/content-types/types';
+import { api } from '@/lib/utils/api-client';
 
 // Type for content items that matches the API format
 interface ApiContentItem {
@@ -78,7 +79,14 @@ export const useContentStore = create<ContentState>()(
       set({ isLoading: true, error: null });
       
       try {
-        const response = await fetch(`/api/content-items?websiteId=${websiteId}`);
+        // Cancel any existing load request
+        api.cancelRequest('load-content');
+        
+        const response = await api.get(
+          `/api/content-items?websiteId=${websiteId}`,
+          undefined,
+          'load-content'
+        );
         
         if (!response.ok) {
           throw new Error('Failed to load content items');
@@ -91,6 +99,12 @@ export const useContentStore = create<ContentState>()(
         
         set({ contentItems, isLoading: false });
       } catch (error) {
+        // Don't set error for cancelled requests
+        if (error instanceof Error && error.message.includes('cancelled')) {
+          set({ isLoading: false });
+          return;
+        }
+        
         console.error('Failed to load content:', error);
         set({ 
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -120,11 +134,12 @@ export const useContentStore = create<ContentState>()(
       try {
         const payload = transformInternalToApi(optimisticItem, websiteId);
         
-        const response = await fetch('/api/content-items', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
+        const response = await api.post(
+          '/api/content-items',
+          payload,
+          undefined,
+          `create-content-${optimisticItem.id}`
+        );
         
         if (!response.ok) {
           throw new Error('Failed to create content item');
@@ -171,16 +186,17 @@ export const useContentStore = create<ContentState>()(
       }));
       
       try {
-        const response = await fetch(`/api/content-items/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        const response = await api.put(
+          `/api/content-items/${id}`,
+          {
             data: {
               title: title as string,
               ...fieldData,
             },
-          }),
-        });
+          },
+          undefined,
+          `update-content-${id}`
+        );
         
         if (!response.ok) {
           throw new Error('Failed to update content item');
@@ -215,9 +231,11 @@ export const useContentStore = create<ContentState>()(
       }));
       
       try {
-        const response = await fetch(`/api/content-items/${id}`, {
-          method: 'DELETE',
-        });
+        const response = await api.delete(
+          `/api/content-items/${id}`,
+          undefined,
+          `delete-content-${id}`
+        );
         
         if (!response.ok) {
           throw new Error('Failed to delete content item');

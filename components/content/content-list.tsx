@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { ContentType, ContentItem } from '@/lib/content-types/types';
 import { ContentCard } from './content-card';
+import { VirtualContentList } from './content-list-virtual';
 
 interface ContentListProps {
   contentItems: ContentItem[];
@@ -136,23 +137,14 @@ export function ContentList({
             </Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredItems.map((item) => {
-              const contentType = contentTypes.find(ct => ct.id === item.contentTypeId);
-              if (!contentType) return null;
-              
-              return (
-                <ContentCard
-                  key={item.id}
-                  item={item}
-                  contentType={contentType}
-                  onEdit={() => onEditContent(item)}
-                  onDelete={() => onDeleteContent(item.id)}
-                  onDuplicate={() => onDuplicateContent(item)}
-                />
-              );
-            })}
-          </div>
+          <VirtualContentList
+            items={filteredItems}
+            contentTypes={contentTypes}
+            onEditContent={onEditContent}
+            onDeleteContent={onDeleteContent}
+            onDuplicateContent={onDuplicateContent}
+            containerHeight={600}
+          />
         )}
       </div>
     </div>

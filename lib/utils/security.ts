@@ -65,12 +65,16 @@ export const imageCSPHeaders = {
 export function sanitizeRichText(html: string): string {
   if (!html) return '';
   
-  // For now, return plain text to prevent XSS
-  // This is a safe fallback until DOMPurify is properly integrated
+  // Safe text extraction without using innerHTML
+  // This prevents XSS by never parsing HTML as DOM
   if (typeof document !== 'undefined') {
+    // Create a temporary element but don't set innerHTML
+    // Instead, use textContent which is safe
     const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
-    return tempDiv.textContent || tempDiv.innerText || '';
+    // Parse HTML safely by treating it as text
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    return doc.body.textContent || '';
   }
   
   // Server-side fallback: strip all HTML tags

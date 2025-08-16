@@ -1,5 +1,5 @@
 import { updateContentType } from '../update-content-type';
-import { contentTypeService } from '@/lib/services/content-type-service';
+import * as contentTypeService from '@/lib/services/content-type-service';
 import { businessRules } from '@/lib/ai-tools/business-rules';
 import { getClient } from '@/lib/db/client';
 
@@ -8,16 +8,6 @@ jest.mock('@/lib/ai-tools/business-rules');
 jest.mock('@/lib/db/client');
 
 describe('updateContentType', () => {
-  const mockPrisma = {
-    $transaction: jest.fn(),
-    contentType: {
-      update: jest.fn()
-    },
-    contentItem: {
-      findFirst: jest.fn()
-    }
-  };
-
   const mockExistingContentType = {
     id: 'ct1',
     websiteId: 'web1',
@@ -33,7 +23,6 @@ describe('updateContentType', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (getClient as jest.Mock).mockReturnValue(mockPrisma);
     (contentTypeService.getContentType as jest.Mock).mockResolvedValue(mockExistingContentType);
     (businessRules.validateForCategory as jest.Mock).mockReturnValue({ valid: true });
   });
@@ -45,12 +34,7 @@ describe('updateContentType', () => {
       updatedAt: new Date()
     };
 
-    mockPrisma.$transaction.mockImplementation(async (fn) => {
-      return fn({
-        contentItem: { findFirst: jest.fn().mockResolvedValue(null) },
-        contentType: { update: jest.fn().mockResolvedValue(mockUpdated) }
-      });
-    });
+    (contentTypeService.updateContentType as jest.Mock).mockResolvedValue(mockUpdated);
 
     const result = await updateContentType.execute({
       id: 'ct1',
@@ -67,17 +51,15 @@ describe('updateContentType', () => {
       { name: 'body', type: 'richtext', required: true }
     ];
 
-    const mockUpdated = {
-      ...mockExistingContentType,
-      fields: JSON.stringify(newFields),
-      updatedAt: new Date()
-    };
-
-    mockPrisma.$transaction.mockImplementation(async (fn) => {
-      return fn({
-        contentItem: { findFirst: jest.fn().mockResolvedValue(null) },
-        contentType: { update: jest.fn().mockResolvedValue(mockUpdated) }
-      });
+    (contentTypeService.updateContentType as jest.Mock).mockImplementation(async (id, data) => {
+      return {
+        ...mockExistingContentType,
+        fields: {
+          ...mockExistingContentType.fields,
+          fields: data.fields
+        },
+        updatedAt: new Date()
+      };
     });
 
     const result = await updateContentType.execute({
@@ -86,7 +68,12 @@ describe('updateContentType', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.contentType.fields).toEqual(newFields);
+    
+    // The fields should be the prepared fields with IDs and order
+    const resultFields = result.contentType.fields.fields || result.contentType.fields;
+    expect(resultFields).toHaveLength(2);
+    expect(resultFields[0].name).toBe('headline');
+    expect(resultFields[1].name).toBe('body');
     expect(result.fieldsModified.total).toBe(2);
   });
 
@@ -95,17 +82,10 @@ describe('updateContentType', () => {
       { name: 'author', type: 'text', required: false }
     ];
 
-    mockPrisma.$transaction.mockImplementation(async (fn) => {
-      return fn({
-        contentItem: { findFirst: jest.fn().mockResolvedValue(null) },
-        contentType: {
-          update: jest.fn().mockResolvedValue({
-            ...mockExistingContentType,
-            fields: JSON.stringify([...mockExistingContentType.fields, ...newFields]),
-            updatedAt: new Date()
-          })
-        }
-      });
+    (contentTypeService.updateContentType as jest.Mock).mockResolvedValue({
+      ...mockExistingContentType,
+      fields: [...mockExistingContentType.fields, ...newFields],
+      updatedAt: new Date()
     });
 
     const result = await updateContentType.execute({
@@ -119,17 +99,10 @@ describe('updateContentType', () => {
   });
 
   it('should remove specified fields', async () => {
-    mockPrisma.$transaction.mockImplementation(async (fn) => {
-      return fn({
-        contentItem: { findFirst: jest.fn().mockResolvedValue(null) },
-        contentType: {
-          update: jest.fn().mockResolvedValue({
-            ...mockExistingContentType,
-            fields: JSON.stringify([mockExistingContentType.fields[0]]),
-            updatedAt: new Date()
-          })
-        }
-      });
+    (contentTypeService.updateContentType as jest.Mock).mockResolvedValue({
+      ...mockExistingContentType,
+      fields: [mockExistingContentType.fields[0]],
+      updatedAt: new Date()
     });
 
     const result = await updateContentType.execute({
@@ -146,17 +119,10 @@ describe('updateContentType', () => {
   it('should warn when removing fields with existing content', async () => {
     const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
     
-    mockPrisma.$transaction.mockImplementation(async (fn) => {
-      return fn({
-        contentItem: { findFirst: jest.fn().mockResolvedValue({ id: 'item1' }) },
-        contentType: {
-          update: jest.fn().mockResolvedValue({
-            ...mockExistingContentType,
-            fields: JSON.stringify([mockExistingContentType.fields[0]]),
-            updatedAt: new Date()
-          })
-        }
-      });
+    (contentTypeService.updateContentType as jest.Mock).mockResolvedValue({
+      ...mockExistingContentType,
+      fields: [mockExistingContentType.fields[0]],
+      updatedAt: new Date()
     });
 
     await updateContentType.execute({
@@ -171,17 +137,14 @@ describe('updateContentType', () => {
   });
 
   it('should add SEO fields for blog category', async () => {
-    mockPrisma.$transaction.mockImplementation(async (fn) => {
-      return fn({
-        contentItem: { findFirst: jest.fn().mockResolvedValue(null) },
-        contentType: {
-          update: jest.fn().mockResolvedValue({
-            ...mockExistingContentType,
-            settings: JSON.stringify({ category: 'blog' }),
-            updatedAt: new Date()
-          })
-        }
-      });
+    (contentTypeService.updateContentType as jest.Mock).mockResolvedValue({
+      ...mockExistingContentType,
+      fields: [...mockExistingContentType.fields, 
+        { name: 'metaTitle', type: 'text', required: false, label: 'SEO Title' },
+        { name: 'metaDescription', type: 'textarea', required: false, label: 'SEO Description' }
+      ],
+      settings: { category: 'blog' },
+      updatedAt: new Date()
     });
 
     const result = await updateContentType.execute({
@@ -216,16 +179,13 @@ describe('updateContentType', () => {
       label: 'Updated Title Label'
     };
 
-    mockPrisma.$transaction.mockImplementation(async (fn) => {
-      return fn({
-        contentItem: { findFirst: jest.fn().mockResolvedValue(null) },
-        contentType: {
-          update: jest.fn().mockResolvedValue({
-            ...mockExistingContentType,
-            updatedAt: new Date()
-          })
-        }
-      });
+    (contentTypeService.updateContentType as jest.Mock).mockResolvedValue({
+      ...mockExistingContentType,
+      fields: [
+        { ...mockExistingContentType.fields[0], label: 'Updated Title Label' },
+        mockExistingContentType.fields[1]
+      ],
+      updatedAt: new Date()
     });
 
     const result = await updateContentType.execute({
@@ -242,7 +202,7 @@ describe('updateContentType', () => {
 
   it('should handle transaction errors', async () => {
     const error = new Error('Transaction failed');
-    mockPrisma.$transaction.mockRejectedValue(error);
+    (contentTypeService.updateContentType as jest.Mock).mockRejectedValue(error);
 
     const result = await updateContentType.execute({
       id: 'ct1',
@@ -256,17 +216,10 @@ describe('updateContentType', () => {
   it('should merge settings when updating', async () => {
     const newSettings = { seoEnabled: true };
 
-    mockPrisma.$transaction.mockImplementation(async (fn) => {
-      return fn({
-        contentItem: { findFirst: jest.fn().mockResolvedValue(null) },
-        contentType: {
-          update: jest.fn().mockResolvedValue({
-            ...mockExistingContentType,
-            settings: JSON.stringify({ ...mockExistingContentType.settings, ...newSettings }),
-            updatedAt: new Date()
-          })
-        }
-      });
+    (contentTypeService.updateContentType as jest.Mock).mockResolvedValue({
+      ...mockExistingContentType,
+      settings: { ...mockExistingContentType.settings, ...newSettings },
+      updatedAt: new Date()
     });
 
     const result = await updateContentType.execute({

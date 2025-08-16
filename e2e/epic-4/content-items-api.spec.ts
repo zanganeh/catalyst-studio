@@ -59,16 +59,16 @@ test.describe('Epic 4 - Story 4.5: Content Items API', () => {
             data: {
               websiteId: testWebsiteId,
               name: 'E2E Test Article Type',
+              pluralName: 'Articles',
+              icon: '📄',
+              description: 'Test article content type',
               fields: [
-                { name: 'title', type: 'text', required: true },
-                { name: 'content', type: 'richtext', required: true },
-                { name: 'author', type: 'text', required: false },
-                { name: 'tags', type: 'array', required: false }
+                { id: 'field_title', name: 'title', label: 'Title', type: 'text', required: true, order: 1 },
+                { id: 'field_content', name: 'content', label: 'Content', type: 'richtext', required: true, order: 2 },
+                { id: 'field_author', name: 'author', label: 'Author', type: 'text', required: false, order: 3 },
+                { id: 'field_tags', name: 'tags', label: 'Tags', type: 'tags', required: false, order: 4 }
               ],
-              settings: {
-                singular: 'Article',
-                plural: 'Articles'
-              }
+              relationships: []
             },
             timeout: 10000
           });

@@ -7,7 +7,33 @@ import { CMSProviderSelector } from './cms-provider-selector';
 // Mock framer-motion to avoid animation issues in tests
 jest.mock('framer-motion', () => ({
   motion: {
-    div: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => <div {...props}>{children}</div>,
+    div: ({ children, whileHover, whileTap, initial, animate, exit, transition, ...props }: { 
+      children: React.ReactNode; 
+      whileHover?: unknown;
+      whileTap?: unknown;
+      initial?: unknown;
+      animate?: unknown;
+      exit?: unknown;
+      transition?: unknown;
+      [key: string]: unknown 
+    }) => {
+      // Filter out animation-related props and pass only DOM-compatible props
+      const { onClick, className, style, role, tabIndex, 'aria-label': ariaLabel, id, key } = props;
+      return (
+        <div 
+          onClick={onClick} 
+          className={className} 
+          style={style}
+          role={role}
+          tabIndex={tabIndex}
+          aria-label={ariaLabel}
+          id={id}
+          key={key}
+        >
+          {children}
+        </div>
+      );
+    },
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
@@ -38,8 +64,9 @@ describe('CMSProviderSelector', () => {
   it('opens configuration modal when clicking on disconnected provider', async () => {
     render(<CMSProviderSelector onProviderSelect={mockOnProviderSelect} />);
     
-    const optimizelyButton = screen.getByText('Optimizely').closest('button');
-    fireEvent.click(optimizelyButton!);
+    // The provider cards are divs with onClick, not buttons
+    const optimizelyCard = screen.getByText('Optimizely').closest('div');
+    fireEvent.click(optimizelyCard!);
     
     await waitFor(() => {
       expect(screen.getByText('Configure Optimizely')).toBeInTheDocument();
@@ -49,8 +76,8 @@ describe('CMSProviderSelector', () => {
   it('validates required fields in configuration modal', async () => {
     render(<CMSProviderSelector onProviderSelect={mockOnProviderSelect} />);
     
-    const optimizelyButton = screen.getByText('Optimizely').closest('button');
-    fireEvent.click(optimizelyButton!);
+    const optimizelyCard = screen.getByText('Optimizely').closest('div');
+    fireEvent.click(optimizelyCard!);
     
     await waitFor(() => {
       expect(screen.getByText('Configure Optimizely')).toBeInTheDocument();
@@ -69,8 +96,8 @@ describe('CMSProviderSelector', () => {
   it('validates URL format for Strapi endpoint', async () => {
     render(<CMSProviderSelector onProviderSelect={mockOnProviderSelect} />);
     
-    const strapiButton = screen.getByText('Strapi').closest('button');
-    fireEvent.click(strapiButton!);
+    const strapiCard = screen.getByText('Strapi').closest('div');
+    fireEvent.click(strapiCard!);
     
     await waitFor(() => {
       expect(screen.getByText('Configure Strapi')).toBeInTheDocument();
@@ -90,8 +117,8 @@ describe('CMSProviderSelector', () => {
   it('saves provider configuration to localStorage', async () => {
     render(<CMSProviderSelector onProviderSelect={mockOnProviderSelect} />);
     
-    const contentfulButton = screen.getByText('Contentful').closest('button');
-    fireEvent.click(contentfulButton!);
+    const contentfulCard = screen.getByText('Contentful').closest('div');
+    fireEvent.click(contentfulCard!);
     
     await waitFor(() => {
       expect(screen.getByText('Configure Contentful')).toBeInTheDocument();
@@ -132,7 +159,7 @@ describe('CMSProviderSelector', () => {
     render(<CMSProviderSelector onProviderSelect={mockOnProviderSelect} />);
     
     // Should show connected status for Optimizely
-    const optimizelyCard = screen.getByText('Optimizely').closest('button');
+    const optimizelyCard = screen.getByText('Optimizely').closest('div');
     expect(optimizelyCard).toHaveTextContent('Connected');
     expect(optimizelyCard).toHaveTextContent('Ready to deploy');
   });
@@ -145,8 +172,8 @@ describe('CMSProviderSelector', () => {
       />
     );
     
-    const contentfulButton = screen.getByText('Contentful').closest('button');
-    expect(contentfulButton).toHaveClass('ring-2', 'ring-[#FF5500]');
+    const contentfulCard = screen.getByText('Contentful').closest('div');
+    expect(contentfulCard).toHaveClass('ring-2', 'ring-[#FF5500]');
   });
 
   it('allows reconfiguration of connected provider', async () => {
@@ -183,8 +210,8 @@ describe('CMSProviderSelector', () => {
     
     render(<CMSProviderSelector onProviderSelect={mockOnProviderSelect} />);
     
-    const optimizelyButton = screen.getByText('Optimizely').closest('button');
-    fireEvent.click(optimizelyButton!);
+    const optimizelyCard = screen.getByText('Optimizely').closest('div');
+    fireEvent.click(optimizelyCard!);
     
     expect(mockOnProviderSelect).toHaveBeenCalledWith(
       expect.objectContaining({

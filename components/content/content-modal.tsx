@@ -29,7 +29,10 @@ interface ContentModalProps {
   contentType: ContentType | null;
   contentItem?: ContentItem | null;
   onSave: (data: Record<string, unknown>) => void;
-  children: React.ReactNode;
+  renderForm: (props: {
+    onSubmit: (data: Record<string, unknown>) => void;
+    onChange: () => void;
+  }) => React.ReactNode;
 }
 
 export function ContentModal({
@@ -38,10 +41,15 @@ export function ContentModal({
   contentType,
   contentItem,
   onSave,
-  children,
+  renderForm,
 }: ContentModalProps) {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showUnsavedAlert, setShowUnsavedAlert] = useState(false);
+  
+  // Track form changes
+  const handleFormChange = useCallback(() => {
+    setHasUnsavedChanges(true);
+  }, []);
   
   // Handle close with unsaved changes check
   const handleClose = useCallback(() => {
@@ -52,17 +60,24 @@ export function ContentModal({
     }
   }, [hasUnsavedChanges, onOpenChange]);
   
-  // Handle ESC key press
+  // Handle ESC key press with stable reference
   useEffect(() => {
+    if (!open) return;
+    
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && open) {
-        handleClose();
+      if (e.key === 'Escape') {
+        // Use refs to access current state to avoid stale closure
+        if (hasUnsavedChanges) {
+          setShowUnsavedAlert(true);
+        } else {
+          onOpenChange(false);
+        }
       }
     };
     
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [open, handleClose]);
+  }, [open, hasUnsavedChanges, onOpenChange]);
   
   // Handle save callback from form
   const handleSave = useCallback((data: Record<string, unknown>) => {
@@ -82,9 +97,14 @@ export function ContentModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
         className="max-w-2xl bg-gray-900/95 backdrop-blur-md border-gray-700"
-        onPointerDownOutside={() => {
-          // Allow closing by clicking backdrop
-          onOpenChange(false);
+        onPointerDownOutside={(e) => {
+          // Check for unsaved changes before closing
+          if (hasUnsavedChanges) {
+            e.preventDefault();
+            setShowUnsavedAlert(true);
+          } else {
+            onOpenChange(false);
+          }
         }}
       >
         <DialogHeader className="border-b border-gray-800 pb-4">
@@ -108,12 +128,11 @@ export function ContentModal({
         </DialogHeader>
         
         <div className="py-4 max-h-[60vh] overflow-y-auto">
-          {/* Form content will be passed as children */}
-          {React.cloneElement(children as React.ReactElement, {
+          {/* Form content rendered via renderForm prop */}
+          {renderForm({
             onSubmit: handleSave,
-            contentType,
-            contentItem,
-          } as Record<string, unknown>)}
+            onChange: handleFormChange,
+          })}
         </div>
         
         <DialogFooter className="border-t border-gray-800 pt-4">

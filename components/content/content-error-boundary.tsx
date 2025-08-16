@@ -27,10 +27,9 @@ export class ContentErrorBoundary extends React.Component<
     console.error('Content component error:', error, errorInfo);
     this.setState({ errorInfo });
     
-    // Send to error tracking service (e.g., Sentry)
+    // Send to error tracking service in production
     if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-      // Production error tracking
-      // window.Sentry?.captureException(error, { contexts: { react: errorInfo } });
+      // TODO: Implement production error tracking
     }
   }
 
