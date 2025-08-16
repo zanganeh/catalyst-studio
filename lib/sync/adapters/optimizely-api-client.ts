@@ -1,5 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosError } from 'axios';
-import * as pLimit from 'p-limit';
+import pLimit from 'p-limit';
 import { OptimizelyContentType } from '../transformers/optimizely-transformer';
 
 export interface OptimizelyConfig {
@@ -21,6 +20,11 @@ export interface TokenResponse {
   token_type: string;
 }
 
+interface FetchError extends Error {
+  status?: number;
+  response?: any;
+}
+
 export class OptimizelyApiClient {
   private baseUrl: string;
   private apiVersion: string;
@@ -31,7 +35,7 @@ export class OptimizelyApiClient {
   private accessToken: string | null = null;
   private tokenExpiry: Date | null = null;
   private rateLimiter: pLimit.Limit;
-  private axiosInstance: AxiosInstance;
+  private activeRequests = new Map<string, AbortController>();
 
   constructor(config: OptimizelyConfig) {
     this.baseUrl = config.baseUrl || 'https://api.cms.optimizely.com';
@@ -41,31 +45,6 @@ export class OptimizelyApiClient {
     this.projectId = config.projectId;
     
     this.rateLimiter = pLimit(2);
-    
-    this.axiosInstance = axios.create({
-      baseURL: `${this.baseUrl}/${this.apiVersion}`,
-      timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
-    
-    this.axiosInstance.interceptors.request.use(
-      async (config) => {
-        await this.ensureAuthenticated();
-        if (this.accessToken) {
-          config.headers.Authorization = `Bearer ${this.accessToken}`;
-        }
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
-    
-    this.axiosInstance.interceptors.response.use(
-      (response) => response,
-      (error) => Promise.reject(error)
-    );
   }
 
   setDryRun(value: boolean): void {
@@ -94,53 +73,119 @@ export class OptimizelyApiClient {
       console.log('🔐 Authenticating with Optimizely OAuth 2.0...');
       
       const tokenUrl = `${this.baseUrl}/oauth/token`;
-      const response = await axios.post<TokenResponse>(tokenUrl, {
-        grant_type: 'client_credentials',
-        client_id: this.clientId,
-        client_secret: this.clientSecret
-      }, {
+      const response = await fetch(tokenUrl, {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
-        }
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          grant_type: 'client_credentials',
+          client_id: this.clientId,
+          client_secret: this.clientSecret,
+        }).toString(),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ OAuth authentication failed:', errorData);
+        throw new Error(`Authentication failed: ${response.statusText}`);
+      }
+
+      const data: TokenResponse = await response.json();
       
-      this.accessToken = response.data.access_token;
-      const expiresIn = response.data.expires_in || 300;
-      this.tokenExpiry = new Date(Date.now() + (expiresIn - 30) * 1000);
+      this.accessToken = data.access_token;
+      const expiryBuffer = 60; // Refresh token 1 minute before expiry
+      this.tokenExpiry = new Date(Date.now() + (data.expires_in - expiryBuffer) * 1000);
       
-      console.log('✅ OAuth authentication successful');
+      console.log('✅ Successfully authenticated with Optimizely');
+      console.log(`   Token expires at: ${this.tokenExpiry.toISOString()}`);
     } catch (error) {
-      const axiosError = error as AxiosError;
-      console.error('❌ OAuth authentication failed:', axiosError.response?.data || axiosError.message);
-      throw new Error(`Authentication failed: ${axiosError.message}`);
+      console.error('❌ OAuth authentication failed:', error);
+      throw new Error(`Authentication failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  async listContentTypes(): Promise<OptimizelyContentTypeResponse[]> {
-    if (this.dryRun) {
-      console.log('[DRY-RUN] Would fetch content types from Optimizely');
-      return [];
+  private async makeRequest<T>(
+    path: string,
+    options: RequestInit = {},
+    requestKey?: string
+  ): Promise<T> {
+    await this.ensureAuthenticated();
+
+    const controller = new AbortController();
+    if (requestKey) {
+      // Cancel any existing request with the same key
+      const existingController = this.activeRequests.get(requestKey);
+      if (existingController) {
+        existingController.abort();
+      }
+      this.activeRequests.set(requestKey, controller);
     }
-    
+
+    // Set timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    try {
+      const url = `${this.baseUrl}/${this.apiVersion}${path}`;
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          ...(this.accessToken && { 'Authorization': `Bearer ${this.accessToken}` }),
+          ...options.headers,
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      if (requestKey) {
+        this.activeRequests.delete(requestKey);
+      }
+
+      if (!response.ok) {
+        const error: FetchError = new Error(`Request failed: ${response.statusText}`);
+        error.status = response.status;
+        error.response = await response.json().catch(() => ({}));
+        throw error;
+      }
+
+      return await response.json();
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (requestKey) {
+        this.activeRequests.delete(requestKey);
+      }
+      
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error(`Request timeout: ${path}`);
+      }
+      throw error;
+    }
+  }
+
+  async getContentTypes(): Promise<OptimizelyContentTypeResponse[]> {
     return this.rateLimiter(async () => {
       try {
-        const response = await this.axiosInstance.get('/contenttypes', {
-          params: {
-            pageSize: 100
-          }
-        });
+        console.log('📥 Fetching Optimizely content types...');
         
-        const contentTypes = response.data.items || [];
+        const response = await this.makeRequest<any>(
+          '/contenttypes',
+          {
+            method: 'GET',
+            headers: this.projectId ? { 'x-project-id': this.projectId } : {},
+          },
+          'getContentTypes'
+        );
         
-        return contentTypes.map((ct: OptimizelyContentType) => ({
-          ...ct,
-          etag: response.headers.etag || null
-        }));
+        const contentTypes: OptimizelyContentTypeResponse[] = response.items || [];
+        console.log(`✅ Found ${contentTypes.length} content types in Optimizely`);
+        return contentTypes;
       } catch (error) {
-        const axiosError = error as AxiosError;
-        if (axiosError.response?.status === 403) {
-          console.warn('⚠️  Access denied to Optimizely API - check permissions');
-          return [];
+        const fetchError = error as FetchError;
+        if (fetchError.status === 403) {
+          console.error('❌ Access denied. Check your API credentials and permissions.');
+          throw new Error('Access denied to Optimizely API');
         }
         throw error;
       }
@@ -148,21 +193,18 @@ export class OptimizelyApiClient {
   }
 
   async getContentType(key: string): Promise<OptimizelyContentTypeResponse | null> {
-    if (this.dryRun) {
-      console.log(`[DRY-RUN] Would fetch content type: ${key}`);
-      return null;
-    }
-    
     return this.rateLimiter(async () => {
       try {
-        const response = await this.axiosInstance.get(`/contenttypes/${key}`);
-        return {
-          ...response.data,
-          etag: response.headers.etag || null
-        };
+        console.log(`📥 Fetching content type: ${key}`);
+        const response = await this.makeRequest<OptimizelyContentTypeResponse>(
+          `/contenttypes/${key}`,
+          { method: 'GET' },
+          `getContentType-${key}`
+        );
+        return response;
       } catch (error) {
-        const axiosError = error as AxiosError;
-        if (axiosError.response?.status === 404) {
+        const fetchError = error as FetchError;
+        if (fetchError.status === 404) {
           return null;
         }
         throw error;
@@ -172,100 +214,117 @@ export class OptimizelyApiClient {
 
   async createContentType(contentType: OptimizelyContentType): Promise<OptimizelyContentTypeResponse> {
     if (this.dryRun) {
-      console.log(`[DRY-RUN] Would create content type: ${contentType.key}`);
+      console.log(`🔍 [DRY RUN] Would create content type: ${contentType.key}`);
       return { ...contentType, etag: null };
     }
     
     return this.rateLimiter(async () => {
-      try {
-        const response = await this.axiosInstance.post('/contenttypes', contentType);
-        return {
-          ...response.data,
-          etag: response.headers.etag || null
-        };
-      } catch (error) {
-        this.handleApiError(error as AxiosError, 'create', contentType.key);
-        throw error;
-      }
+      console.log(`📤 Creating content type: ${contentType.key}`);
+      const response = await this.makeRequest<OptimizelyContentTypeResponse>(
+        '/contenttypes',
+        {
+          method: 'POST',
+          body: JSON.stringify(contentType),
+        },
+        `createContentType-${contentType.key}`
+      );
+      console.log(`✅ Created content type: ${contentType.key}`);
+      return response;
     });
   }
 
-  async updateContentType(key: string, contentType: Partial<OptimizelyContentType>, etag?: string): Promise<OptimizelyContentTypeResponse> {
+  async updateContentType(
+    key: string,
+    contentType: OptimizelyContentType,
+    etag?: string
+  ): Promise<OptimizelyContentTypeResponse> {
     if (this.dryRun) {
-      console.log(`[DRY-RUN] Would update content type: ${key}`);
-      return { ...contentType, etag: null } as OptimizelyContentTypeResponse;
+      console.log(`🔍 [DRY RUN] Would update content type: ${key}`);
+      return { ...contentType, etag: etag || null };
     }
     
     return this.rateLimiter(async () => {
       try {
-        const headers: Record<string, string> = {};
+        console.log(`📤 Updating content type: ${key}`);
+        const headers: HeadersInit = {};
         if (etag) {
           headers['If-Match'] = etag;
         }
         
-        const response = await this.axiosInstance.patch(
+        const response = await this.makeRequest<OptimizelyContentTypeResponse>(
           `/contenttypes/${key}`,
-          contentType,
-          { 
-            headers: {
-              ...headers,
-              'Content-Type': 'application/merge-patch+json'
-            }
-          }
+          {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify(contentType),
+          },
+          `updateContentType-${key}`
         );
-        
-        return {
-          ...response.data,
-          etag: response.headers.etag || null
-        };
+        console.log(`✅ Updated content type: ${key}`);
+        return response;
       } catch (error) {
-        const axiosError = error as AxiosError;
-        if (axiosError.response?.status === 412) {
-          throw new Error(`Content type ${key} has been modified - conflict detected`);
+        const fetchError = error as FetchError;
+        if (fetchError.status === 412) {
+          console.error(`⚠️  Content type ${key} has been modified externally. Skipping update.`);
+          throw new Error(`Precondition failed for ${key}`);
         }
-        this.handleApiError(axiosError, 'update', key);
+        this.handleApiError(fetchError, 'update', key);
         throw error;
       }
     });
   }
 
-  async deleteContentType(key: string): Promise<boolean> {
+  async deleteContentType(key: string): Promise<void> {
     if (this.dryRun) {
-      console.log(`[DRY-RUN] Would delete content type: ${key}`);
-      return true;
+      console.log(`🔍 [DRY RUN] Would delete content type: ${key}`);
+      return;
     }
     
     return this.rateLimiter(async () => {
       try {
-        await this.axiosInstance.delete(`/contenttypes/${key}`);
-        return true;
+        console.log(`🗑️  Deleting content type: ${key}`);
+        await this.makeRequest<void>(
+          `/contenttypes/${key}`,
+          { method: 'DELETE' },
+          `deleteContentType-${key}`
+        );
+        console.log(`✅ Deleted content type: ${key}`);
       } catch (error) {
-        const axiosError = error as AxiosError;
-        if (axiosError.response?.status === 404) {
-          return false;
+        const fetchError = error as FetchError;
+        if (fetchError.status === 404) {
+          console.log(`⚠️  Content type ${key} not found in Optimizely`);
+          return;
         }
-        this.handleApiError(axiosError, 'delete', key);
+        this.handleApiError(fetchError, 'delete', key);
         throw error;
       }
     });
   }
 
-  private handleApiError(error: AxiosError, operation: string, key: string): void {
-    const status = error.response?.status;
-    const message = (error.response?.data as any)?.detail || error.message;
+  private handleApiError(error: FetchError, operation: string, key: string): void {
+    console.error(`❌ Failed to ${operation} content type ${key}:`, error.response || error.message);
     
-    if (status === 400) {
-      const validationErrors = (error.response?.data as any)?.errors || {};
-      const errorMessages = Object.entries(validationErrors)
-        .map(([field, errors]) => `${field}: ${(errors as string[]).join(', ')}`)
-        .join('; ');
-      throw new Error(`Validation failed for ${key}: ${errorMessages || message}`);
-    } else if (status === 403) {
-      throw new Error(`Permission denied to ${operation} ${key}`);
-    } else if (status === 429) {
-      throw new Error('Rate limit exceeded - please retry later');
-    } else {
-      throw new Error(`Failed to ${operation} ${key}: ${message}`);
+    if (error.status === 401) {
+      this.accessToken = null;
+      this.tokenExpiry = null;
+    }
+  }
+
+  async testConnection(): Promise<boolean> {
+    try {
+      await this.authenticate();
+      
+      if (!this.accessToken) {
+        console.log('⚠️  No authentication token - running in offline mode');
+        return false;
+      }
+      
+      const types = await this.getContentTypes();
+      console.log(`✅ Successfully connected to Optimizely (found ${types.length} content types)`);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to connect to Optimizely:', error);
+      return false;
     }
   }
 }

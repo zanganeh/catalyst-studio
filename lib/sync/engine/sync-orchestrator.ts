@@ -150,7 +150,7 @@ export class SyncOrchestrator {
       
       if (this.apiClient) {
         console.log('  🌐 Fetching remote content types from Optimizely...');
-        results.remote = await this.apiClient.listContentTypes();
+        results.remote = await this.apiClient.getContentTypes();
         console.log(chalk.green(`  ✓ Found ${results.remote.length} content types in Optimizely`));
       }
     } catch (error) {
