@@ -1,172 +1,208 @@
 import { DatabaseExtractor, ExtractedContentType } from '../database-extractor';
-import sqlite3 from 'sqlite3';
+import { prisma } from '@/lib/prisma';
 
-jest.mock('sqlite3');
+jest.mock('@/lib/prisma', () => ({
+  prisma: {
+    contentType: {
+      findMany: jest.fn(),
+      findFirst: jest.fn()
+    },
+    website: {
+      findMany: jest.fn(),
+      findUnique: jest.fn()
+    }
+  }
+}));
 
 describe('DatabaseExtractor', () => {
   let extractor: DatabaseExtractor;
-  let mockDb: any;
 
   beforeEach(() => {
-    mockDb = {
-      all: jest.fn(),
-      close: jest.fn()
-    };
-
-    (sqlite3.Database as jest.Mock) = jest.fn((path, callback) => {
-      callback(null);
-      return mockDb;
-    });
-
-    extractor = new DatabaseExtractor('/test/path/db.sqlite');
-  });
-
-  afterEach(() => {
+    extractor = new DatabaseExtractor();
     jest.clearAllMocks();
   });
 
-  describe('connect', () => {
-    it('should connect to the database successfully', async () => {
-      await extractor.connect();
-      expect(sqlite3.Database).toHaveBeenCalledWith('/test/path/db.sqlite', expect.any(Function));
-    });
-
-    it('should reject if connection fails', async () => {
-      (sqlite3.Database as jest.Mock) = jest.fn((path, callback) => {
-        callback(new Error('Connection failed'));
-        return mockDb;
-      });
-
-      extractor = new DatabaseExtractor('/test/path/db.sqlite');
-      await expect(extractor.connect()).rejects.toThrow('Connection failed');
-    });
-  });
-
-  describe('close', () => {
-    it('should close the database connection', async () => {
-      await extractor.connect();
-      mockDb.close.mockImplementation((callback: Function) => callback(null));
-      
-      await extractor.close();
-      expect(mockDb.close).toHaveBeenCalled();
-    });
-
-    it('should handle close errors', async () => {
-      await extractor.connect();
-      mockDb.close.mockImplementation((callback: Function) => callback(new Error('Close failed')));
-      
-      await expect(extractor.close()).rejects.toThrow('Close failed');
-    });
-  });
-
   describe('extractContentTypes', () => {
-    const mockRows = [
-      {
-        id: '1',
-        websiteId: 'web1',
-        name: 'BlogPost',
-        fields: '{"fields":[{"name":"title","type":"text"}]}',
-        settings: '{"visible":true}',
-        createdAt: '2024-01-01',
-        updatedAt: '2024-01-02',
-        websiteName: 'Test Website'
-      },
-      {
-        id: '2',
-        websiteId: 'web1',
-        name: 'Article',
-        fields: 'invalid json',
-        settings: null,
-        createdAt: '2024-01-03',
-        updatedAt: '2024-01-04',
-        websiteName: 'Test Website'
-      }
-    ];
+    it('should extract all content types with website information', async () => {
+      const mockContentTypes = [
+        {
+          id: 'ct1',
+          websiteId: 'web1',
+          name: 'Blog Post',
+          fields: JSON.stringify([
+            { name: 'title', type: 'text', required: true }
+          ]),
+          settings: JSON.stringify({ published: true }),
+          createdAt: new Date('2024-01-01'),
+          updatedAt: new Date('2024-01-01'),
+          website: {
+            id: 'web1',
+            name: 'My Website',
+            createdAt: new Date('2024-01-01'),
+            updatedAt: new Date('2024-01-01')
+          }
+        },
+        {
+          id: 'ct2',
+          websiteId: 'web2',
+          name: 'Product',
+          fields: JSON.stringify([
+            { name: 'name', type: 'text', required: true },
+            { name: 'price', type: 'number', required: true }
+          ]),
+          settings: JSON.stringify({ published: false }),
+          createdAt: new Date('2024-01-02'),
+          updatedAt: new Date('2024-01-02'),
+          website: {
+            id: 'web2',
+            name: 'E-commerce Site',
+            createdAt: new Date('2024-01-01'),
+            updatedAt: new Date('2024-01-01')
+          }
+        }
+      ];
 
-    beforeEach(async () => {
-      await extractor.connect();
-    });
-
-    it('should extract and transform content types', async () => {
-      mockDb.all.mockImplementation((query: string, params: any[], callback: Function) => {
-        callback(null, mockRows);
-      });
+      (prisma.contentType.findMany as jest.Mock).mockResolvedValue(mockContentTypes);
 
       const result = await extractor.extractContentTypes();
+
+      expect(prisma.contentType.findMany).toHaveBeenCalledWith({
+        include: { website: true }
+      });
 
       expect(result).toHaveLength(2);
       expect(result[0]).toMatchObject({
-        id: '1',
+        id: 'ct1',
         websiteId: 'web1',
-        name: 'BlogPost',
-        fields: { fields: [{ name: 'title', type: 'text' }] },
-        settings: { visible: true },
-        websiteName: 'Test Website'
+        websiteName: 'My Website',
+        name: 'Blog Post',
+        fields: [{ name: 'title', type: 'text', required: true }],
+        settings: { published: true }
       });
-      expect(result[0].metadata.source).toBe('catalyst-studio');
+      expect(result[1]).toMatchObject({
+        id: 'ct2',
+        websiteId: 'web2',
+        websiteName: 'E-commerce Site',
+        name: 'Product',
+        fields: [
+          { name: 'name', type: 'text', required: true },
+          { name: 'price', type: 'number', required: true }
+        ],
+        settings: { published: false }
+      });
     });
 
-    it('should handle JSON parse errors gracefully', async () => {
-      mockDb.all.mockImplementation((query: string, params: any[], callback: Function) => {
-        callback(null, mockRows);
-      });
+    it('should handle content types without website', async () => {
+      const mockContentTypes = [
+        {
+          id: 'ct1',
+          websiteId: 'web1',
+          name: 'Blog Post',
+          fields: '[]',
+          settings: null,
+          createdAt: new Date('2024-01-01'),
+          updatedAt: new Date('2024-01-01'),
+          website: null
+        }
+      ];
+
+      (prisma.contentType.findMany as jest.Mock).mockResolvedValue(mockContentTypes);
 
       const result = await extractor.extractContentTypes();
 
-      expect(result[1].fields).toEqual({});
-      expect(result[1].settings).toEqual({});
+      expect(result[0].websiteName).toBeNull();
+      expect(result[0].settings).toEqual({});
     });
 
-    it('should filter by websiteId when provided', async () => {
-      mockDb.all.mockImplementation((query: string, params: any[], callback: Function) => {
-        expect(params).toEqual(['web1']);
-        expect(query).toContain('WHERE ct.websiteId = ?');
-        callback(null, []);
-      });
+    it('should handle empty results', async () => {
+      (prisma.contentType.findMany as jest.Mock).mockResolvedValue([]);
 
-      await extractor.extractContentTypes('web1');
-      expect(mockDb.all).toHaveBeenCalled();
+      const result = await extractor.extractContentTypes();
+
+      expect(result).toEqual([]);
     });
 
     it('should handle database errors', async () => {
-      mockDb.all.mockImplementation((query: string, params: any[], callback: Function) => {
-        callback(new Error('Database error'), null);
-      });
+      (prisma.contentType.findMany as jest.Mock).mockRejectedValue(
+        new Error('Database connection failed')
+      );
 
-      await expect(extractor.extractContentTypes()).rejects.toThrow('Database error');
+      await expect(extractor.extractContentTypes()).rejects.toThrow('Database connection failed');
     });
   });
 
-  describe('getWebsites', () => {
-    beforeEach(async () => {
-      await extractor.connect();
-    });
-
-    it('should fetch all websites', async () => {
-      const mockWebsites = [
-        { id: '1', name: 'Website 1', createdAt: '2024-01-01', updatedAt: '2024-01-02' },
-        { id: '2', name: 'Website 2', createdAt: '2024-01-03', updatedAt: '2024-01-04' }
+  describe('extractContentTypesForWebsite', () => {
+    it('should extract content types for a specific website', async () => {
+      const mockContentTypes = [
+        {
+          id: 'ct1',
+          websiteId: 'web1',
+          name: 'Blog Post',
+          fields: JSON.stringify([]),
+          settings: JSON.stringify({}),
+          createdAt: new Date('2024-01-01'),
+          updatedAt: new Date('2024-01-01'),
+          website: {
+            id: 'web1',
+            name: 'My Website',
+            createdAt: new Date('2024-01-01'),
+            updatedAt: new Date('2024-01-01')
+          }
+        }
       ];
 
-      mockDb.all.mockImplementation((query: string, params: any[], callback: Function) => {
-        callback(null, mockWebsites);
+      (prisma.contentType.findMany as jest.Mock).mockResolvedValue(mockContentTypes);
+
+      const result = await extractor.extractContentTypesForWebsite('web1');
+
+      expect(prisma.contentType.findMany).toHaveBeenCalledWith({
+        where: { websiteId: 'web1' },
+        include: { website: true }
       });
 
-      const result = await extractor.getWebsites();
-      expect(result).toEqual(mockWebsites);
-      expect(mockDb.all).toHaveBeenCalledWith(
-        expect.stringContaining('FROM Website'),
-        [],
-        expect.any(Function)
-      );
-    });
-
-    it('should handle errors when fetching websites', async () => {
-      mockDb.all.mockImplementation((query: string, params: any[], callback: Function) => {
-        callback(new Error('Fetch failed'), null);
-      });
-
-      await expect(extractor.getWebsites()).rejects.toThrow('Fetch failed');
+      expect(result).toHaveLength(1);
+      expect(result[0].websiteId).toBe('web1');
     });
   });
+
+  describe('extractWebsites', () => {
+    it('should extract all websites', async () => {
+      const mockWebsites = [
+        {
+          id: 'web1',
+          name: 'My Website',
+          createdAt: new Date('2024-01-01'),
+          updatedAt: new Date('2024-01-01'),
+          metadata: JSON.stringify({ theme: 'dark' })
+        },
+        {
+          id: 'web2',
+          name: 'E-commerce Site',
+          createdAt: new Date('2024-01-02'),
+          updatedAt: new Date('2024-01-02'),
+          metadata: null
+        }
+      ];
+
+      (prisma.website.findMany as jest.Mock).mockResolvedValue(mockWebsites);
+
+      const result = await extractor.extractWebsites();
+
+      expect(prisma.website.findMany).toHaveBeenCalled();
+      expect(result).toHaveLength(2);
+      expect(result[0]).toMatchObject({
+        id: 'web1',
+        name: 'My Website'
+      });
+    });
+
+    it('should handle empty websites', async () => {
+      (prisma.website.findMany as jest.Mock).mockResolvedValue([]);
+
+      const result = await extractor.extractWebsites();
+
+      expect(result).toEqual([]);
+    });
+  });
+
 });

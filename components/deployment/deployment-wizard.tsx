@@ -49,6 +49,7 @@ export function DeploymentWizard({ onComplete, onCancel, websiteId }: Deployment
         // Start deployment when moving to deploying step
         const job: DeploymentJob = {
           id: `deploy-${Date.now()}`,
+          websiteId: websiteId || '',
           providerId: selectedProvider.id,
           status: 'pending',
           progress: 0,
@@ -62,7 +63,7 @@ export function DeploymentWizard({ onComplete, onCancel, websiteId }: Deployment
       
       setCurrentStep(nextStep);
     }
-  }, [currentStep, selectedProvider]);
+  }, [currentStep, selectedProvider, websiteId]);
 
   const handlePreviousStep = useCallback(() => {
     const currentIndex = STEPS.findIndex(s => s.id === currentStep);

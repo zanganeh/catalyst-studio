@@ -7,7 +7,40 @@ import { WebsiteService } from '@/lib/services/website-service';
 jest.mock('@/lib/services/website-service');
 jest.mock('@/lib/db/client', () => ({
   getClient: jest.fn(() => ({
-    $transaction: jest.fn(async (callback) => callback({})),
+    $transaction: jest.fn(async (callback) => {
+      const tx = {
+        website: {
+          findUnique: jest.fn().mockResolvedValue({
+            id: 'test-website-id',
+            name: 'Test Blog',
+            category: 'blog',
+            isActive: true,
+            metadata: JSON.stringify({
+              contentTypes: ['article'],
+              seoRequirements: { titleMaxLength: 60 },
+            }),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }),
+          update: jest.fn().mockResolvedValue({
+            id: 'test-website-id',
+            name: 'Test Blog',
+            category: 'blog',
+            isActive: true,
+            metadata: JSON.stringify({
+              contentTypes: ['article', 'news'],
+              seoRequirements: { titleMaxLength: 70 },
+              requiredFields: { article: ['title', 'content', 'author'] },
+            }),
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }),
+          create: jest.fn(),
+          delete: jest.fn(),
+        },
+      };
+      return callback(tx);
+    }),
   })),
 }));
 jest.mock('@/lib/ai-tools/business-rules', () => ({

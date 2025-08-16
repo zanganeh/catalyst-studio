@@ -53,40 +53,9 @@ export function ContentMapping({ providerId, websiteId, onMappingComplete, class
       console.error('Failed to extract content types:', error);
       setError(error.message || 'Failed to extract content types');
       
-      // Fallback to mock data for demo purposes
-      const mockTypes: ContentType[] = [
-        {
-          id: 'article',
-          name: 'Article',
-          fields: [
-            { name: 'title', type: 'string' },
-            { name: 'content', type: 'richtext' },
-            { name: 'author', type: 'reference' },
-            { name: 'publishDate', type: 'datetime' }
-          ]
-        },
-        {
-          id: 'blog_post',
-          name: 'Blog Post',
-          fields: [
-            { name: 'title', type: 'string' },
-            { name: 'summary', type: 'text' },
-            { name: 'body', type: 'richtext' },
-            { name: 'tags', type: 'array' }
-          ]
-        },
-        {
-          id: 'category',
-          name: 'Category',
-          fields: [
-            { name: 'name', type: 'string' },
-            { name: 'description', type: 'text' },
-            { name: 'parent', type: 'reference' }
-          ]
-        }
-      ];
-      setContentTypes(mockTypes);
-      onMappingComplete?.(mockTypes);
+      // No fallback - show error state to user
+      setContentTypes([]);
+      onMappingComplete?.([]);
     } finally {
       setLoading(false);
     }

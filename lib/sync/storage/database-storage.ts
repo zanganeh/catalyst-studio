@@ -3,7 +3,7 @@ import { SyncStorage, SyncState } from '../engine/sync-orchestrator';
 
 /**
  * Database storage implementation that uses the actual database
- * instead of mock JSON files. This reads content types directly
+ * This reads content types directly
  * from the database through the extractor.
  */
 export class DatabaseStorage implements SyncStorage {

@@ -84,7 +84,31 @@ export async function GET(request: NextRequest) {
 // POST /api/content-items - Create a new content item
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Handle empty body
+    const contentType = request.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return NextResponse.json(
+        { error: { message: 'Content-Type must be application/json' } },
+        { status: 400 }
+      );
+    }
+
+    let body;
+    try {
+      const text = await request.text();
+      if (!text) {
+        return NextResponse.json(
+          { error: { message: 'Request body is required' } },
+          { status: 400 }
+        );
+      }
+      body = JSON.parse(text);
+    } catch (e) {
+      return NextResponse.json(
+        { error: { message: 'Invalid JSON in request body' } },
+        { status: 400 }
+      );
+    }
     
     // Validate request body
     const validation = validateCreateContentItem(body);

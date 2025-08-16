@@ -12,41 +12,41 @@ describe('QuickCategoryTags', () => {
   it('should render all category tags', () => {
     render(<QuickCategoryTags onTagClick={mockOnTagClick} />);
     
-    expect(screen.getByText('CRM')).toBeInTheDocument();
-    expect(screen.getByText('Dev Productivity')).toBeInTheDocument();
-    expect(screen.getByText('Educational')).toBeInTheDocument();
-    expect(screen.getByText('E-Commerce')).toBeInTheDocument();
-    expect(screen.getByText('Portfolio')).toBeInTheDocument();
-    expect(screen.getByText('SaaS Platform')).toBeInTheDocument();
+    expect(screen.getByText('CMS Migration')).toBeInTheDocument();
+    expect(screen.getByText('Course Catalog')).toBeInTheDocument();
+    expect(screen.getByText('Customer Portal')).toBeInTheDocument();
+    expect(screen.getByText('HR Platform')).toBeInTheDocument();
+    expect(screen.getByText('Vendor Marketplace')).toBeInTheDocument();
+    expect(screen.getByText('Knowledge Base')).toBeInTheDocument();
   });
   
-  it('should call onTagClick with correct prompt when CRM tag is clicked', () => {
+  it('should call onTagClick with correct prompt when CMS Migration tag is clicked', () => {
     render(<QuickCategoryTags onTagClick={mockOnTagClick} />);
     
-    const crmTag = screen.getByText('CRM');
-    fireEvent.click(crmTag);
+    const cmsTag = screen.getByText('CMS Migration');
+    fireEvent.click(cmsTag);
     
     expect(mockOnTagClick).toHaveBeenCalledWith(
-      'A customer relationship management system with contact tracking, deal pipeline, and analytics'
+      'Migrate my Sitecore website to Optimizely SaaS CMS with content modeling, personalization rules, and SEO preservation'
     );
   });
   
-  it('should call onTagClick with correct prompt when E-Commerce tag is clicked', () => {
+  it('should call onTagClick with correct prompt when Customer Portal tag is clicked', () => {
     render(<QuickCategoryTags onTagClick={mockOnTagClick} />);
     
-    const ecommerceTag = screen.getByText('E-Commerce');
-    fireEvent.click(ecommerceTag);
+    const portalTag = screen.getByText('Customer Portal');
+    fireEvent.click(portalTag);
     
     expect(mockOnTagClick).toHaveBeenCalledWith(
-      'An online store with product catalog, shopping cart, and payment processing'
+      'Build a B2B customer portal with order tracking, invoice management, support tickets, and document library'
     );
   });
   
   it('should have proper accessibility labels', () => {
     render(<QuickCategoryTags onTagClick={mockOnTagClick} />);
     
-    const crmButton = screen.getByLabelText('Use CRM template');
-    expect(crmButton).toBeInTheDocument();
+    const cmsButton = screen.getByLabelText('Use CMS Migration template');
+    expect(cmsButton).toBeInTheDocument();
   });
   
   it('should render icons for each tag', () => {

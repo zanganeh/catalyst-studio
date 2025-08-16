@@ -136,20 +136,27 @@ export function MultiStepStreamingIndicator({
       </div>
       
       {/* Step indicators */}
-      <div className="flex justify-between">
-        {Array.from({ length: totalSteps }, (_, i) => (
-          <div
-            key={i}
-            className={cn(
-              'w-2 h-2 rounded-full transition-all duration-300',
-              i < currentStep
-                ? 'bg-blue-500'
-                : i === currentStep - 1
-                ? 'bg-blue-500 animate-pulse'
-                : 'bg-gray-300 dark:bg-gray-600'
-            )}
-          />
-        ))}
+      <div className="flex justify-between" data-testid="step-indicators">
+        {Array.from({ length: totalSteps }, (_, i) => {
+          const isCompleted = i < currentStep - 1;
+          const isCurrent = i === currentStep - 1;
+          
+          let classNames = 'w-2 h-2 rounded-full transition-all duration-300';
+          if (isCompleted) {
+            classNames += ' bg-blue-500';
+          } else if (isCurrent) {
+            classNames += ' bg-blue-500 animate-pulse';
+          } else {
+            classNames += ' bg-gray-300 dark:bg-gray-600';
+          }
+          
+          return (
+            <div
+              key={i}
+              className={classNames}
+            />
+          );
+        })}
       </div>
     </div>
   );

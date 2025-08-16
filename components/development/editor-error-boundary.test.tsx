@@ -43,56 +43,51 @@ describe('EditorErrorBoundary', () => {
   });
 
   it('should allow retry after error', () => {
+    let shouldThrow = true;
+    const TestComponent = () => {
+      if (shouldThrow) {
+        throw new Error('Test error');
+      }
+      return <div>No error</div>;
+    };
+
     const { rerender } = render(
       <EditorErrorBoundary>
-        <ThrowError shouldThrow={true} />
+        <TestComponent />
       </EditorErrorBoundary>
     );
 
     expect(screen.getByText('Editor Loading Error')).toBeInTheDocument();
 
     const retryButton = screen.getByText('Retry Loading Editor');
+    
+    // Change the condition and click retry
+    shouldThrow = false;
     fireEvent.click(retryButton);
 
-    rerender(
-      <EditorErrorBoundary>
-        <ThrowError shouldThrow={false} />
-      </EditorErrorBoundary>
-    );
-
+    // Error boundary should reset and re-render children
     expect(screen.getByText('No error')).toBeInTheDocument();
   });
 
   it('should show warning after multiple retry attempts', () => {
-    const { rerender } = render(
+    const TestComponent = () => {
+      throw new Error('Test error');
+    };
+
+    render(
       <EditorErrorBoundary>
-        <ThrowError shouldThrow={true} />
+        <TestComponent />
       </EditorErrorBoundary>
     );
 
     const retryButton = screen.getByText('Retry Loading Editor');
     
+    // Click retry multiple times
     fireEvent.click(retryButton);
-    rerender(
-      <EditorErrorBoundary>
-        <ThrowError shouldThrow={true} />
-      </EditorErrorBoundary>
-    );
+    fireEvent.click(screen.getByText('Retry Loading Editor'));
+    fireEvent.click(screen.getByText('Retry Loading Editor'));
 
-    fireEvent.click(retryButton);
-    rerender(
-      <EditorErrorBoundary>
-        <ThrowError shouldThrow={true} />
-      </EditorErrorBoundary>
-    );
-
-    fireEvent.click(retryButton);
-    rerender(
-      <EditorErrorBoundary>
-        <ThrowError shouldThrow={true} />
-      </EditorErrorBoundary>
-    );
-
+    // After 3 retries, a warning should appear
     expect(screen.getByText(/Multiple retry attempts detected/)).toBeInTheDocument();
   });
 

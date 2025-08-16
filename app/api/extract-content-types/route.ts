@@ -7,69 +7,38 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const websiteId = searchParams.get('websiteId');
     
-    console.log('API: Extracting content types for websiteId:', websiteId);
-    
     // Prisma handles database connection automatically
     const extractor = new DatabaseExtractor();
     
-    try {
-      const extractedTypes = websiteId 
-        ? await extractor.extractContentTypesForWebsite(websiteId)
-        : await extractor.extractContentTypes();
-      
-      console.log('API: Extracted types:', extractedTypes.length, extractedTypes.map(t => t.name));
-      
-      // Transform to our component format
-      const types = extractedTypes.map((type) => ({
-        id: type.id || type.name.toLowerCase().replace(/\s+/g, '_'),
-        name: type.name,
-        fields: type.fields?.fields || []
-      }));
-      
-      console.log('API: Transformed types:', types);
-      
-      return NextResponse.json({ success: true, data: types });
-    } catch (error) {
-      console.error('Extraction failed, using mock data:', error);
-      // If extraction fails, use mock data for demo purposes
-      const mockTypes = [
-        {
-          id: 'article',
-          name: 'Article',
-          fields: [
-            { name: 'title', type: 'string' },
-            { name: 'content', type: 'richtext' },
-            { name: 'author', type: 'reference' },
-            { name: 'publishDate', type: 'datetime' }
-          ]
-        },
-        {
-          id: 'blog_post',
-          name: 'Blog Post',
-          fields: [
-            { name: 'title', type: 'string' },
-            { name: 'summary', type: 'text' },
-            { name: 'body', type: 'richtext' },
-            { name: 'tags', type: 'array' }
-          ]
-        },
-        {
-          id: 'category',
-          name: 'Category',
-          fields: [
-            { name: 'name', type: 'string' },
-            { name: 'description', type: 'text' },
-            { name: 'parent', type: 'reference' }
-          ]
-        }
-      ];
-      
-      return NextResponse.json({ success: true, data: mockTypes, mock: true });
-    }
+    const extractedTypes = websiteId 
+      ? await extractor.extractContentTypesForWebsite(websiteId)
+      : await extractor.extractContentTypes();
+    
+    // Transform to our component format
+    const types = extractedTypes.map((type) => ({
+      id: type.id || type.name.toLowerCase().replace(/\s+/g, '_'),
+      name: type.name,
+      fields: type.fields?.fields || []
+    }));
+    
+    return NextResponse.json({ success: true, data: types });
   } catch (error) {
-    console.error('Failed to extract content types:', error);
+    // Log error for monitoring in production
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Failed to extract content types:', error);
+    }
+    
+    // Return proper error message to client
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : 'Failed to extract content types from database';
+    
     return NextResponse.json(
-      { success: false, error: 'Failed to extract content types' },
+      { 
+        success: false, 
+        error: errorMessage,
+        details: 'Unable to retrieve content types. Please ensure the database is connected and contains valid data.'
+      },
       { status: 500 }
     );
   }

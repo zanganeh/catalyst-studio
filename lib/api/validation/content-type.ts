@@ -27,17 +27,17 @@ export const ContentTypeFieldOptionSchema = z.object({
 });
 
 export const ContentTypeFieldSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(), // Auto-generated if not provided
   name: z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]*$/, 'Field name must start with letter and contain only alphanumeric characters or underscores'),
-  label: z.string().min(1, 'Field label is required'),
-  type: z.enum(['text', 'number', 'boolean', 'date', 'image', 'richText', 'reference']),
+  label: z.string().min(1, 'Field label is required').optional(), // Can be derived from name
+  type: z.enum(['text', 'textarea', 'richtext', 'richText', 'number', 'boolean', 'date', 'image', 'reference', 'select', 'gallery', 'tags', 'json', 'url', 'array']),
   required: z.boolean(),
   defaultValue: z.any().optional(),
   validation: ContentTypeFieldValidationSchema.optional(),
   helpText: z.string().optional(),
   placeholder: z.string().optional(),
   options: z.array(ContentTypeFieldOptionSchema).optional(),
-  order: z.number(),
+  order: z.number().optional(), // Auto-calculated based on position
 });
 
 export const ContentTypeRelationshipSchema = z.object({
