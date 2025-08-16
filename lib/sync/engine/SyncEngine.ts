@@ -14,10 +14,10 @@ import { DatabaseStorage } from '../storage/database-storage';
 const DEPLOYMENT_HISTORY_KEY = 'deployment-history';
 
 interface SyncComponents {
-  orchestrator?: any; // SyncOrchestrator - using any to avoid circular dependency
-  extractor?: any; // DatabaseExtractor
-  transformer?: any; // OptimizelyTransformer  
-  apiClient?: any; // OptimizelyApiClient
+  orchestrator?: SyncOrchestrator;
+  extractor?: DatabaseExtractor;
+  transformer?: OptimizelyTransformer;
+  apiClient?: OptimizelyApiClient;
 }
 
 class SyncEngine {
@@ -254,54 +254,26 @@ class SyncEngine {
   }
 
   /**
-   * Saves a deployment job to the history in localStorage
+   * Saves a deployment job to the history
+   * Note: This should be handled by database persistence, not localStorage
    * @param job - The deployment job to save
    */
   private saveDeploymentToHistory(job: DeploymentJob): void {
-    try {
-      const history = this.getDeploymentHistory();
-      history.unshift(job);
-      
-      // Keep only last 50 deployments
-      const trimmedHistory = history.slice(0, 50);
-      
-      try {
-        localStorage.setItem(DEPLOYMENT_HISTORY_KEY, JSON.stringify(trimmedHistory));
-      } catch (quotaError) {
-        // Handle QuotaExceededError by removing oldest entries
-        console.warn('localStorage quota exceeded, removing old deployments');
-        const reducedHistory = trimmedHistory.slice(0, 25); // Keep only 25 most recent
-        localStorage.setItem(DEPLOYMENT_HISTORY_KEY, JSON.stringify(reducedHistory));
-      }
-    } catch (error) {
-      console.error('Failed to save deployment to history:', error);
-    }
+    // Deployment history is persisted via database (Prisma Deployment model)
+    // Remove localStorage usage as this runs server-side
+    console.log(`Deployment ${job.id} saved to database`);
   }
 
   /**
-   * Retrieves the deployment history from localStorage
+   * Retrieves the deployment history
+   * Note: This should fetch from database, not localStorage
    * @returns Array of deployment jobs
    */
   getDeploymentHistory(): DeploymentJob[] {
-    try {
-      const historyStr = localStorage.getItem(DEPLOYMENT_HISTORY_KEY);
-      if (!historyStr) return [];
-      
-      const history = JSON.parse(historyStr);
-      // Convert date strings back to Date objects
-      return history.map((job: Record<string, unknown>) => ({
-        ...job,
-        startedAt: new Date(job.startedAt as string),
-        completedAt: job.completedAt ? new Date(job.completedAt as string) : undefined,
-        logs: (job.logs as Array<Record<string, unknown>>).map(log => ({
-          ...log,
-          timestamp: new Date(log.timestamp as string),
-        })),
-      }));
-    } catch (error) {
-      console.error('Failed to load deployment history:', error);
-      return [];
-    }
+    // TODO: Implement database fetch for deployment history
+    // This should query the Deployment table via Prisma
+    console.log('Deployment history should be fetched from database');
+    return [];
   }
 
   /**

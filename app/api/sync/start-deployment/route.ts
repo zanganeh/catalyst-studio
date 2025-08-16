@@ -6,6 +6,9 @@ import { OptimizelyTransformer } from '@/lib/sync/transformers/optimizely-transf
 import { OptimizelyApiClient } from '@/lib/sync/adapters/optimizely-api-client';
 import { SyncOrchestrator } from '@/lib/sync/engine/sync-orchestrator';
 import { DatabaseStorage } from '@/lib/sync/storage/database-storage';
+import { startDeploymentSchema } from '@/lib/api/validation/deployment';
+import { safeJsonParse } from '@/lib/utils/safe-json';
+import { withTransaction } from '@/lib/sync/utils/transaction-manager';
 
 interface CMSProviderInfo {
   id: string;
@@ -16,49 +19,81 @@ interface CMSProviderInfo {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { websiteId, provider, selectedTypes } = body;
+    
+    // Validate input
+    const validationResult = startDeploymentSchema.safeParse(body);
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { 
+          error: 'Invalid request data',
+          details: validationResult.error.flatten()
+        },
+        { status: 400 }
+      );
+    }
+    
+    const { websiteId, provider, selectedTypes } = validationResult.data;
 
     // Generate a unique deployment ID
     const deploymentId = uuidv4();
     
-    // Create deployment job in database
-    const deployment = await prisma.deployment.create({
-      data: {
-        id: deploymentId,
-        websiteId,
-        providerId: provider.id,
-        providerName: provider.name,
-        selectedTypes: JSON.stringify(selectedTypes || []),
-        status: 'pending',
-        progress: 0,
-        logs: JSON.stringify([]),
-        startedAt: new Date(),
-      },
+    // Create deployment job in database within a transaction
+    const deployment = await withTransaction(async (tx) => {
+      // Check if website exists
+      const website = await tx.website.findUnique({
+        where: { id: websiteId },
+      });
+      
+      if (!website) {
+        throw new Error('Website not found');
+      }
+      
+      // Check for existing active deployments
+      const activeDeployment = await tx.deployment.findFirst({
+        where: {
+          websiteId,
+          status: {
+            in: ['pending', 'queued', 'processing', 'running'],
+          },
+        },
+      });
+      
+      if (activeDeployment) {
+        throw new Error('Another deployment is already in progress for this website');
+      }
+      
+      // Create the deployment
+      return await tx.deployment.create({
+        data: {
+          id: deploymentId,
+          websiteId,
+          providerId: provider.id,
+          providerName: provider.name,
+          selectedTypes: JSON.stringify(selectedTypes || []),
+          status: 'pending',
+          progress: 0,
+          logs: JSON.stringify([]),
+          startedAt: new Date(),
+        },
+      });
     });
 
-    // Start the deployment process
-    // TODO: In production, this should be handled by a job queue (Bull/BullMQ)
-    // For MVP, we'll process it immediately with proper error handling
-    // Note: This is a controlled async operation with database state tracking
-    setImmediate(() => {
-      processDeployment(deploymentId, provider).catch(async (error) => {
-        // Update deployment status in database on error
-        try {
-          await prisma.deployment.update({
-            where: { id: deploymentId },
-            data: { 
-              status: 'failed',
-              error: error instanceof Error ? error.message : 'Deployment process failed',
-              completedAt: new Date(),
-            },
-          });
-        } catch (updateError) {
-          // Log critical error
-          if (process.env.NODE_ENV === 'development') {
-            console.error(`Failed to update deployment ${deploymentId} status:`, updateError);
+    // Process deployment immediately for now (in production use job queue)
+    // Using setImmediate to avoid blocking the response
+    setImmediate(async () => {
+      try {
+        await processDeployment(deploymentId, provider);
+      } catch (error) {
+        console.error(`Deployment ${deploymentId} failed:`, error);
+        await prisma.deployment.update({
+          where: { id: deploymentId },
+          data: {
+            status: 'failed',
+            error: error instanceof Error ? error.message : 'Unknown error',
+            completedAt: new Date(),
           }
-        }
-      });
+        });
+      }
     });
 
     return NextResponse.json({ 
@@ -106,19 +141,22 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
       where: { id: deploymentId },
     });
     
-    const logs = deployment?.logs ? JSON.parse(deployment.logs) : [];
+    const logs: any[] = deployment?.logs ? safeJsonParse(deployment.logs, []) || [] : [];
     logs.push({
       timestamp: new Date().toISOString(),
       level,
       message,
     });
     
-    await prisma.deployment.update({
-      where: { id: deploymentId },
-      data: { 
-        progress,
-        logs: JSON.stringify(logs),
-      },
+    // Use transaction for atomic update
+    await withTransaction(async (tx) => {
+      await tx.deployment.update({
+        where: { id: deploymentId },
+        data: { 
+          progress,
+          logs: JSON.stringify(logs),
+        },
+      });
     });
   };
 

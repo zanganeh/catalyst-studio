@@ -26,8 +26,10 @@ export class DatabaseStorage implements SyncStorage {
       const contentTypes = await this.extractor.extractContentTypes();
       return contentTypes || [];
     } catch (error) {
-      console.error('Failed to load content types from database:', error);
-      return [];
+      // Propagate error instead of silent failure
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load content types';
+      console.error('Database error in loadContentTypes:', errorMessage);
+      throw new Error(`Failed to load content types from database: ${errorMessage}`);
     }
   }
 
