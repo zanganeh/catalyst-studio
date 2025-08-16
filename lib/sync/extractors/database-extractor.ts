@@ -1,5 +1,4 @@
-import * as sqlite3 from 'sqlite3';
-import * as path from 'path';
+import { prisma } from '@/lib/prisma';
 
 export interface ExtractedContentType {
   id: string;
@@ -24,165 +23,108 @@ export interface Website {
 }
 
 export class DatabaseExtractor {
-  private dbPath: string;
-  private db: sqlite3.Database | null = null;
-  private isConnected: boolean = false;
-  private connectionPromise: Promise<void> | null = null;
-
-  constructor(dbPath?: string) {
-    this.dbPath = dbPath || path.join(process.cwd(), 'prisma/dev.db');
-  }
-
-  async connect(): Promise<void> {
-    // If already connected, return immediately
-    if (this.isConnected && this.db) {
-      return Promise.resolve();
-    }
-    
-    // If connection is in progress, wait for it
-    if (this.connectionPromise) {
-      return this.connectionPromise;
-    }
-    
-    // Start new connection
-    this.connectionPromise = new Promise((resolve, reject) => {
-      this.db = new sqlite3.Database(this.dbPath, (err) => {
-        if (err) {
-          this.connectionPromise = null;
-          reject(err);
-        } else {
-          console.log(`Connected to database: ${this.dbPath}`);
-          this.isConnected = true;
-          this.connectionPromise = null;
-          resolve();
-        }
-      });
-    });
-    
-    return this.connectionPromise;
-  }
-
-  async close(): Promise<void> {
-    if (this.db && this.isConnected) {
-      return new Promise((resolve, reject) => {
-        this.db!.close((err) => {
-          if (err) {
-            reject(err);
-          } else {
-            this.isConnected = false;
-            this.db = null;
-            resolve();
-          }
-        });
-      });
-    }
-  }
-
-  private async getAll<T = any>(query: string, params: any[] = []): Promise<T[]> {
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error('Database not connected'));
-        return;
-      }
-      this.db.all(query, params, (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows as T[]);
-      });
-    });
-  }
-
-  async extractContentTypes(websiteId?: string | null): Promise<ExtractedContentType[]> {
+  /**
+   * Extract all content types from the database using Prisma
+   */
+  async extractContentTypes(): Promise<ExtractedContentType[]> {
     try {
-      let query = `
-        SELECT 
-          ct.id,
-          ct.websiteId,
-          ct.name,
-          ct.fields,
-          ct.settings,
-          ct.createdAt,
-          ct.updatedAt,
-          w.name as websiteName
-        FROM ContentType ct
-        LEFT JOIN Website w ON ct.websiteId = w.id
-      `;
-      
-      const params: any[] = [];
-      if (websiteId) {
-        query += ' WHERE ct.websiteId = ?';
-        params.push(websiteId);
-      }
-      
-      query += ' ORDER BY ct.name, ct.createdAt';
-
-      interface RawContentType {
-        id: string;
-        websiteId: string;
-        name: string;
-        fields: string;
-        settings: string | null;
-        createdAt: string;
-        updatedAt: string;
-        websiteName: string | null;
-      }
-
-      const rows = await this.getAll<RawContentType>(query, params);
-      
-      return rows.map(row => {
-        let fields: Record<string, any> = {};
-        let settings: Record<string, any> = {};
-        
-        try {
-          fields = JSON.parse(row.fields);
-        } catch (e) {
-          console.warn(`Failed to parse fields for content type ${row.id}:`, (e as Error).message);
-        }
-        
-        try {
-          if (row.settings) {
-            settings = JSON.parse(row.settings);
-          }
-        } catch (e) {
-          console.warn(`Failed to parse settings for content type ${row.id}:`, (e as Error).message);
-        }
-        
-        return {
-          id: row.id,
-          websiteId: row.websiteId,
-          websiteName: row.websiteName,
-          name: row.name,
-          fields: fields,
-          settings: settings,
-          createdAt: row.createdAt,
-          updatedAt: row.updatedAt,
-          metadata: {
-            extractedAt: new Date().toISOString(),
-            source: 'catalyst-studio'
-          }
-        };
+      const contentTypes = await prisma.contentType.findMany({
+        include: {
+          website: true,
+        },
       });
+
+      return contentTypes.map(ct => ({
+        id: ct.id,
+        websiteId: ct.websiteId,
+        websiteName: ct.website?.name || null,
+        name: ct.name,
+        fields: typeof ct.fields === 'string' ? JSON.parse(ct.fields) : ct.fields,
+        settings: ct.settings ? (typeof ct.settings === 'string' ? JSON.parse(ct.settings) : ct.settings) : {},
+        createdAt: ct.createdAt.toISOString(),
+        updatedAt: ct.updatedAt.toISOString(),
+        metadata: {
+          extractedAt: new Date().toISOString(),
+          source: 'prisma',
+        },
+      }));
     } catch (error) {
-      console.error('Error extracting content types:', error);
-      throw error;
+      console.error('Failed to extract content types:', error);
+      throw new Error(`Database extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
-  async getWebsites(): Promise<Website[]> {
+  /**
+   * Extract content types for a specific website
+   */
+  async extractContentTypesForWebsite(websiteId: string): Promise<ExtractedContentType[]> {
     try {
-      const query = `
-        SELECT 
-          id,
-          name,
-          createdAt,
-          updatedAt
-        FROM Website
-        ORDER BY name
-      `;
-      
-      return await this.getAll<Website>(query);
+      const contentTypes = await prisma.contentType.findMany({
+        where: {
+          websiteId,
+        },
+        include: {
+          website: true,
+        },
+      });
+
+      return contentTypes.map(ct => ({
+        id: ct.id,
+        websiteId: ct.websiteId,
+        websiteName: ct.website?.name || null,
+        name: ct.name,
+        fields: typeof ct.fields === 'string' ? JSON.parse(ct.fields) : ct.fields,
+        settings: ct.settings ? (typeof ct.settings === 'string' ? JSON.parse(ct.settings) : ct.settings) : {},
+        createdAt: ct.createdAt.toISOString(),
+        updatedAt: ct.updatedAt.toISOString(),
+        metadata: {
+          extractedAt: new Date().toISOString(),
+          source: 'prisma',
+        },
+      }));
     } catch (error) {
-      console.error('Error fetching websites:', error);
-      throw error;
+      console.error(`Failed to extract content types for website ${websiteId}:`, error);
+      throw new Error(`Database extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
+  }
+
+  /**
+   * Extract all websites from the database
+   */
+  async extractWebsites(): Promise<Website[]> {
+    try {
+      const websites = await prisma.website.findMany();
+
+      return websites.map(w => ({
+        id: w.id,
+        name: w.name,
+        createdAt: w.createdAt.toISOString(),
+        updatedAt: w.updatedAt.toISOString(),
+      }));
+    } catch (error) {
+      console.error('Failed to extract websites:', error);
+      throw new Error(`Database extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Test database connection using Prisma
+   */
+  async testConnection(): Promise<boolean> {
+    try {
+      await prisma.$connect();
+      console.log('✅ Successfully connected to database via Prisma');
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to connect to database:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Disconnect from database
+   */
+  async disconnect(): Promise<void> {
+    await prisma.$disconnect();
   }
 }

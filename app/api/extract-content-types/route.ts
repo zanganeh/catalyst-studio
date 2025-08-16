@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { DatabaseExtractor } from '@/lib/sync/extractors/database-extractor';
-import * as path from 'path';
 
 export async function GET(request: Request) {
   try {
@@ -10,14 +9,13 @@ export async function GET(request: Request) {
     
     console.log('API: Extracting content types for websiteId:', websiteId);
     
-    const dbPath = process.env.DATABASE_PATH || path.join(process.cwd(), 'prisma', 'dev.db');
-    console.log('API: Using database path:', dbPath);
-    const extractor = new DatabaseExtractor(dbPath);
+    // Prisma handles database connection automatically
+    const extractor = new DatabaseExtractor();
     
     try {
-      await extractor.connect();
-      const extractedTypes = await extractor.extractContentTypes(websiteId);
-      await extractor.close();
+      const extractedTypes = websiteId 
+        ? await extractor.extractContentTypesForWebsite(websiteId)
+        : await extractor.extractContentTypes();
       
       console.log('API: Extracted types:', extractedTypes.length, extractedTypes.map(t => t.name));
       

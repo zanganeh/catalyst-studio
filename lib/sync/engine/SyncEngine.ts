@@ -34,8 +34,8 @@ class SyncEngine {
 
   private async initializeComponents(): Promise<void> {
     if (!this.components.extractor) {
-      const dbPath = this.config?.dbPath || process.env.DATABASE_PATH || './data/catalyst.db';
-      this.components.extractor = new DatabaseExtractor(dbPath);
+      // Prisma handles database connection automatically
+      this.components.extractor = new DatabaseExtractor();
     }
 
     if (!this.components.transformer) {
