@@ -128,58 +128,110 @@ class SyncEngine {
           ...job,
           status: 'running' as DeploymentStatus,
           progress: 10,
+          logs: [
+            ...job.logs,
+            {
+              timestamp: new Date(),
+              level: 'info',
+              message: 'Starting deployment process...',
+            },
+          ],
         };
         onUpdate(runningJob);
 
-        // Simulate deployment steps for MVP
-        // In production, this would use the actual sync orchestrator
-        const steps = [
-          { progress: 20, message: 'Extracting content types from database...' },
-          { progress: 40, message: 'Transforming content types for ' + provider.name + '...' },
-          { progress: 60, message: 'Connecting to ' + provider.name + ' API...' },
-          { progress: 80, message: 'Syncing content types...' },
-          { progress: 100, message: 'Deployment completed successfully!' },
-        ];
+        // Initialize components if not already done
+        await this.initializeComponents();
 
-        for (const step of steps) {
-          if (cancelled) {
-            throw new Error('Deployment cancelled by user');
-          }
+        if (!this.components.orchestrator) {
+          throw new Error('Failed to initialize sync orchestrator');
+        }
 
-          await new Promise(resolve => setTimeout(resolve, 2000));
-
+        // Helper function to add log and update progress
+        const updateProgress = (progress: number, message: string, level: 'info' | 'error' | 'warning' = 'info') => {
           const updatedJob: DeploymentJob = {
             ...runningJob,
-            progress: step.progress,
+            progress,
             logs: [
               ...runningJob.logs,
               {
                 timestamp: new Date(),
-                level: 'info',
-                message: step.message,
+                level,
+                message,
               },
             ],
           };
+          runningJob.logs = updatedJob.logs;
           onUpdate(updatedJob);
+        };
+
+        // Check if dry-run mode (no credentials)
+        const isDryRun = !this.config?.clientId && !process.env.OPTIMIZELY_CLIENT_ID;
+        if (isDryRun) {
+          this.components.orchestrator.setDryRun(true);
+          updateProgress(15, 'Running in simulation mode (no Optimizely credentials configured)', 'warning');
         }
 
-        // Mark as completed
-        const completedJob: DeploymentJob = {
-          ...runningJob,
-          status: 'completed' as DeploymentStatus,
-          progress: 100,
-          completedAt: new Date(),
-        };
-        onUpdate(completedJob);
+        updateProgress(20, 'Extracting content types from database...');
 
-        // Save to history
-        this.saveDeploymentToHistory(completedJob);
+        // Execute the actual sync
+        const syncResult = await this.components.orchestrator.sync({
+          websiteId: job.websiteId,
+        });
+
+        if (cancelled) {
+          throw new Error('Deployment cancelled by user');
+        }
+
+        // Process sync results
+        if (syncResult.success) {
+          const stats = syncResult.statistics;
+          
+          updateProgress(40, `Extracted ${stats.extracted} content types`);
+          updateProgress(60, `Transformed ${stats.transformed} content types`);
+          
+          if (stats.created > 0) {
+            updateProgress(80, `Created ${stats.created} content types in ${provider.name}`);
+          }
+          if (stats.updated > 0) {
+            updateProgress(85, `Updated ${stats.updated} content types in ${provider.name}`);
+          }
+          if (stats.skipped > 0) {
+            updateProgress(90, `Skipped ${stats.skipped} unchanged content types`);
+          }
+          if (stats.errors > 0) {
+            updateProgress(95, `Encountered ${stats.errors} errors during sync`, 'warning');
+          }
+
+          updateProgress(100, 'Deployment completed successfully!');
+
+          // Mark as completed
+          const completedJob: DeploymentJob = {
+            ...runningJob,
+            status: 'completed' as DeploymentStatus,
+            progress: 100,
+            completedAt: new Date(),
+          };
+          onUpdate(completedJob);
+
+          // Save to history
+          this.saveDeploymentToHistory(completedJob);
+        } else {
+          throw new Error(syncResult.error || 'Sync failed');
+        }
       } catch (error) {
         const failedJob: DeploymentJob = {
           ...job,
           status: 'failed' as DeploymentStatus,
           error: error instanceof Error ? error.message : 'Deployment failed',
           completedAt: new Date(),
+          logs: [
+            ...job.logs,
+            {
+              timestamp: new Date(),
+              level: 'error',
+              message: error instanceof Error ? error.message : 'Deployment failed',
+            },
+          ],
         };
         onUpdate(failedJob);
         

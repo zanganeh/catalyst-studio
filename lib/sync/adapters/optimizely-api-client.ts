@@ -219,17 +219,30 @@ export class OptimizelyApiClient {
     }
     
     return this.rateLimiter(async () => {
-      console.log(`📤 Creating content type: ${contentType.key}`);
-      const response = await this.makeRequest<OptimizelyContentTypeResponse>(
-        '/contenttypes',
-        {
-          method: 'POST',
-          body: JSON.stringify(contentType),
-        },
-        `createContentType-${contentType.key}`
-      );
-      console.log(`✅ Created content type: ${contentType.key}`);
-      return response;
+      try {
+        console.log(`📤 Creating content type: ${contentType.key}`);
+        const response = await this.makeRequest<OptimizelyContentTypeResponse>(
+          '/contenttypes',
+          {
+            method: 'POST',
+            body: JSON.stringify(contentType),
+          },
+          `createContentType-${contentType.key}`
+        );
+        console.log(`✅ Created content type: ${contentType.key}`);
+        return response;
+      } catch (error) {
+        const fetchError = error as FetchError;
+        if (fetchError.status === 409) {
+          console.log(`⚠️  Content type ${contentType.key} already exists in Optimizely, skipping creation`);
+          // Return the existing content type
+          const existing = await this.getContentType(contentType.key);
+          if (existing) {
+            return existing;
+          }
+        }
+        throw error;
+      }
     });
   }
 
@@ -246,17 +259,26 @@ export class OptimizelyApiClient {
     return this.rateLimiter(async () => {
       try {
         console.log(`📤 Updating content type: ${key}`);
-        const headers: HeadersInit = {};
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json-patch+json', // Optimizely expects this for PATCH
+        };
         if (etag) {
           headers['If-Match'] = etag;
         }
+        
+        // Convert to JSON Patch format for Optimizely
+        const patchDocument = [
+          { op: 'replace', path: '/displayName', value: contentType.displayName },
+          { op: 'replace', path: '/description', value: contentType.description || '' },
+          { op: 'replace', path: '/properties', value: contentType.properties || [] },
+        ];
         
         const response = await this.makeRequest<OptimizelyContentTypeResponse>(
           `/contenttypes/${key}`,
           {
             method: 'PATCH',
             headers,
-            body: JSON.stringify(contentType),
+            body: JSON.stringify(patchDocument),
           },
           `updateContentType-${key}`
         );
@@ -267,6 +289,14 @@ export class OptimizelyApiClient {
         if (fetchError.status === 412) {
           console.error(`⚠️  Content type ${key} has been modified externally. Skipping update.`);
           throw new Error(`Precondition failed for ${key}`);
+        }
+        if (fetchError.status === 415) {
+          console.error(`⚠️  Content type ${key} update failed - invalid media type. Skipping update.`);
+          // Try to return the existing content type
+          const existing = await this.getContentType(key);
+          if (existing) {
+            return existing;
+          }
         }
         this.handleApiError(fetchError, 'update', key);
         throw error;

@@ -24,9 +24,30 @@ export interface Website {
 
 export class DatabaseExtractor {
   /**
+   * Connect to the database (Prisma handles this automatically)
+   */
+  async connect(): Promise<void> {
+    // Prisma automatically handles database connections
+    // This method exists for compatibility with the sync orchestrator
+    return Promise.resolve();
+  }
+
+  /**
+   * Close the database connection (Prisma handles this automatically)
+   */
+  async close(): Promise<void> {
+    // Prisma automatically handles connection pooling
+    // This method exists for compatibility with the sync orchestrator
+    return Promise.resolve();
+  }
+
+  /**
    * Extract all content types from the database using Prisma
    */
-  async extractContentTypes(): Promise<ExtractedContentType[]> {
+  async extractContentTypes(websiteId?: string): Promise<ExtractedContentType[]> {
+    if (websiteId) {
+      return this.extractContentTypesForWebsite(websiteId);
+    }
     try {
       const contentTypes = await prisma.contentType.findMany({
         include: {
