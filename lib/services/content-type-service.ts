@@ -129,7 +129,6 @@ export async function createContentType(data: CreateContentTypeRequest, source: 
   await versionManager.onDataChange(
     {
       key: contentType.id,
-      name: contentTypeData.name,
       ...contentTypeFields
     },
     source,
@@ -188,7 +187,6 @@ export async function updateContentType(id: string, data: UpdateContentTypeReque
   await versionManager.onDataChange(
     {
       key: contentType.id,
-      name: contentType.name,
       ...updatedFields
     },
     source,
