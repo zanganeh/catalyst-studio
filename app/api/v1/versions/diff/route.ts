@@ -5,29 +5,29 @@ import { VersionDiff } from '@/lib/sync/versioning/VersionDiff';
 const prisma = new PrismaClient();
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { hash: string } }
+  request: NextRequest
 ) {
   try {
     const url = new URL(request.url);
-    const compareHash = url.searchParams.get('compareHash');
+    const hash1 = url.searchParams.get('hash1');
+    const hash2 = url.searchParams.get('hash2');
     
-    if (!compareHash) {
+    if (!hash1 || !hash2) {
       return NextResponse.json(
         {
           success: false,
-          error: 'compareHash parameter is required'
+          error: 'hash1 and hash2 parameters are required'
         },
         { status: 400 }
       );
     }
 
     const version1 = await prisma.contentTypeVersion.findUnique({
-      where: { versionHash: params.hash }
+      where: { versionHash: hash1 }
     });
 
     const version2 = await prisma.contentTypeVersion.findUnique({
-      where: { versionHash: compareHash }
+      where: { versionHash: hash2 }
     });
 
     if (!version1 || !version2) {

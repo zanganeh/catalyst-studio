@@ -6,9 +6,10 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { typeKey: string } }
+  { params }: { params: Promise<{ typeKey: string }> }
 ) {
   try {
+    const { typeKey } = await params;
     const url = new URL(request.url);
     const author = url.searchParams.get('author');
     const startDate = url.searchParams.get('startDate');
@@ -39,11 +40,11 @@ export async function GET(
       options.limit = parseInt(limit, 10);
     }
 
-    const history = await versionManager.getVersionHistory(params.typeKey, options);
+    const history = await versionManager.getVersionHistory(typeKey, options);
 
     return NextResponse.json({
       success: true,
-      typeKey: params.typeKey,
+      typeKey,
       versions: history,
       count: history.length
     });

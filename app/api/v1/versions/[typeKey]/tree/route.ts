@@ -6,16 +6,17 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { typeKey: string } }
+  { params }: { params: Promise<{ typeKey: string }> }
 ) {
   try {
+    const { typeKey } = await params;
     const versionTree = new VersionTree(prisma);
-    const tree = await versionTree.buildTree(params.typeKey);
+    const tree = await versionTree.buildTree(typeKey);
     
     if (!tree) {
       return NextResponse.json({
         success: true,
-        typeKey: params.typeKey,
+        typeKey,
         tree: null,
         visualization: 'No version history available'
       });
@@ -23,10 +24,20 @@ export async function GET(
 
     const visualization = versionTree.visualizeTree(tree);
 
+    // Remove circular references by only returning essential tree data
+    const treeData = tree ? {
+      hash: tree.hash,
+      typeKey: tree.typeKey,
+      author: tree.author,
+      createdAt: tree.createdAt,
+      message: tree.message,
+      childrenCount: tree.children.length
+    } : null;
+
     return NextResponse.json({
       success: true,
-      typeKey: params.typeKey,
-      tree,
+      typeKey,
+      treeData,
       visualization
     });
   } catch (error) {
