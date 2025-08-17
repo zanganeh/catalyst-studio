@@ -3,6 +3,8 @@ import { SyncHistoryManager } from '../sync/tracking/SyncHistoryManager';
 import { SyncSnapshot } from '../sync/tracking/SyncSnapshot';
 import { ContentTypeHasher } from '../sync/versioning/ContentTypeHasher';
 import { OptimizelyApiClient } from '../sync/adapters/optimizely-api-client';
+import { SyncStateManager } from '../sync/persistence/SyncStateManager';
+import { ChangeDetector } from '../sync/detection/ChangeDetector';
 
 export interface DeploymentConfig {
   deploymentId: string;
@@ -14,13 +16,31 @@ export interface DeploymentConfig {
 export interface ContentType {
   key: string;
   versionHash?: string;
-  data: any;
+  data: Record<string, unknown>;
+}
+
+export interface ChangeSummary {
+  summary: {
+    total: number;
+    created: number;
+    updated: number;
+    deleted: number;
+    unchanged: number;
+  };
+  details?: {
+    created: Array<Record<string, unknown>>;
+    updated: Array<Record<string, unknown>>;
+    deleted: Array<Record<string, unknown>>;
+  };
+  timestamp: string;
 }
 
 export class DeploymentService {
   private syncHistoryManager: SyncHistoryManager;
   private syncSnapshot: SyncSnapshot;
+  private syncStateManager: SyncStateManager;
   private hasher: ContentTypeHasher;
+  private changeDetector: ChangeDetector;
   
   constructor(
     private prisma: PrismaClient,
@@ -28,7 +48,43 @@ export class DeploymentService {
   ) {
     this.syncHistoryManager = new SyncHistoryManager(prisma);
     this.syncSnapshot = new SyncSnapshot();
+    this.syncStateManager = new SyncStateManager(prisma);
     this.hasher = new ContentTypeHasher();
+    // Initialize the native TypeScript change detector
+    this.changeDetector = new ChangeDetector(prisma, this.syncStateManager);
+  }
+  
+  /**
+   * Detect changes between local and remote content types
+   */
+  async detectChanges(): Promise<ChangeSummary> {
+    try {
+      const changes = await this.changeDetector.detectChanges();
+      console.log('Changes detected:', changes.summary);
+      return changes;
+    } catch (error) {
+      console.error('Error detecting changes:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get change summary for deployment preview
+   */
+  async getChangeSummary(contentTypeKeys?: string[]): Promise<ChangeSummary> {
+    try {
+      if (contentTypeKeys && contentTypeKeys.length > 0) {
+        // Detect changes for specific content types
+        const batchResult = await this.changeDetector.detectBatchChanges(contentTypeKeys);
+        return batchResult;
+      } else {
+        // Detect all changes
+        return await this.detectChanges();
+      }
+    } catch (error) {
+      console.error('Error getting change summary:', error);
+      throw error;
+    }
   }
   
   /**
@@ -39,6 +95,25 @@ export class DeploymentService {
     contentTypes: ContentType[]
   ): Promise<void> {
     console.log(`Starting deployment ${deploymentId} to ${this.provider}`);
+    
+    // Detect changes before deployment
+    const changes = await this.detectChanges();
+    console.log(`Detected changes - Created: ${changes.summary.created}, Updated: ${changes.summary.updated}, Deleted: ${changes.summary.deleted}`);
+    
+    // Record change detection in sync history
+    await this.syncHistoryManager.recordSyncAttempt({
+      typeKey: '_change_detection',
+      versionHash: this.hasher.generateHash({ timestamp: new Date().toISOString(), changes: changes.summary }),
+      targetPlatform: this.provider,
+      syncDirection: 'PUSH',
+      data: { changes: changes.summary },
+      deploymentId,
+      metadata: {
+        deploymentId,
+        changeDetection: true,
+        timestamp: new Date().toISOString()
+      }
+    });
     
     // Update deployment status
     await this.prisma.deployment.update({
@@ -59,7 +134,7 @@ export class DeploymentService {
       try {
         // Calculate version hash if not provided
         const versionHash = contentType.versionHash || 
-          await this.hasher.calculateHash(contentType.data);
+          this.hasher.generateHash(contentType.data);
         
         // Capture snapshot
         const snapshot = await this.syncSnapshot.captureSnapshot(contentType.data);
