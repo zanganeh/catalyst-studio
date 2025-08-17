@@ -3,6 +3,15 @@ import { Website, CreateWebsiteRequest, UpdateWebsiteRequest } from '@/types/api
 
 const WEBSITES_QUERY_KEY = 'websites';
 
+// Query keys helper
+export const websiteKeys = {
+  all: [WEBSITES_QUERY_KEY] as const,
+  lists: () => [...websiteKeys.all, 'list'] as const,
+  list: () => [...websiteKeys.lists()] as const,
+  details: () => [...websiteKeys.all, 'detail'] as const,
+  detail: (id: string) => [...websiteKeys.details(), id] as const,
+};
+
 /**
  * Fetch all websites
  */
@@ -31,12 +40,14 @@ export function useWebsite(id: string | undefined) {
       
       const response = await fetch(`/api/websites/${id}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch website');
+        const error = await response.json();
+        throw new Error(error.error?.message || 'Website not found');
       }
       const data = await response.json();
       return data.data as Website;
     },
-    enabled: !!id
+    enabled: !!id && id !== 'default',
+    retry: false // Don't retry if website doesn't exist
   });
 }
 

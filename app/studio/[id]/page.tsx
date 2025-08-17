@@ -23,7 +23,8 @@ export default function StudioPage() {
 
   useEffect(() => {
     // Redirect to dashboard if website doesn't exist
-    if (error && error.message.includes('not found')) {
+    if (error && (error.message.includes('not found') || error.message.includes('Referenced record not found'))) {
+      console.error('Website not found, redirecting to dashboard:', error.message);
       router.push('/dashboard');
     }
   }, [error, router]);

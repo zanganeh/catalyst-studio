@@ -337,7 +337,7 @@ export function DeploymentHistory({ onRedeploy, className }: DeploymentHistoryPr
                   <ScrollArea className="h-[200px] rounded-lg bg-black/30 border border-white/10 p-3">
                     <div className="space-y-1">
                       {selectedJob.logs.map((log, index) => (
-                        <div key={index} className="flex items-start gap-2 text-xs">
+                        <div key={`log-${index}`} className="flex items-start gap-2 text-xs">
                           {log.level === 'error' ? (
                             <XCircle className="h-3 w-3 text-red-400 mt-0.5" />
                           ) : log.level === 'warning' ? (

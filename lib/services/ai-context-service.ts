@@ -67,6 +67,16 @@ export class AIContextService {
     initialMessage?: AIMessage,
     sessionId?: string
   ): Promise<AIContext> {
+    // First check if the website exists
+    const websiteExists = await prisma.website.findUnique({
+      where: { id: websiteId },
+      select: { id: true }
+    });
+    
+    if (!websiteExists) {
+      throw new ApiError(400, `Referenced record not found: Website with ID '${websiteId}' does not exist`);
+    }
+    
     const newSessionId = sessionId || `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const messages: AIMessage[] = initialMessage ? [initialMessage] : [];
     const metadata: AIMetadata = {
@@ -74,17 +84,25 @@ export class AIContextService {
       tokens: await this.estimateTokens(messages)
     };
     
-    const context = await prisma.aIContext.create({
-      data: {
-        websiteId,
-        sessionId: newSessionId,
-        messages: JSON.stringify(messages),
-        metadata: JSON.stringify(metadata),
-        isActive: true
+    try {
+      const context = await prisma.aIContext.create({
+        data: {
+          websiteId,
+          sessionId: newSessionId,
+          messages: JSON.stringify(messages),
+          metadata: JSON.stringify(metadata),
+          isActive: true
+        }
+      });
+      
+      return this.transformContext(context);
+    } catch (error: any) {
+      // Handle Prisma foreign key constraint errors
+      if (error.code === 'P2003') {
+        throw new ApiError(400, `Referenced record not found: Website with ID '${websiteId}' does not exist`);
       }
-    });
-    
-    return this.transformContext(context);
+      throw error;
+    }
   }
   
   /**

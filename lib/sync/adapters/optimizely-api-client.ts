@@ -1,5 +1,8 @@
 import pLimit from 'p-limit';
 import { OptimizelyContentType } from '../transformers/optimizely-transformer';
+import { SyncHistoryManager, SyncStatus } from '../tracking/SyncHistoryManager';
+import { SyncSnapshot } from '../tracking/SyncSnapshot';
+import { PrismaClient } from '@/lib/generated/prisma';
 
 export interface OptimizelyConfig {
   baseUrl?: string;
@@ -36,6 +39,9 @@ export class OptimizelyApiClient {
   private tokenExpiry: Date | null = null;
   private rateLimiter: pLimit.Limit;
   private activeRequests = new Map<string, AbortController>();
+  private syncHistoryManager?: SyncHistoryManager;
+  private syncSnapshot?: SyncSnapshot;
+  private deploymentId?: string;
 
   constructor(config: OptimizelyConfig) {
     this.baseUrl = config.baseUrl || 'https://api.cms.optimizely.com';
@@ -45,6 +51,15 @@ export class OptimizelyApiClient {
     this.projectId = config.projectId;
     
     this.rateLimiter = pLimit(2);
+  }
+
+  /**
+   * Initialize sync tracking capabilities
+   */
+  initializeSyncTracking(prisma: PrismaClient, deploymentId?: string): void {
+    this.syncHistoryManager = new SyncHistoryManager(prisma);
+    this.syncSnapshot = new SyncSnapshot();
+    this.deploymentId = deploymentId;
   }
 
   setDryRun(value: boolean): void {
@@ -219,7 +234,30 @@ export class OptimizelyApiClient {
     }
     
     return this.rateLimiter(async () => {
+      let syncId: string | undefined;
+      const startTime = Date.now();
+      
       try {
+        // Record sync attempt if tracking is enabled
+        if (this.syncHistoryManager && this.syncSnapshot) {
+          const versionHash = await this.syncHistoryManager.getVersionHash(contentType);
+          const snapshot = await this.syncSnapshot.captureSnapshot(contentType);
+          
+          syncId = await this.syncHistoryManager.recordSyncAttempt({
+            typeKey: contentType.key,
+            versionHash,
+            targetPlatform: 'optimizely',
+            syncDirection: 'PUSH',
+            data: snapshot,
+            deploymentId: this.deploymentId,
+            metadata: {
+              operation: 'create',
+              timestamp: new Date().toISOString(),
+              duration: null
+            }
+          });
+        }
+        
         console.log(`📤 Creating content type: ${contentType.key}`);
         const response = await this.makeRequest<OptimizelyContentTypeResponse>(
           '/contenttypes',
@@ -230,9 +268,32 @@ export class OptimizelyApiClient {
           `createContentType-${contentType.key}`
         );
         console.log(`✅ Created content type: ${contentType.key}`);
+        
+        // Update sync status on success
+        if (syncId && this.syncHistoryManager) {
+          const duration = Date.now() - startTime;
+          await this.syncHistoryManager.updateSyncStatus(
+            syncId, 
+            SyncStatus.SUCCESS, 
+            { ...response, duration }
+          );
+        }
+        
         return response;
       } catch (error) {
         const fetchError = error as FetchError;
+        
+        // Update sync status on failure
+        if (syncId && this.syncHistoryManager) {
+          const duration = Date.now() - startTime;
+          await this.syncHistoryManager.updateSyncStatus(
+            syncId, 
+            SyncStatus.FAILED, 
+            { duration, errorDetails: fetchError.response },
+            fetchError
+          );
+        }
+        
         if (fetchError.status === 409) {
           console.log(`⚠️  Content type ${contentType.key} already exists in Optimizely, skipping creation`);
           // Return the existing content type
@@ -257,7 +318,31 @@ export class OptimizelyApiClient {
     }
     
     return this.rateLimiter(async () => {
+      let syncId: string | undefined;
+      const startTime = Date.now();
+      
       try {
+        // Record sync attempt if tracking is enabled
+        if (this.syncHistoryManager && this.syncSnapshot) {
+          const versionHash = await this.syncHistoryManager.getVersionHash(contentType);
+          const snapshot = await this.syncSnapshot.captureSnapshot(contentType);
+          
+          syncId = await this.syncHistoryManager.recordSyncAttempt({
+            typeKey: key,
+            versionHash,
+            targetPlatform: 'optimizely',
+            syncDirection: 'PUSH',
+            data: snapshot,
+            deploymentId: this.deploymentId,
+            metadata: {
+              operation: 'update',
+              etag,
+              timestamp: new Date().toISOString(),
+              duration: null
+            }
+          });
+        }
+        
         console.log(`📤 Updating content type: ${key}`);
         const headers: HeadersInit = {
           'Content-Type': 'application/json-patch+json', // Optimizely expects this for PATCH
@@ -283,9 +368,32 @@ export class OptimizelyApiClient {
           `updateContentType-${key}`
         );
         console.log(`✅ Updated content type: ${key}`);
+        
+        // Update sync status on success
+        if (syncId && this.syncHistoryManager) {
+          const duration = Date.now() - startTime;
+          await this.syncHistoryManager.updateSyncStatus(
+            syncId, 
+            SyncStatus.SUCCESS, 
+            { ...response, duration }
+          );
+        }
+        
         return response;
       } catch (error) {
         const fetchError = error as FetchError;
+        
+        // Update sync status on failure
+        if (syncId && this.syncHistoryManager) {
+          const duration = Date.now() - startTime;
+          await this.syncHistoryManager.updateSyncStatus(
+            syncId, 
+            SyncStatus.FAILED, 
+            { duration, errorDetails: fetchError.response },
+            fetchError
+          );
+        }
+        
         if (fetchError.status === 412) {
           console.error(`⚠️  Content type ${key} has been modified externally. Skipping update.`);
           throw new Error(`Precondition failed for ${key}`);
