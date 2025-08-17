@@ -156,12 +156,15 @@ describe('VersionHistoryManager', () => {
 
       mockContentTypeVersion.findMany.mockResolvedValue(mockHistory);
 
-      const result = await manager.getVersionHistory('blog', 5);
+      const result = await manager.getVersionHistory('blog', { limit: 5 });
 
       expect(mockContentTypeVersion.findMany).toHaveBeenCalledWith({
         where: { typeKey: 'blog' },
         orderBy: { createdAt: 'desc' },
-        take: 5
+        take: 5,
+        include: {
+          parentVersions: true
+        }
       });
       expect(result).toEqual(mockHistory);
     });
@@ -174,7 +177,10 @@ describe('VersionHistoryManager', () => {
       expect(mockContentTypeVersion.findMany).toHaveBeenCalledWith({
         where: { typeKey: 'test' },
         orderBy: { createdAt: 'desc' },
-        take: 10
+        take: 10,
+        include: {
+          parentVersions: true
+        }
       });
     });
 
