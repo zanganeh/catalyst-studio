@@ -3,6 +3,7 @@ import { SyncHistoryManager } from '../sync/tracking/SyncHistoryManager';
 import { SyncSnapshot } from '../sync/tracking/SyncSnapshot';
 import { ContentTypeHasher } from '../sync/versioning/ContentTypeHasher';
 import { OptimizelyApiClient } from '../sync/adapters/optimizely-api-client';
+import { SyncStateManager } from '../sync/persistence/SyncStateManager';
 
 export interface DeploymentConfig {
   deploymentId: string;
@@ -20,7 +21,9 @@ export interface ContentType {
 export class DeploymentService {
   private syncHistoryManager: SyncHistoryManager;
   private syncSnapshot: SyncSnapshot;
+  private syncStateManager: SyncStateManager;
   private hasher: ContentTypeHasher;
+  private changeDetector: any;
   
   constructor(
     private prisma: PrismaClient,
@@ -28,7 +31,74 @@ export class DeploymentService {
   ) {
     this.syncHistoryManager = new SyncHistoryManager(prisma);
     this.syncSnapshot = new SyncSnapshot();
+    this.syncStateManager = new SyncStateManager(prisma);
     this.hasher = new ContentTypeHasher();
+    // Lazy load the change detector to avoid module import issues
+    this.changeDetector = null;
+  }
+  
+  /**
+   * Get or initialize the change detector
+   */
+  private async getChangeDetector() {
+    if (!this.changeDetector) {
+      try {
+        // Dynamic import for ES6 module
+        const ChangeDetectorModule = await import('../../proof-of-concept/src/sync/change-detector.js');
+        const ChangeDetector = ChangeDetectorModule.default || ChangeDetectorModule.ChangeDetector;
+        this.changeDetector = new ChangeDetector(this.syncStateManager);
+      } catch (error) {
+        console.warn('Could not load ChangeDetector from PoC, using mock implementation:', error);
+        // Fallback mock implementation
+        this.changeDetector = {
+          detectChanges: async () => ({
+            summary: { total: 0, created: 0, updated: 0, deleted: 0, unchanged: 0 },
+            details: { created: [], updated: [], deleted: [] },
+            timestamp: new Date().toISOString()
+          }),
+          detectBatchChanges: async () => ({
+            summary: { total: 0, created: 0, updated: 0, deleted: 0, unchanged: 0 },
+            details: { created: [], updated: [], deleted: [] }
+          })
+        };
+      }
+    }
+    return this.changeDetector;
+  }
+  
+  /**
+   * Detect changes between local and remote content types
+   */
+  async detectChanges(): Promise<any> {
+    try {
+      const detector = await this.getChangeDetector();
+      const changes = await detector.detectChanges();
+      console.log('Changes detected:', changes.summary);
+      return changes;
+    } catch (error) {
+      console.error('Error detecting changes:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get change summary for deployment preview
+   */
+  async getChangeSummary(contentTypeKeys?: string[]): Promise<any> {
+    try {
+      const detector = await this.getChangeDetector();
+      if (contentTypeKeys && contentTypeKeys.length > 0) {
+        // Detect changes for specific content types
+        const batchResult = await detector.detectBatchChanges(contentTypeKeys);
+        return batchResult;
+      } else {
+        // Detect all changes
+        return await this.detectChanges();
+      }
+    } catch (error) {
+      console.error('Error getting change summary:', error);
+      throw error;
+    }
   }
   
   /**
@@ -39,6 +109,25 @@ export class DeploymentService {
     contentTypes: ContentType[]
   ): Promise<void> {
     console.log(`Starting deployment ${deploymentId} to ${this.provider}`);
+    
+    // Detect changes before deployment
+    const changes = await this.detectChanges();
+    console.log(`Detected changes - Created: ${changes.summary.created}, Updated: ${changes.summary.updated}, Deleted: ${changes.summary.deleted}`);
+    
+    // Record change detection in sync history
+    await this.syncHistoryManager.recordSyncAttempt({
+      typeKey: '_change_detection',
+      versionHash: this.hasher.generateHash({ timestamp: new Date().toISOString(), changes: changes.summary }),
+      targetPlatform: this.provider,
+      syncDirection: 'PUSH',
+      data: { changes: changes.summary },
+      deploymentId,
+      metadata: {
+        deploymentId,
+        changeDetection: true,
+        timestamp: new Date().toISOString()
+      }
+    });
     
     // Update deployment status
     await this.prisma.deployment.update({

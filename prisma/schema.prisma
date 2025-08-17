@@ -160,3 +160,18 @@ model SyncHistory {
   @@index([deploymentId])
   @@map("sync_history")
 }
+
+model SyncState {
+  typeKey         String   @id @map("type_key")
+  localHash       String   @map("local_hash")
+  remoteHash      String?  @map("remote_hash")
+  lastSyncedHash  String?  @map("last_synced_hash")
+  syncStatus      String   @map("sync_status") // new/modified/conflict/in_sync
+  lastSyncAt      DateTime? @map("last_sync_at")
+  lastCheckedAt   DateTime @map("last_checked_at")
+  changeSource    String?  @map("change_source") // UI/AI/SYNC
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  @@map("sync_state")
+}
