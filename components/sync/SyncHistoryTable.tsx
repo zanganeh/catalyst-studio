@@ -276,8 +276,8 @@ export function SyncHistoryTable({ typeKey, deploymentId }: SyncHistoryTableProp
                     </TableCell>
                   </TableRow>
                 ) : (
-                  history.map((record) => (
-                    <TableRow key={record.id}>
+                  history.map((record, index) => (
+                    <TableRow key={`sync-${record.id}-${index}`}>
                       <TableCell className="font-medium">{record.typeKey}</TableCell>
                       <TableCell>{record.targetPlatform}</TableCell>
                       <TableCell>

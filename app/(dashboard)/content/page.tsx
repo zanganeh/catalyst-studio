@@ -41,7 +41,7 @@ export default function ContentPage() {
     if (websiteId) {
       contentStore.loadContent(websiteId);
     }
-  }, [websiteId, contentStore]); // Include contentStore for proper dependency tracking
+  }, [websiteId]); // Only depend on websiteId, not contentStore itself
   
   // Get selected content type for modal
   const selectedContentType = contentTypes.find(

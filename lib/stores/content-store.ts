@@ -50,6 +50,7 @@ interface ContentState {
   projectId: string;
   isLoading: boolean;
   error: string | null;
+  lastLoadedWebsiteId: string | null;
   
   // API operations
   loadContent: (websiteId: string) => Promise<void>;
