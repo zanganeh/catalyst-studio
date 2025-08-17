@@ -1,5 +1,6 @@
 import { CreateContentTypeRequest, UpdateContentTypeRequest } from '@/lib/api/validation/content-type';
 import prisma from '@/lib/db/prisma';
+import { VersionHistoryManager } from '@/lib/sync/versioning/VersionHistoryManager';
 
 export interface ContentTypeFields {
   name?: string;
@@ -96,7 +97,7 @@ export async function getContentType(id: string): Promise<ContentTypeWithParsedF
   };
 }
 
-export async function createContentType(data: CreateContentTypeRequest): Promise<ContentTypeWithParsedFields> {
+export async function createContentType(data: CreateContentTypeRequest, source: 'UI' | 'AI' | 'SYNC' = 'UI'): Promise<ContentTypeWithParsedFields> {
   const { websiteId, fields, relationships, ...contentTypeData } = data;
 
   const contentTypeFields = {
@@ -123,6 +124,18 @@ export async function createContentType(data: CreateContentTypeRequest): Promise
     },
   });
 
+  // Track version history for the new content type
+  const versionManager = new VersionHistoryManager(prisma);
+  await versionManager.onDataChange(
+    {
+      key: contentType.id,
+      ...contentTypeFields
+    },
+    source,
+    undefined,
+    'Content type created'
+  );
+
   return {
     ...contentType,
     fields: contentTypeFields,
@@ -130,7 +143,7 @@ export async function createContentType(data: CreateContentTypeRequest): Promise
   };
 }
 
-export async function updateContentType(id: string, data: UpdateContentTypeRequest): Promise<ContentTypeWithParsedFields> {
+export async function updateContentType(id: string, data: UpdateContentTypeRequest, source: 'UI' | 'AI' | 'SYNC' = 'UI'): Promise<ContentTypeWithParsedFields> {
   const existing = await getContentType(id);
   if (!existing) {
     throw new Error(`Content type with ID '${id}' not found`);
@@ -168,6 +181,18 @@ export async function updateContentType(id: string, data: UpdateContentTypeReque
       settings: stringifyJsonField(updatedSettings),
     },
   });
+
+  // Track version history for the updated content type
+  const versionManager = new VersionHistoryManager(prisma);
+  await versionManager.onDataChange(
+    {
+      key: contentType.id,
+      ...updatedFields
+    },
+    source,
+    undefined,
+    'Content type updated'
+  );
 
   return {
     ...contentType,

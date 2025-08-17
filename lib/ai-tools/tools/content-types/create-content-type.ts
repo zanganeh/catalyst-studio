@@ -129,7 +129,7 @@ export const createContentType = tool({
         order: field.order || index + 1
       }));
       
-      // Create content type using the service
+      // Create content type using the service (with AI source)
       const result = await createContentTypeService({
         websiteId,
         name,
@@ -138,7 +138,7 @@ export const createContentType = tool({
         description: (settings.description as string) || '',
         fields: preparedFields,
         relationships: []
-      });
+      }, 'AI');
       
       const executionTime = Date.now() - startTime;
       if (executionTime > 2000) {

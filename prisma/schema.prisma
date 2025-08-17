@@ -90,3 +90,19 @@ model Deployment {
   @@index([status])
   @@index([startedAt])
 }
+
+model ContentTypeVersion {
+  id              Int      @id @default(autoincrement())
+  typeKey         String   @map("type_key")
+  versionHash     String   @unique @map("version_hash")
+  parentHash      String?  @map("parent_hash")
+  contentSnapshot String   @map("content_snapshot")
+  changeSource    String   @map("change_source")
+  author          String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  message         String?
+
+  @@index([typeKey, createdAt], name: "idx_type_versions")
+  @@index([versionHash], name: "idx_version_hash")
+  @@map("content_type_versions")
+}
