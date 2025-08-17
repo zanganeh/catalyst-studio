@@ -165,8 +165,8 @@ export const updateContentType = tool({
         }
       }
       
-      // Update content type using the service
-      const result = await updateContentTypeService(id, updateData);
+      // Update content type using the service (with AI source)
+      const result = await updateContentTypeService(id, updateData, 'AI');
       
       const executionTime = Date.now() - startTime;
       if (executionTime > 2000) {
