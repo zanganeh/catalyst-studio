@@ -85,6 +85,9 @@ model Deployment {
   completedAt   DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  syncHistory   SyncHistory[]
 
   @@index([websiteId])
   @@index([status])
@@ -105,6 +108,9 @@ model ContentTypeVersion {
   // Relations for multi-parent support
   parentVersions  VersionParent[] @relation("VersionToParents")
   childVersions   VersionParent[] @relation("ParentToVersions")
+  
+  // Sync history relation
+  syncHistory     SyncHistory[]
 
   @@index([typeKey, createdAt], name: "idx_type_versions")
   @@index([versionHash], name: "idx_version_hash")
@@ -124,4 +130,33 @@ model VersionParent {
   @@index([versionHash])
   @@index([parentHash])
   @@map("version_parents")
+}
+
+model SyncHistory {
+  id              String   @id @default(cuid())
+  typeKey         String   @map("type_key")
+  versionHash     String   @map("version_hash")
+  targetPlatform  String   @map("target_platform")
+  syncDirection   String   @map("sync_direction")
+  syncStatus      String   @map("sync_status")
+  pushedData      String   @map("pushed_data")
+  responseData    String?  @map("response_data")
+  errorMessage    String?  @map("error_message")
+  retryCount      Int      @default(0) @map("retry_count")
+  syncMetadata    String?  @map("sync_metadata")
+  deploymentId    String?  @map("deployment_id")
+  startedAt       DateTime @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  // Relations
+  version    ContentTypeVersion? @relation(fields: [versionHash], references: [versionHash])
+  deployment Deployment?         @relation(fields: [deploymentId], references: [id])
+  
+  @@index([typeKey, createdAt])
+  @@index([versionHash])
+  @@index([targetPlatform])
+  @@index([syncStatus])
+  @@index([deploymentId])
+  @@map("sync_history")
 }
