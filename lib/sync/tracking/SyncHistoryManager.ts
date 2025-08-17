@@ -95,7 +95,7 @@ export class SyncHistoryManager {
             this.retryConfig.maxDelayMs
           );
           
-          console.log(`Sync attempt ${attempt} failed, retrying in ${delay}ms...`);
+          // Retry with exponential backoff
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }

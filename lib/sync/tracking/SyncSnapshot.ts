@@ -54,9 +54,7 @@ export class SyncSnapshot {
       isCompressed = true;
       
       const compressionRatio = Math.round((1 - compressed.length / sizeInBytes) * 100);
-      console.log(
-        `Snapshot compressed: ${sizeInBytes} bytes → ${compressed.length} bytes (${compressionRatio}% reduction)`
-      );
+      // Compression successful: original → compressed (reduction %)
     } else {
       finalData = jsonString;
     }
@@ -153,7 +151,7 @@ export class SyncSnapshot {
       const calculatedChecksum = createHash('sha256').update(jsonString).digest('hex');
       return calculatedChecksum === snapshot.checksum;
     } catch (error) {
-      console.error('Snapshot validation failed:', error);
+      // Validation failed, continue without throwing
       return false;
     }
   }

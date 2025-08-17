@@ -75,6 +75,7 @@ export const useContentStore = create<ContentState>()(
     projectId: 'default',
     isLoading: false,
     error: null,
+    lastLoadedWebsiteId: null,
     
     loadContent: async (websiteId: string) => {
       set({ isLoading: true, error: null });
@@ -98,7 +99,7 @@ export const useContentStore = create<ContentState>()(
         
         const contentItems = apiItems.map(transformApiToInternal);
         
-        set({ contentItems, isLoading: false });
+        set({ contentItems, isLoading: false, lastLoadedWebsiteId: websiteId });
       } catch (error) {
         // Don't set error for cancelled requests
         if (error instanceof Error && error.message.includes('cancelled')) {
