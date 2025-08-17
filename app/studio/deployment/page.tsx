@@ -20,22 +20,33 @@ import {
   CMSProvider,
   DeploymentMetrics,
 } from '@/lib/deployment/deployment-types';
-import { mockDeploymentService } from '@/lib/deployment/mock-deployment-service';
 import { useRouter, useParams, usePathname } from 'next/navigation';
+import { useFileDownload } from '@/lib/hooks/use-file-download';
 
 function DeploymentPageContent() {
   const router = useRouter();
   const params = useParams();
   const pathname = usePathname();
+  const downloadFile = useFileDownload();
   
-  // Extract website ID from params or pathname
+  // Extract website ID from query parameters or params
   const websiteId = useMemo(() => {
+    // First check URL query parameters
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const queryWebsiteId = urlParams.get('websiteId');
+      if (queryWebsiteId) {
+        return queryWebsiteId;
+      }
+    }
+    
+    // Then check route params
     if (params?.id && typeof params.id === 'string') {
       return params.id;
     }
-    // Extract ID from pathname if params not available
-    const match = pathname.match(/\/studio\/([^\/]+)/);
-    return match ? match[1] : 'default';
+    
+    // Default fallback
+    return 'default';
   }, [params, pathname]);
   const [activeTab, setActiveTab] = useState('deploy');
   const [lastDeployment, setLastDeployment] = useState<{
@@ -82,15 +93,52 @@ function DeploymentPageContent() {
     // The wizard will handle the re-deployment
   };
 
-  const handleRetry = () => {
+  const handleRetry = async () => {
     if (lastDeployment) {
-      const retryDeployment = mockDeploymentService.retryDeployment(
-        lastDeployment.job,
-        lastDeployment.provider,
-        (updatedJob) => {
-          handleDeploymentComplete(updatedJob);
+      try {
+        // Get CSRF token first
+        const csrfResponse = await fetch('/api/csrf-token');
+        const csrfData = await csrfResponse.json();
+        
+        // Retry deployment by creating a new deployment with same configuration
+        const response = await fetch('/api/sync/start-deployment', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfData.token,
+          },
+          body: JSON.stringify({
+            websiteId: lastDeployment.job.websiteId,
+            provider: {
+              id: lastDeployment.provider.id,
+              name: lastDeployment.provider.name,
+              config: lastDeployment.provider.config,
+            },
+            selectedTypes: lastDeployment.job.selectedTypes,
+          }),
+        });
+        
+        const data = await response.json();
+        if (data.success && data.deployment) {
+          // Convert the deployment to a DeploymentJob format
+          const newJob: DeploymentJob = {
+            id: data.deployment.id,
+            websiteId: lastDeployment.job.websiteId,
+            providerId: data.deployment.providerId || lastDeployment.provider.id,
+            status: data.deployment.status as 'pending' | 'running' | 'completed' | 'failed' | 'cancelled',
+            progress: data.deployment.progress || 0,
+            logs: [],
+            startedAt: new Date(),
+            completedAt: undefined,
+            selectedTypes: lastDeployment.job.selectedTypes,
+            error: undefined,
+          };
+          handleDeploymentComplete(newJob);
         }
-      );
+      } catch (error) {
+        console.error('Failed to retry deployment:', error);
+        // TODO: Show error notification to user
+      }
     }
   };
 
@@ -100,41 +148,12 @@ function DeploymentPageContent() {
         `[${log.timestamp.toISOString()}] [${log.level.toUpperCase()}] ${log.message}`
       ).join('\n');
       
-      const blob = new Blob([logs], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `deployment-${lastDeployment.job.id}-logs.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      downloadFile(logs, `deployment-${lastDeployment.job.id}-logs.txt`);
     }
   };
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-white/10">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">CMS Deployment</h1>
-            <p className="text-gray-400 text-sm mt-1">
-              Deploy your website content to various CMS platforms
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push(`/studio/${websiteId}/development`)}
-            className="bg-white/5 border-white/10 text-white hover:bg-white/10"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Development
-          </Button>
-        </div>
-      </div>
-
       {/* Content */}
       <div className="flex-1 p-6 overflow-auto">
         {showResults && lastDeployment ? (
@@ -197,6 +216,7 @@ function DeploymentPageContent() {
 
             <TabsContent value="deploy" className="mt-8">
               <DeploymentWizard
+                websiteId={websiteId}
                 onComplete={handleDeploymentComplete}
                 onCancel={() => router.push(`/studio/${websiteId}/development`)}
               />
@@ -261,18 +281,6 @@ function DeploymentPageContent() {
                         />
                       </div>
                     </div>
-                    
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        mockDeploymentService.clearHistory();
-                        window.location.reload();
-                      }}
-                      className="bg-white/5 border-white/10 text-white hover:bg-white/10"
-                    >
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Clear All Data
-                    </Button>
                   </div>
                 </div>
               </div>
@@ -285,26 +293,6 @@ function DeploymentPageContent() {
 }
 
 export default function DeploymentPage() {
-  // TODO: Remove test mode after fixing E2E test environment hydration issues
-  // This is a temporary workaround for Playwright tests with client-side routing
-  if (typeof window !== 'undefined' && window.location.search.includes('test=true')) {
-    return (
-      <div className="h-full flex flex-col">
-        <div className="px-6 py-4 border-b border-white/10">
-          <h1 className="text-2xl font-bold text-white">CMS Deployment</h1>
-          <p className="text-gray-400 text-sm mt-1">
-            Deploy your website content to various CMS platforms
-          </p>
-        </div>
-        <div className="flex-1 p-6">
-          <DeploymentErrorBoundary fallbackMessage="The deployment interface encountered an error. Please try refreshing the page.">
-            <DeploymentPageContent />
-          </DeploymentErrorBoundary>
-        </div>
-      </div>
-    );
-  }
-  
   return (
     <DeploymentErrorBoundary fallbackMessage="The deployment interface encountered an error. Please try refreshing the page.">
       <DeploymentPageContent />

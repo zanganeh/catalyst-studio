@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { ContentItemsResponse, ContentStatus } from '@/types/api';
 import { Prisma } from '@/lib/generated/prisma';
 import { validateContentItemsQuery, validateCreateContentItem } from '@/lib/api/validation/content-item';
+import { safeJsonParse } from '@/lib/utils/safe-json';
 
 // GET /api/content-items - Get paginated content items
 export async function GET(request: NextRequest) {
@@ -51,8 +52,8 @@ export async function GET(request: NextRequest) {
       contentTypeId: item.contentTypeId,
       websiteId: item.websiteId,
       slug: item.slug || undefined, // Convert null to undefined for type compatibility
-      data: item.data ? JSON.parse(item.data) : {},
-      metadata: item.metadata ? JSON.parse(item.metadata) : null,
+      data: safeJsonParse(item.data, {}) || {},
+      metadata: safeJsonParse(item.metadata, null),
       status: item.status as ContentStatus, // Cast status to ContentStatus type
       publishedAt: item.publishedAt || undefined, // Convert null to undefined
       createdAt: item.createdAt,
@@ -84,7 +85,37 @@ export async function GET(request: NextRequest) {
 // POST /api/content-items - Create a new content item
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Handle empty body
+    const contentType = request.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return NextResponse.json(
+        { error: { message: 'Content-Type must be application/json' } },
+        { status: 400 }
+      );
+    }
+
+    let body;
+    try {
+      const text = await request.text();
+      if (!text) {
+        return NextResponse.json(
+          { error: { message: 'Request body is required' } },
+          { status: 400 }
+        );
+      }
+      body = safeJsonParse(text, {});
+      if (!body) {
+        return NextResponse.json(
+          { error: 'Invalid JSON in request body' },
+          { status: 400 }
+        );
+      }
+    } catch (e) {
+      return NextResponse.json(
+        { error: { message: 'Invalid JSON in request body' } },
+        { status: 400 }
+      );
+    }
     
     // Validate request body
     const validation = validateCreateContentItem(body);
@@ -117,16 +148,16 @@ export async function POST(request: NextRequest) {
     // Transform response
     const transformed = {
       ...contentItem,
-      data: JSON.parse(contentItem.data),
-      metadata: contentItem.metadata ? JSON.parse(contentItem.metadata) : null,
+      data: safeJsonParse(contentItem.data, {}),
+      metadata: safeJsonParse(contentItem.metadata, null),
       contentType: {
         ...contentItem.contentType,
-        fields: JSON.parse(contentItem.contentType.fields),
-        settings: contentItem.contentType.settings ? JSON.parse(contentItem.contentType.settings) : null,
+        fields: safeJsonParse(contentItem.contentType.fields, []),
+        settings: safeJsonParse(contentItem.contentType.settings, null),
       },
       website: {
         ...contentItem.website,
-        metadata: contentItem.website.metadata ? JSON.parse(contentItem.website.metadata) : null,
+        metadata: safeJsonParse(contentItem.website.metadata, null),
       },
     };
     

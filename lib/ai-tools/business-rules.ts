@@ -46,6 +46,7 @@ const portfolioRequiredFields = z.object({
 const categorySchemas: Record<string, z.ZodSchema> = {
   blog: blogRequiredFields,
   ecommerce: ecommerceRequiredFields,
+  'e-commerce': ecommerceRequiredFields, // Support both variations
   portfolio: portfolioRequiredFields,
 };
 

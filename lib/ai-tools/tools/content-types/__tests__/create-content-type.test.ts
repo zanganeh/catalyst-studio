@@ -1,5 +1,5 @@
 import { createContentType } from '../create-content-type';
-import { contentTypeService } from '@/lib/services/content-type-service';
+import * as contentTypeService from '@/lib/services/content-type-service';
 import { businessRules } from '@/lib/ai-tools/business-rules';
 import { getClient } from '@/lib/db/client';
 
@@ -8,16 +8,8 @@ jest.mock('@/lib/ai-tools/business-rules');
 jest.mock('@/lib/db/client');
 
 describe('createContentType', () => {
-  const mockPrisma = {
-    $transaction: jest.fn(),
-    contentType: {
-      create: jest.fn()
-    }
-  };
-
   beforeEach(() => {
     jest.clearAllMocks();
-    (getClient as jest.Mock).mockReturnValue(mockPrisma);
     (businessRules.getRequiredFields as jest.Mock).mockReturnValue([]);
     (businessRules.suggestFields as jest.Mock).mockReturnValue([]);
     (businessRules.validateForCategory as jest.Mock).mockReturnValue({ valid: true });
@@ -28,21 +20,15 @@ describe('createContentType', () => {
       id: 'ct-new',
       websiteId: 'web1',
       name: 'Custom Type',
-      fields: JSON.stringify([
+      fields: [
         { name: 'title', type: 'text', required: true }
-      ]),
-      settings: JSON.stringify({ autoInferred: true }),
+      ],
+      settings: { autoInferred: true },
       createdAt: new Date(),
       updatedAt: new Date()
     };
 
-    mockPrisma.$transaction.mockImplementation(async (fn) => {
-      return fn({
-        contentType: {
-          create: jest.fn().mockResolvedValue(mockCreated)
-        }
-      });
-    });
+    (contentTypeService.createContentType as jest.Mock).mockResolvedValue(mockCreated);
 
     const result = await createContentType.execute({
       websiteId: 'web1',
@@ -56,22 +42,16 @@ describe('createContentType', () => {
   });
 
   it('should add SEO fields for blog category', async () => {
-    const mockCreated = {
-      id: 'ct-blog',
-      websiteId: 'web1',
-      name: 'Blog Post',
-      fields: JSON.stringify([]),
-      settings: JSON.stringify({ category: 'blog', autoInferred: true }),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    mockPrisma.$transaction.mockImplementation(async (fn) => {
-      return fn({
-        contentType: {
-          create: jest.fn().mockResolvedValue(mockCreated)
-        }
-      });
+    (contentTypeService.createContentType as jest.Mock).mockImplementation(async (params) => {
+      return {
+        id: 'ct-blog',
+        websiteId: params.websiteId,
+        name: params.name,
+        fields: params.fields,
+        settings: { category: 'blog', autoInferred: true },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
     });
 
     const result = await createContentType.execute({
@@ -95,22 +75,16 @@ describe('createContentType', () => {
   });
 
   it('should add product fields for e-commerce category', async () => {
-    const mockCreated = {
-      id: 'ct-product',
-      websiteId: 'web1',
-      name: 'Product',
-      fields: JSON.stringify([]),
-      settings: JSON.stringify({ category: 'e-commerce', autoInferred: true }),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    mockPrisma.$transaction.mockImplementation(async (fn) => {
-      return fn({
-        contentType: {
-          create: jest.fn().mockResolvedValue(mockCreated)
-        }
-      });
+    (contentTypeService.createContentType as jest.Mock).mockImplementation(async (params) => {
+      return {
+        id: 'ct-product',
+        websiteId: params.websiteId,
+        name: params.name,
+        fields: params.fields,
+        settings: { category: 'e-commerce', autoInferred: true },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
     });
 
     const result = await createContentType.execute({
@@ -133,22 +107,16 @@ describe('createContentType', () => {
   });
 
   it('should add portfolio fields for portfolio category', async () => {
-    const mockCreated = {
-      id: 'ct-portfolio',
-      websiteId: 'web1',
-      name: 'Portfolio Item',
-      fields: JSON.stringify([]),
-      settings: JSON.stringify({ category: 'portfolio', autoInferred: true }),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    mockPrisma.$transaction.mockImplementation(async (fn) => {
-      return fn({
-        contentType: {
-          create: jest.fn().mockResolvedValue(mockCreated)
-        }
-      });
+    (contentTypeService.createContentType as jest.Mock).mockImplementation(async (params) => {
+      return {
+        id: 'ct-portfolio',
+        websiteId: params.websiteId,
+        name: params.name,
+        fields: params.fields,
+        settings: { category: 'portfolio', autoInferred: true },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
     });
 
     const result = await createContentType.execute({
@@ -167,22 +135,16 @@ describe('createContentType', () => {
   });
 
   it('should merge custom fields with inferred fields', async () => {
-    const mockCreated = {
-      id: 'ct-custom-blog',
-      websiteId: 'web1',
-      name: 'Custom Blog',
-      fields: JSON.stringify([]),
-      settings: JSON.stringify({ category: 'blog', autoInferred: true }),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    mockPrisma.$transaction.mockImplementation(async (fn) => {
-      return fn({
-        contentType: {
-          create: jest.fn().mockResolvedValue(mockCreated)
-        }
-      });
+    (contentTypeService.createContentType as jest.Mock).mockImplementation(async (params) => {
+      return {
+        id: 'ct-custom-blog',
+        websiteId: params.websiteId,
+        name: params.name,
+        fields: params.fields,
+        settings: { category: 'blog', autoInferred: true },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
     });
 
     const customFields = [
@@ -205,7 +167,7 @@ describe('createContentType', () => {
 
   it('should handle transaction rollback on failure', async () => {
     const error = new Error('Transaction failed');
-    mockPrisma.$transaction.mockRejectedValue(error);
+    (contentTypeService.createContentType as jest.Mock).mockRejectedValue(error);
 
     const result = await createContentType.execute({
       websiteId: 'web1',
@@ -219,13 +181,13 @@ describe('createContentType', () => {
   it('should warn if execution exceeds 2 seconds', async () => {
     const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
     
-    mockPrisma.$transaction.mockImplementation(
+    (contentTypeService.createContentType as jest.Mock).mockImplementation(
       () => new Promise(resolve => setTimeout(() => resolve({
         id: 'ct-slow',
         websiteId: 'web1',
         name: 'Slow Type',
-        fields: '[]',
-        settings: '{}',
+        fields: [],
+        settings: {},
         createdAt: new Date(),
         updatedAt: new Date()
       }), 2100))
@@ -241,22 +203,16 @@ describe('createContentType', () => {
   });
 
   it('should not duplicate fields when inferring', async () => {
-    const mockCreated = {
-      id: 'ct-no-dup',
-      websiteId: 'web1',
-      name: 'Blog with Title',
-      fields: JSON.stringify([]),
-      settings: JSON.stringify({ category: 'blog', autoInferred: true }),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    mockPrisma.$transaction.mockImplementation(async (fn) => {
-      return fn({
-        contentType: {
-          create: jest.fn().mockResolvedValue(mockCreated)
-        }
-      });
+    (contentTypeService.createContentType as jest.Mock).mockImplementation(async (params) => {
+      return {
+        id: 'ct-no-dup',
+        websiteId: params.websiteId,
+        name: params.name,
+        fields: params.fields,
+        settings: { category: 'blog', autoInferred: true },
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
     });
 
     const result = await createContentType.execute({

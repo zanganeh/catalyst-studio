@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { CMSProviderSelector } from './cms-provider-selector';
 import { DeploymentProgress } from './deployment-progress';
+import { ContentMapping } from './content-mapping';
 import {
   CMSProvider,
   DeploymentJob,
@@ -18,6 +19,7 @@ export type DeploymentStep = 'provider' | 'mapping' | 'deploying' | 'complete';
 interface DeploymentWizardProps {
   onComplete?: (job: DeploymentJob) => void;
   onCancel?: () => void;
+  websiteId?: string;
 }
 
 const STEPS: Array<{ id: DeploymentStep; label: string; description: string }> = [
@@ -27,7 +29,7 @@ const STEPS: Array<{ id: DeploymentStep; label: string; description: string }> =
   { id: 'complete', label: 'Complete', description: 'Deployment successful' },
 ];
 
-export function DeploymentWizard({ onComplete, onCancel }: DeploymentWizardProps) {
+export function DeploymentWizard({ onComplete, onCancel, websiteId }: DeploymentWizardProps) {
   const [currentStep, setCurrentStep] = useState<DeploymentStep>('provider');
   const [selectedProvider, setSelectedProvider] = useState<CMSProvider | null>(null);
   const [deploymentJob, setDeploymentJob] = useState<DeploymentJob | null>(null);
@@ -47,6 +49,7 @@ export function DeploymentWizard({ onComplete, onCancel }: DeploymentWizardProps
         // Start deployment when moving to deploying step
         const job: DeploymentJob = {
           id: `deploy-${Date.now()}`,
+          websiteId: websiteId || '',
           providerId: selectedProvider.id,
           status: 'pending',
           progress: 0,
@@ -60,7 +63,7 @@ export function DeploymentWizard({ onComplete, onCancel }: DeploymentWizardProps
       
       setCurrentStep(nextStep);
     }
-  }, [currentStep, selectedProvider]);
+  }, [currentStep, selectedProvider, websiteId]);
 
   const handlePreviousStep = useCallback(() => {
     const currentIndex = STEPS.findIndex(s => s.id === currentStep);
@@ -204,37 +207,13 @@ export function DeploymentWizard({ onComplete, onCancel }: DeploymentWizardProps
                 </p>
               </div>
               
-              <div className="space-y-4">
-                {/* Mock content mapping UI */}
-                <div className="p-6 rounded-xl bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md border border-white/10">
-                  <h3 className="text-lg font-semibold text-white mb-4">Content Structure</h3>
-                  <div className="space-y-3">
-                    {['Page Title', 'Meta Description', 'Hero Section', 'Body Content', 'Footer'].map((field) => (
-                      <div key={field} className="flex items-center justify-between p-3 rounded-lg bg-white/5">
-                        <span className="text-white/80">{field}</span>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span className="text-xs text-green-400">Mapped</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                
-                <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="h-5 w-5 text-blue-400 mt-0.5" />
-                    <div>
-                      <p className="text-blue-400 text-sm">
-                        All content fields have been automatically mapped to {selectedProvider.name} schema.
-                      </p>
-                      <p className="text-blue-400/60 text-xs mt-1">
-                        You can customize the mapping if needed.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <ContentMapping 
+                providerId={selectedProvider.id}
+                websiteId={websiteId}
+                onMappingComplete={(types) => {
+                  console.log(`Mapped ${types.length} content types for sync`);
+                }}
+              />
             </div>
           )}
 

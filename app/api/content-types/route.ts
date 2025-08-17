@@ -19,7 +19,22 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Handle empty body
+    const requestContentType = request.headers.get('content-type');
+    if (!requestContentType || !requestContentType.includes('application/json')) {
+      throw ErrorHandlers.badRequest('Content-Type must be application/json');
+    }
+
+    let body;
+    try {
+      const text = await request.text();
+      if (!text) {
+        throw ErrorHandlers.badRequest('Request body is required');
+      }
+      body = JSON.parse(text);
+    } catch (e) {
+      throw ErrorHandlers.badRequest('Invalid JSON in request body');
+    }
     
     const validationResult = CreateContentTypeSchema.safeParse(body);
     if (!validationResult.success) {

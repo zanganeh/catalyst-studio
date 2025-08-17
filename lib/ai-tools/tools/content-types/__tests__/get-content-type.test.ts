@@ -1,5 +1,5 @@
 import { getContentType } from '../get-content-type';
-import { contentTypeService } from '@/lib/services/content-type-service';
+import * as contentTypeService from '@/lib/services/content-type-service';
 
 jest.mock('@/lib/services/content-type-service');
 

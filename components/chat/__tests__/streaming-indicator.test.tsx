@@ -190,10 +190,14 @@ describe('MultiStepStreamingIndicator', () => {
         />
       );
       
-      // Current step indicator (index 1 for step 2) should have pulse animation
-      const indicators = container.querySelectorAll('.rounded-full');
-      // The second indicator (index 1) should be the current one with animation
-      expect(indicators[1]).toHaveClass('animate-pulse');
+      // Get only the step indicators, not the progress bar
+      const stepIndicatorContainer = container.querySelector('[data-testid="step-indicators"]');
+      const indicators = stepIndicatorContainer?.querySelectorAll('.rounded-full');
+      
+      // The second indicator (index 1 for step 2) should be the current one with animation
+      expect(indicators).toBeDefined();
+      expect(indicators?.length).toBe(4);
+      expect(indicators?.[1]).toHaveClass('animate-pulse');
     });
 
     it('shows pending steps', () => {

@@ -62,6 +62,8 @@ export const updateContentType = tool({
       
       // If replacing all fields
       if (fields !== undefined) {
+        // Warn about potential data loss when replacing all fields
+        console.warn(`Removing fields from content type with existing content items may cause data loss. Fields being removed: ${currentFields.map((f: any) => f.name).join(', ')}`);
         updatedFields = fields;
       } else {
         // Add new fields
@@ -81,6 +83,10 @@ export const updateContentType = tool({
         
         // Remove fields
         if (removeFields) {
+          // Check if there might be existing content (warn regardless for safety)
+          if (removeFields.length > 0) {
+            console.warn(`Removing fields from content type with existing content items may cause data loss. Fields being removed: ${removeFields.join(', ')}`);
+          }
           updatedFields = updatedFields.filter((f: any) => !removeFields.includes(f.name));
         }
       }
