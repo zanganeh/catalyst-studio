@@ -1,6 +1,16 @@
 import { PrismaClient } from '../../generated/prisma';
 import { ContentTypeHasher } from './ContentTypeHasher';
 
+export interface VersionHistoryOptions {
+  author?: string;
+  dateRange?: {
+    start: string | Date;
+    end: string | Date;
+  };
+  source?: 'UI' | 'AI' | 'SYNC';
+  limit?: number;
+}
+
 export class VersionHistoryManager {
   private hasher: ContentTypeHasher;
 
@@ -16,7 +26,7 @@ export class VersionHistoryManager {
    * @param message - Optional change message
    */
   async onDataChange(
-    contentType: any,
+    contentType: Record<string, unknown>,
     source: 'UI' | 'AI' | 'SYNC',
     author?: string,
     message?: string
@@ -26,12 +36,12 @@ export class VersionHistoryManager {
       const newHash = this.hasher.calculateHash(contentType);
       
       // Get the current version to link as parent
-      const currentVersion = await this.getCurrentVersion(contentType.key || contentType.name);
+      const currentVersion = await this.getCurrentVersion((contentType.key || contentType.name) as string);
       
       // Create new version record
       await this.prisma.contentTypeVersion.create({
         data: {
-          typeKey: contentType.key || contentType.name || 'unknown',
+          typeKey: (contentType.key || contentType.name || 'unknown') as string,
           versionHash: newHash,
           parentHash: currentVersion?.versionHash || null,
           contentSnapshot: JSON.stringify(contentType),
@@ -42,7 +52,7 @@ export class VersionHistoryManager {
       });
     } catch (error) {
       // Log error but don't stop the sync process (as per Story 6.1 pattern)
-      console.error(`Version history tracking failed for ${contentType.key || contentType.name}:`, error);
+      console.error(`Version history tracking failed for ${(contentType.key || contentType.name) as string}:`, error);
       await this.logError(error, 'VERSION_HISTORY_FAILED', contentType);
     }
   }
@@ -70,32 +80,122 @@ export class VersionHistoryManager {
    * @param errorType - Type of error
    * @param contentType - The content type involved
    */
-  private async logError(error: any, errorType: string, contentType: any): Promise<void> {
+  private async logError(error: unknown, errorType: string, contentType: Record<string, unknown>): Promise<void> {
     // In production, this would log to a proper error tracking service
     // For MVP, just console log with structured format
     console.error({
       errorType,
       contentTypeKey: contentType.key || contentType.name,
-      error: error.message || error,
+      error: error instanceof Error ? error.message : error,
       timestamp: new Date().toISOString()
     });
   }
 
   /**
-   * Get version history for a content type
+   * Get version history for a content type with filtering options
    * @param typeKey - The content type key
-   * @param limit - Maximum number of versions to return
+   * @param options - Filtering options
    * @returns Array of version records
    */
-  async getVersionHistory(typeKey: string, limit: number = 10) {
+  async getVersionHistory(typeKey: string, options: VersionHistoryOptions = {}) {
     try {
+      const { author, dateRange, source, limit = 10 } = options;
+      
+      const where: Record<string, unknown> = { typeKey };
+      
+      if (author) {
+        where.author = author;
+      }
+      
+      if (source) {
+        where.changeSource = source;
+      }
+      
+      if (dateRange) {
+        where.createdAt = {
+          gte: new Date(dateRange.start),
+          lte: new Date(dateRange.end)
+        };
+      }
+      
       return await this.prisma.contentTypeVersion.findMany({
-        where: { typeKey },
+        where,
         orderBy: { createdAt: 'desc' },
-        take: limit
+        take: limit,
+        include: {
+          parentVersions: true
+        }
       });
     } catch (error) {
       console.error(`Failed to get version history for ${typeKey}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get versions by date range
+   * @param typeKey - The content type key
+   * @param startDate - Start date
+   * @param endDate - End date
+   * @returns Array of version records
+   */
+  async getVersionsByDateRange(typeKey: string, startDate: string | Date, endDate: string | Date) {
+    try {
+      return await this.prisma.contentTypeVersion.findMany({
+        where: {
+          typeKey,
+          createdAt: {
+            gte: new Date(startDate),
+            lte: new Date(endDate)
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          parentVersions: true
+        }
+      });
+    } catch (error) {
+      console.error(`Failed to get versions by date range for ${typeKey}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get versions by author
+   * @param author - The author name
+   * @returns Array of version records
+   */
+  async getVersionsByAuthor(author: string) {
+    try {
+      return await this.prisma.contentTypeVersion.findMany({
+        where: { author },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          parentVersions: true
+        }
+      });
+    } catch (error) {
+      console.error(`Failed to get versions by author ${author}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get versions by change source
+   * @param source - The change source (UI, AI, or SYNC)
+   * @returns Array of version records
+   */
+  async getVersionsByChangeSource(source: 'UI' | 'AI' | 'SYNC') {
+    try {
+      return await this.prisma.contentTypeVersion.findMany({
+        where: { changeSource: source },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          parentVersions: true
+        }
+      });
+    } catch (error) {
+      console.error(`Failed to get versions by source ${source}:`, error);
       return [];
     }
   }

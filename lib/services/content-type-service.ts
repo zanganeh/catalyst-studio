@@ -1,6 +1,8 @@
 import { CreateContentTypeRequest, UpdateContentTypeRequest } from '@/lib/api/validation/content-type';
 import prisma from '@/lib/db/prisma';
 import { VersionHistoryManager } from '@/lib/sync/versioning/VersionHistoryManager';
+import { VersionTree } from '@/lib/sync/versioning/VersionTree';
+import { VersionDiff } from '@/lib/sync/versioning/VersionDiff';
 
 export interface ContentTypeFields {
   name?: string;
@@ -213,4 +215,62 @@ export async function deleteContentType(id: string): Promise<void> {
   await prisma.contentType.delete({
     where: { id },
   });
+}
+
+/**
+ * Get version history for a content type
+ * @param typeKey - The content type ID or key
+ * @param options - Options for filtering version history
+ * @returns Array of version records
+ */
+export async function getVersionHistory(typeKey: string, options?: {
+  author?: string;
+  dateRange?: { start: string | Date; end: string | Date };
+  source?: 'UI' | 'AI' | 'SYNC';
+  limit?: number;
+}) {
+  const versionManager = new VersionHistoryManager(prisma);
+  return await versionManager.getVersionHistory(typeKey, options || {});
+}
+
+/**
+ * Get version tree for a content type
+ * @param typeKey - The content type ID or key
+ * @returns Version tree structure
+ */
+export async function getVersionTree(typeKey: string) {
+  const versionTree = new VersionTree(prisma);
+  return await versionTree.buildTree(typeKey);
+}
+
+/**
+ * Compare two versions of a content type
+ * @param hash1 - First version hash
+ * @param hash2 - Second version hash
+ * @returns Diff result
+ */
+export async function compareVersions(hash1: string, hash2: string) {
+  const versionManager = new VersionHistoryManager(prisma);
+  const version1 = await versionManager.getVersionByHash(hash1);
+  const version2 = await versionManager.getVersionByHash(hash2);
+  
+  if (!version1 || !version2) {
+    throw new Error('One or both versions not found');
+  }
+  
+  const versionDiff = new VersionDiff();
+  return versionDiff.calculateDiff(
+    version1.contentSnapshot,
+    version2.contentSnapshot
+  );
+}
+
+/**
+ * Get lineage for a specific version
+ * @param hash - Version hash
+ * @returns Array of version hashes from current to root
+ */
+export async function getVersionLineage(hash: string) {
+  const versionTree = new VersionTree(prisma);
+  return await versionTree.getLineage(hash);
 }

@@ -102,7 +102,26 @@ model ContentTypeVersion {
   createdAt       DateTime @default(now()) @map("created_at")
   message         String?
 
+  // Relations for multi-parent support
+  parentVersions  VersionParent[] @relation("VersionToParents")
+  childVersions   VersionParent[] @relation("ParentToVersions")
+
   @@index([typeKey, createdAt], name: "idx_type_versions")
   @@index([versionHash], name: "idx_version_hash")
   @@map("content_type_versions")
+}
+
+model VersionParent {
+  versionHash  String @map("version_hash")
+  parentHash   String @map("parent_hash")
+  parentOrder  Int    @default(0) @map("parent_order")
+  
+  // Relations
+  version ContentTypeVersion @relation("VersionToParents", fields: [versionHash], references: [versionHash])
+  parent  ContentTypeVersion @relation("ParentToVersions", fields: [parentHash], references: [versionHash])
+  
+  @@id([versionHash, parentHash])
+  @@index([versionHash])
+  @@index([parentHash])
+  @@map("version_parents")
 }
