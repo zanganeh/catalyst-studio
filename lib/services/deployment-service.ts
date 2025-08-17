@@ -4,6 +4,7 @@ import { SyncSnapshot } from '../sync/tracking/SyncSnapshot';
 import { ContentTypeHasher } from '../sync/versioning/ContentTypeHasher';
 import { OptimizelyApiClient } from '../sync/adapters/optimizely-api-client';
 import { SyncStateManager } from '../sync/persistence/SyncStateManager';
+import { ChangeDetector } from '../sync/detection/ChangeDetector';
 
 export interface DeploymentConfig {
   deploymentId: string;
@@ -15,7 +16,23 @@ export interface DeploymentConfig {
 export interface ContentType {
   key: string;
   versionHash?: string;
-  data: any;
+  data: Record<string, unknown>;
+}
+
+export interface ChangeSummary {
+  summary: {
+    total: number;
+    created: number;
+    updated: number;
+    deleted: number;
+    unchanged: number;
+  };
+  details?: {
+    created: Array<Record<string, unknown>>;
+    updated: Array<Record<string, unknown>>;
+    deleted: Array<Record<string, unknown>>;
+  };
+  timestamp: string;
 }
 
 export class DeploymentService {
@@ -23,7 +40,7 @@ export class DeploymentService {
   private syncSnapshot: SyncSnapshot;
   private syncStateManager: SyncStateManager;
   private hasher: ContentTypeHasher;
-  private changeDetector: any;
+  private changeDetector: ChangeDetector;
   
   constructor(
     private prisma: PrismaClient,
@@ -33,46 +50,16 @@ export class DeploymentService {
     this.syncSnapshot = new SyncSnapshot();
     this.syncStateManager = new SyncStateManager(prisma);
     this.hasher = new ContentTypeHasher();
-    // Lazy load the change detector to avoid module import issues
-    this.changeDetector = null;
-  }
-  
-  /**
-   * Get or initialize the change detector
-   */
-  private async getChangeDetector() {
-    if (!this.changeDetector) {
-      try {
-        // Dynamic import for ES6 module
-        const ChangeDetectorModule = await import('../../proof-of-concept/src/sync/change-detector.js');
-        const ChangeDetector = ChangeDetectorModule.default || ChangeDetectorModule.ChangeDetector;
-        this.changeDetector = new ChangeDetector(this.syncStateManager);
-      } catch (error) {
-        console.warn('Could not load ChangeDetector from PoC, using mock implementation:', error);
-        // Fallback mock implementation
-        this.changeDetector = {
-          detectChanges: async () => ({
-            summary: { total: 0, created: 0, updated: 0, deleted: 0, unchanged: 0 },
-            details: { created: [], updated: [], deleted: [] },
-            timestamp: new Date().toISOString()
-          }),
-          detectBatchChanges: async () => ({
-            summary: { total: 0, created: 0, updated: 0, deleted: 0, unchanged: 0 },
-            details: { created: [], updated: [], deleted: [] }
-          })
-        };
-      }
-    }
-    return this.changeDetector;
+    // Initialize the native TypeScript change detector
+    this.changeDetector = new ChangeDetector(prisma, this.syncStateManager);
   }
   
   /**
    * Detect changes between local and remote content types
    */
-  async detectChanges(): Promise<any> {
+  async detectChanges(): Promise<ChangeSummary> {
     try {
-      const detector = await this.getChangeDetector();
-      const changes = await detector.detectChanges();
+      const changes = await this.changeDetector.detectChanges();
       console.log('Changes detected:', changes.summary);
       return changes;
     } catch (error) {
@@ -84,12 +71,11 @@ export class DeploymentService {
   /**
    * Get change summary for deployment preview
    */
-  async getChangeSummary(contentTypeKeys?: string[]): Promise<any> {
+  async getChangeSummary(contentTypeKeys?: string[]): Promise<ChangeSummary> {
     try {
-      const detector = await this.getChangeDetector();
       if (contentTypeKeys && contentTypeKeys.length > 0) {
         // Detect changes for specific content types
-        const batchResult = await detector.detectBatchChanges(contentTypeKeys);
+        const batchResult = await this.changeDetector.detectBatchChanges(contentTypeKeys);
         return batchResult;
       } else {
         // Detect all changes
@@ -148,7 +134,7 @@ export class DeploymentService {
       try {
         // Calculate version hash if not provided
         const versionHash = contentType.versionHash || 
-          await this.hasher.calculateHash(contentType.data);
+          this.hasher.generateHash(contentType.data);
         
         // Capture snapshot
         const snapshot = await this.syncSnapshot.captureSnapshot(contentType.data);

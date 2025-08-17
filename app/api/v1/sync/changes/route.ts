@@ -24,20 +24,34 @@ export async function GET(request: NextRequest) {
     const changeSummary = await deploymentService.getChangeSummary(contentTypeKeys);
     
     // Format response based on requested detail level
-    const response = {
+    interface ChangeResponse {
+      provider: string;
+      timestamp: string;
+      summary: {
+        total: number;
+        created: number;
+        updated: number;
+        deleted: number;
+        unchanged: number;
+      };
+      details?: Record<string, unknown>;
+      estimatedSyncTime?: number;
+    }
+    
+    const response: ChangeResponse = {
       provider,
       timestamp: new Date().toISOString(),
       summary: changeSummary.summary || {
-        total: changeSummary.summary?.total || 0,
-        created: changeSummary.summary?.created || 0,
-        updated: changeSummary.summary?.updated || 0,
-        deleted: changeSummary.summary?.deleted || 0,
-        unchanged: changeSummary.summary?.unchanged || 0
+        total: 0,
+        created: 0,
+        updated: 0,
+        deleted: 0,
+        unchanged: 0
       }
     };
     
     if (includeDetails) {
-      response.details = changeSummary.details || changeSummary.details;
+      response.details = changeSummary.details || {};
     }
     
     // Calculate estimated sync time (rough estimate: 2 seconds per change)
@@ -72,7 +86,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { provider = 'optimizely', contentTypeKeys = [], forceRefresh = false } = body;
+    const { provider = 'optimizely', contentTypeKeys = [] } = body;
     
     // Validate input
     if (!Array.isArray(contentTypeKeys)) {
