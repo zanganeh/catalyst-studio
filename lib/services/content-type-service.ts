@@ -79,7 +79,7 @@ export async function getContentTypes(websiteId?: string): Promise<ContentTypeWi
   return contentTypes.map(ct => ({
     ...ct,
     fields: parseJsonField<ContentTypeFields>(ct.fields) || {},
-    settings: parseJsonField<ContentTypeSettings>(ct.settings) || {},
+    settings: parseJsonField<ContentTypeSettings>(ct.schema) || {},
   }));
 }
 
@@ -95,12 +95,15 @@ export async function getContentType(id: string): Promise<ContentTypeWithParsedF
   return {
     ...contentType,
     fields: parseJsonField<ContentTypeFields>(contentType.fields) || {},
-    settings: parseJsonField<ContentTypeSettings>(contentType.settings) || {},
+    settings: parseJsonField<ContentTypeSettings>(contentType.schema) || {},
   };
 }
 
 export async function createContentType(data: CreateContentTypeRequest, source: 'UI' | 'AI' | 'SYNC' = 'UI'): Promise<ContentTypeWithParsedFields> {
   const { websiteId, fields, relationships, ...contentTypeData } = data;
+
+  // Generate a key from the name (lowercase, replace spaces with underscores)
+  const key = contentTypeData.name.toLowerCase().replace(/\s+/g, '_');
 
   const contentTypeFields = {
     name: contentTypeData.name,
@@ -109,6 +112,12 @@ export async function createContentType(data: CreateContentTypeRequest, source: 
     description: contentTypeData.description,
     fields,
     relationships,
+  };
+
+  // Create schema from fields
+  const schema = {
+    fields: fields || [],
+    relationships: relationships || []
   };
 
   const settings = {
@@ -120,9 +129,12 @@ export async function createContentType(data: CreateContentTypeRequest, source: 
   const contentType = await prisma.contentType.create({
     data: {
       websiteId: websiteId || 'default',
+      key,
       name: contentTypeData.name,
+      pluralName: contentTypeData.pluralName,
+      displayField: fields && fields.length > 0 ? fields[0].name : null,
+      schema: stringifyJsonField(schema),
       fields: stringifyJsonField(contentTypeFields),
-      settings: stringifyJsonField(settings),
     },
   });
 
@@ -175,12 +187,19 @@ export async function updateContentType(id: string, data: UpdateContentTypeReque
     ...(data.settings && data.settings),
   };
 
+  // Create updated schema from fields
+  const updatedSchema = {
+    fields: updatedFields.fields || [],
+    relationships: updatedFields.relationships || []
+  };
+
   const contentType = await prisma.contentType.update({
     where: { id },
     data: {
       ...(contentTypeData.name && { name: contentTypeData.name }),
+      ...(contentTypeData.pluralName && { pluralName: contentTypeData.pluralName }),
       fields: stringifyJsonField(updatedFields),
-      settings: stringifyJsonField(updatedSettings),
+      schema: stringifyJsonField(updatedSchema),
     },
   });
 
@@ -204,7 +223,7 @@ export async function updateContentType(id: string, data: UpdateContentTypeReque
 }
 
 export async function deleteContentType(id: string): Promise<void> {
-  const contentItemsCount = await prisma.contentItem.count({
+  const contentItemsCount = await prisma.contentInstance.count({
     where: { contentTypeId: id },
   });
 
