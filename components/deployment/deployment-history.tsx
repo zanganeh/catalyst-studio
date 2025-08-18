@@ -189,7 +189,7 @@ export function DeploymentHistory({ onRedeploy, onViewSyncAnalytics, className }
               <AnimatePresence>
                 {history.map((job, index) => (
                   <motion.div
-                    key={job.id}
+                    key={`${job.id}-${index}`}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}

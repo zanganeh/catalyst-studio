@@ -58,3 +58,6 @@ playwright-report/**
 /lib/generated/prisma
 /proof-of-concept
 .jest-cache/**
+
+# temporary files
+/tmp

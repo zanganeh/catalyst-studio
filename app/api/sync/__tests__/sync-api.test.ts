@@ -3,6 +3,16 @@ import { GET as getStatus, POST as postStatus } from '../status/route';
 import { GET as getHistory, POST as postHistory } from '../history/route';
 import { GET as getConflicts, POST as postConflicts, PUT as putConflict } from '../conflicts/route';
 import { GET as getAnalytics, POST as postAnalytics } from '../analytics/route';
+import fs from 'fs';
+import path from 'path';
+
+// Clean up test files after tests
+afterAll(() => {
+  const tmpDir = path.join(process.cwd(), 'tmp');
+  if (fs.existsSync(tmpDir)) {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
 
 describe('Sync Status API', () => {
   describe('GET /api/sync/status', () => {
