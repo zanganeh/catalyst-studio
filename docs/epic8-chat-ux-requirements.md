@@ -1,4 +1,4 @@
-# Epic 7: Chat Interface UX Enhancement Requirements
+# Epic 8: Chat Interface UX Enhancement Requirements
 
 ## Executive Summary
 
