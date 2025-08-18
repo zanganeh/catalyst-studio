@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export interface SyncState {
   id: string;
@@ -9,7 +9,7 @@ export interface SyncState {
   lastSyncAt: Date | null;
   syncStatus: string | null;
   conflictStatus: string | null;
-  syncProgress: any | null;
+  syncProgress: Record<string, unknown> | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,24 +40,50 @@ export function useSyncState(): UseSyncStateReturn {
   const [states, setStates] = useState<SyncState[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchStates = useCallback(async () => {
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new abort controller for this request
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    
     setLoading(true);
     setError(null);
     
     try {
-      const response = await fetch('/api/v1/sync/state');
+      const response = await fetch('/api/v1/sync/state', {
+        signal: abortController.signal
+      });
+      
       if (!response.ok) {
         throw new Error('Failed to fetch sync states');
       }
       
       const data = await response.json();
-      setStates(data.states || []);
+      
+      // Only update state if this request wasn't aborted
+      if (!abortController.signal.aborted) {
+        setStates(data.states || []);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error');
-      console.error('Error fetching sync states:', err);
+      // Ignore abort errors
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
+      
+      if (!abortController.signal.aborted) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+        console.error('Error fetching sync states:', err);
+      }
     } finally {
-      setLoading(false);
+      if (!abortController.signal.aborted) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -159,6 +185,13 @@ export function useSyncState(): UseSyncStateReturn {
   // Initial fetch
   useEffect(() => {
     fetchStates();
+    
+    // Cleanup on unmount
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchStates]);
 
   // Auto-refresh for syncing states

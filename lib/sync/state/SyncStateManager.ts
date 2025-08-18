@@ -17,6 +17,37 @@ export interface SyncProgress {
 export class SyncStateManager {
   constructor(private prisma: PrismaClient) {}
 
+  private validateSyncProgress(progress: unknown): progress is SyncProgress {
+    if (!progress || typeof progress !== 'object') {
+      return false;
+    }
+    
+    const { currentStep, totalSteps, lastProcessedId, processedCount, error } = progress;
+    
+    // Required fields
+    if (typeof currentStep !== 'number' || typeof totalSteps !== 'number') {
+      return false;
+    }
+    
+    // Optional fields validation
+    if (lastProcessedId !== undefined && typeof lastProcessedId !== 'string') {
+      return false;
+    }
+    if (processedCount !== undefined && typeof processedCount !== 'number') {
+      return false;
+    }
+    if (error !== undefined && typeof error !== 'string') {
+      return false;
+    }
+    
+    // Business logic validation
+    if (currentStep < 0 || totalSteps < 1 || currentStep > totalSteps) {
+      return false;
+    }
+    
+    return true;
+  }
+
   async updateSyncState(typeKey: string, state: Partial<SyncState>): Promise<void> {
     await this.prisma.syncState.upsert({
       where: { typeKey },
@@ -149,6 +180,14 @@ export class SyncStateManager {
     if (!state?.syncProgress) {
       return null;
     }
+    
+    // Validate stored progress data
+    if (!this.validateSyncProgress(state.syncProgress)) {
+      console.warn(`Invalid sync progress data for ${typeKey}, resetting`);
+      await this.updateSyncState(typeKey, { syncProgress: null });
+      return null;
+    }
+    
     return state.syncProgress as SyncProgress;
   }
 
@@ -160,9 +199,13 @@ export class SyncStateManager {
   }
 
   async setSyncProgress(typeKey: string, progress: SyncProgress): Promise<void> {
+    if (!this.validateSyncProgress(progress)) {
+      throw new Error('Invalid sync progress structure');
+    }
+    
     await this.updateSyncState(typeKey, {
       syncStatus: 'syncing',
-      syncProgress: progress as any
+      syncProgress: progress as Record<string, unknown>
     });
   }
 
