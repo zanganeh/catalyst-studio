@@ -9,7 +9,6 @@ import { DatabaseStorage } from '@/lib/sync/storage/database-storage';
 import { startDeploymentSchema } from '@/lib/api/validation/deployment';
 import { safeJsonParse } from '@/lib/utils/safe-json';
 import { withTransaction } from '@/lib/sync/utils/transaction-manager';
-import { validateCSRFToken } from '@/lib/security/csrf';
 
 interface CMSProviderInfo {
   id: string;
@@ -19,15 +18,6 @@ interface CMSProviderInfo {
 
 export async function POST(request: NextRequest) {
   try {
-    // Validate CSRF token
-    const isValidCSRF = await validateCSRFToken(request);
-    if (!isValidCSRF) {
-      return NextResponse.json(
-        { error: 'Invalid CSRF token' },
-        { status: 403 }
-      );
-    }
-    
     const body = await request.json();
     
     // Validate input
@@ -363,15 +353,6 @@ export async function GET(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  // Validate CSRF token
-  const isValidCSRF = await validateCSRFToken(request);
-  if (!isValidCSRF) {
-    return NextResponse.json(
-      { error: 'Invalid CSRF token' },
-      { status: 403 }
-    );
-  }
-  
   const searchParams = request.nextUrl.searchParams;
   const deploymentId = searchParams.get('id');
   

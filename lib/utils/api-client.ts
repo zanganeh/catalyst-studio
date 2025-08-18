@@ -1,27 +1,13 @@
 /**
- * Enhanced API client with CSRF protection and request cancellation
+ * Enhanced API client with request cancellation
  */
 
 interface RequestOptions extends RequestInit {
-  skipCSRF?: boolean;
   timeout?: number;
 }
 
 class APIClient {
-  private csrfToken: string | null = null;
   private activeRequests = new Map<string, AbortController>();
-
-  /**
-   * Fetches and caches CSRF token
-   */
-  private async getCSRFToken(): Promise<string> {
-    if (!this.csrfToken) {
-      const response = await fetch('/api/csrf-token');
-      const data = await response.json();
-      this.csrfToken = data.token;
-    }
-    return this.csrfToken;
-  }
 
   /**
    * Creates an abort controller with optional timeout
@@ -65,7 +51,7 @@ class APIClient {
   }
 
   /**
-   * Makes an API request with CSRF protection and cancellation support
+   * Makes an API request with cancellation support
    */
   public async request(
     url: string,
@@ -73,7 +59,6 @@ class APIClient {
     requestKey?: string
   ): Promise<Response> {
     const {
-      skipCSRF = false,
       timeout = 30000, // 30 seconds default
       ...fetchOptions
     } = options;
@@ -90,12 +75,6 @@ class APIClient {
 
     // Prepare headers
     const headers = new Headers(fetchOptions.headers);
-
-    // Add CSRF token for mutating requests
-    if (!skipCSRF && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(fetchOptions.method || 'GET')) {
-      const token = await this.getCSRFToken();
-      headers.set('x-csrf-token', token);
-    }
 
     // Ensure JSON content type for JSON requests
     if (fetchOptions.body && typeof fetchOptions.body === 'string') {
@@ -116,22 +95,6 @@ class APIClient {
         this.activeRequests.delete(requestKey);
       }
 
-      // Handle CSRF token refresh
-      if (response.status === 403) {
-        const data = await response.clone().json().catch(() => ({}));
-        if (data.error === 'Invalid CSRF token') {
-          // Reset token and retry once
-          this.csrfToken = null;
-          const newToken = await this.getCSRFToken();
-          headers.set('x-csrf-token', newToken);
-          
-          return fetch(url, {
-            ...fetchOptions,
-            headers,
-            signal: controller.signal,
-          });
-        }
-      }
 
       return response;
     } catch (error) {

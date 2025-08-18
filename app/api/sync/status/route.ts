@@ -28,11 +28,11 @@ export interface SyncStatus {
   };
 }
 
-// Use tmp directory for persistent storage
-const SYNC_STATUS_FILE = path.join(process.cwd(), 'tmp', 'sync-status.json');
+// Use data directory for persistent storage (works on all platforms)
+const SYNC_STATUS_FILE = path.join(process.cwd(), 'data', 'sync-status.json');
 const SYNC_STATUS_DIR = path.dirname(SYNC_STATUS_FILE);
 
-// Ensure tmp directory exists
+// Ensure data directory exists
 if (!fs.existsSync(SYNC_STATUS_DIR)) {
   fs.mkdirSync(SYNC_STATUS_DIR, { recursive: true });
 }

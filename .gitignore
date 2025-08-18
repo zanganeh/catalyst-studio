@@ -61,3 +61,6 @@ playwright-report/**
 
 # temporary files
 /tmp
+
+# data files
+/data
