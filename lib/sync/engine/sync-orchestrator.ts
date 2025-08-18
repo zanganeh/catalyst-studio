@@ -17,6 +17,9 @@ export interface SyncState {
     lastSynced: string;
     etag: string | null;
     status: string;
+    localHash?: string;
+    remoteHash?: string;
+    operationType?: 'CREATE' | 'UPDATE' | 'DELETE';
   }>;
 }
 
@@ -25,6 +28,7 @@ export interface SyncStatistics {
   transformed: number;
   created: number;
   updated: number;
+  deleted: number;
   skipped: number;
   errors: number;
 }
@@ -42,6 +46,7 @@ export interface DiscoveryResult {
 export interface AnalysisResult {
   toCreate: TransformationResult[];
   toUpdate: Array<TransformationResult & { existing: OptimizelyContentTypeResponse; etag: string | null }>;
+  toDelete: Array<{ key: string; type: OptimizelyContentTypeResponse }>;
   toSkip: TransformationResult[];
   conflicts: any[];
 }
@@ -49,8 +54,9 @@ export interface AnalysisResult {
 export interface ExecutionResult {
   created: any[];
   updated: any[];
+  deleted: string[];
   skipped: TransformationResult[];
-  failed: Array<{ item: any; error: string }>;
+  failed: Array<{ item: any; error: string; operation: 'CREATE' | 'UPDATE' | 'DELETE' }>;
 }
 
 export class SyncOrchestrator {
@@ -64,6 +70,7 @@ export class SyncOrchestrator {
     transformed: 0,
     created: 0,
     updated: 0,
+    deleted: 0,
     skipped: 0,
     errors: 0
   };
@@ -166,11 +173,15 @@ export class SyncOrchestrator {
     const analysis: AnalysisResult = {
       toCreate: [],
       toUpdate: [],
+      toDelete: [],
       toSkip: [],
       conflicts: []
     };
     
     console.log('  🔄 Transforming content types to Optimizely format...');
+    
+    // Track which remote types are matched with local types
+    const matchedRemoteKeys = new Set<string>();
     
     for (const localType of discoveryResult.local) {
       try {
@@ -203,7 +214,8 @@ export class SyncOrchestrator {
         );
         
         if (existingRemote) {
-          const hasChanges = this.detectChanges(transformed.transformed, existingRemote);
+          matchedRemoteKeys.add(existingRemote.key);
+          const hasChanges = await this.detectChangesWithHash(transformed.transformed, existingRemote);
           if (hasChanges) {
             analysis.toUpdate.push({
               ...transformed,
@@ -223,18 +235,70 @@ export class SyncOrchestrator {
       }
     }
     
+    // Identify remote types that no longer exist locally (candidates for deletion)
+    for (const remoteType of discoveryResult.remote) {
+      if (!matchedRemoteKeys.has(remoteType.key) && this.isManagedType(remoteType)) {
+        analysis.toDelete.push({
+          key: remoteType.key,
+          type: remoteType
+        });
+      }
+    }
+    
     console.log(chalk.green(`  ✓ Analysis complete:`));
     console.log(`    - To create: ${analysis.toCreate.length}`);
     console.log(`    - To update: ${analysis.toUpdate.length}`);
+    console.log(`    - To delete: ${analysis.toDelete.length}`);
     console.log(`    - To skip: ${analysis.toSkip.length}`);
     
     return analysis;
+  }
+
+  private isManagedType(remoteType: OptimizelyContentTypeResponse): boolean {
+    // Check if this type was created/managed by our sync process
+    // Types with our specific naming convention or metadata are considered managed
+    return remoteType.key.startsWith('CMS_') || 
+           remoteType.description?.includes('[Synced]') ||
+           false; // Default to false for safety - don't delete unknown types
+  }
+
+  private async detectChangesWithHash(local: any, remote: any): Promise<boolean> {
+    // Generate content hash for comparison
+    const localHash = this.generateContentHash(local);
+    const remoteHash = this.generateContentHash({
+      displayName: remote.displayName,
+      description: remote.description,
+      properties: remote.properties,
+      baseType: remote.baseType
+    });
+    
+    return localHash !== remoteHash;
+  }
+
+  private generateContentHash(content: any): string {
+    // Simple hash generation - in production use crypto.createHash
+    const str = JSON.stringify({
+      displayName: content.displayName,
+      description: content.description,
+      properties: content.properties,
+      baseType: content.baseType
+    }, null, 0);
+    
+    // Simple hash function for demonstration
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash.toString(36);
   }
 
   private async executionPhase(analysisResult: AnalysisResult): Promise<ExecutionResult> {
     const results: ExecutionResult = {
       created: [],
       updated: [],
+      deleted: [],
       skipped: analysisResult.toSkip,
       failed: []
     };
@@ -244,6 +308,7 @@ export class SyncOrchestrator {
       return results;
     }
     
+    // CREATE operations
     for (const item of analysisResult.toCreate) {
       try {
         console.log(`  🚀 Creating: ${item.transformed.displayName}`);
@@ -258,11 +323,12 @@ export class SyncOrchestrator {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         console.error(chalk.red(`  ✗ Failed to create ${item.transformed.displayName}: ${errorMessage}`));
-        results.failed.push({ item, error: errorMessage });
+        results.failed.push({ item, error: errorMessage, operation: 'CREATE' });
         this.statistics.errors++;
       }
     }
     
+    // UPDATE operations
     for (const item of analysisResult.toUpdate) {
       try {
         console.log(`  🔄 Updating: ${item.transformed.displayName}`);
@@ -270,7 +336,8 @@ export class SyncOrchestrator {
           const updated = await this.apiClient.updateContentType(
             item.transformed.key,
             item.transformed,
-            item.etag || undefined
+            item.etag || undefined,
+            { partialUpdate: false }
           );
           results.updated.push(updated);
           this.statistics.updated++;
@@ -281,7 +348,31 @@ export class SyncOrchestrator {
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         console.error(chalk.red(`  ✗ Failed to update ${item.transformed.displayName}: ${errorMessage}`));
-        results.failed.push({ item, error: errorMessage });
+        results.failed.push({ item, error: errorMessage, operation: 'UPDATE' });
+        this.statistics.errors++;
+      }
+    }
+    
+    // DELETE operations
+    for (const item of analysisResult.toDelete) {
+      try {
+        console.log(`  🗑️  Deleting: ${item.key}`);
+        if (!this.dryRun) {
+          await this.apiClient.deleteContentType(item.key, {
+            checkDependencies: true,
+            softDelete: false,
+            cascadeDelete: false
+          });
+          results.deleted.push(item.key);
+          this.statistics.deleted++;
+        } else {
+          console.log(chalk.gray('    [DRY-RUN] Would delete content type'));
+          results.deleted.push(item.key);
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.error(chalk.red(`  ✗ Failed to delete ${item.key}: ${errorMessage}`));
+        results.failed.push({ item, error: errorMessage, operation: 'DELETE' });
         this.statistics.errors++;
       }
     }
@@ -307,13 +398,46 @@ export class SyncOrchestrator {
     state.statistics = this.statistics;
     state.contentTypes = state.contentTypes || {};
     
-    for (const item of [...executionResult.created, ...executionResult.updated]) {
+    // Track created types
+    for (const item of executionResult.created) {
       const key = (item as any).transformed?.key || (item as any).key;
       if (key) {
+        const localHash = this.generateContentHash((item as any).transformed || item);
         state.contentTypes[key] = {
           lastSynced: new Date().toISOString(),
           etag: (item as any).etag || null,
-          status: 'synced'
+          status: 'synced',
+          localHash,
+          remoteHash: localHash, // Same on creation
+          operationType: 'CREATE'
+        };
+      }
+    }
+    
+    // Track updated types
+    for (const item of executionResult.updated) {
+      const key = (item as any).transformed?.key || (item as any).key;
+      if (key) {
+        const localHash = this.generateContentHash((item as any).transformed || item);
+        state.contentTypes[key] = {
+          lastSynced: new Date().toISOString(),
+          etag: (item as any).etag || null,
+          status: 'synced',
+          localHash,
+          remoteHash: localHash, // Updated to match local
+          operationType: 'UPDATE'
+        };
+      }
+    }
+    
+    // Track deleted types
+    for (const key of executionResult.deleted) {
+      if (state.contentTypes[key]) {
+        state.contentTypes[key] = {
+          ...state.contentTypes[key],
+          lastSynced: new Date().toISOString(),
+          status: 'deleted',
+          operationType: 'DELETE'
         };
       }
     }
@@ -328,6 +452,7 @@ export class SyncOrchestrator {
     console.log(`     Transformed: ${this.statistics.transformed}`);
     console.log(chalk.green(`     Created: ${this.statistics.created}`));
     console.log(chalk.yellow(`     Updated: ${this.statistics.updated}`));
+    console.log(chalk.red(`     Deleted: ${this.statistics.deleted}`));
     console.log(chalk.gray(`     Skipped: ${this.statistics.skipped}`));
     if (this.statistics.errors > 0) {
       console.log(chalk.red(`     Errors: ${this.statistics.errors}`));
