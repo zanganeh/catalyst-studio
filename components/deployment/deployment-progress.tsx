@@ -28,6 +28,7 @@ export function DeploymentProgress({ job, provider, onComplete }: DeploymentProg
   const deploymentRef = useRef<{ cancel: () => void } | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const hasStartedDeployment = useRef(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (job.status === 'pending' && !hasStartedDeployment.current) {
@@ -62,6 +63,16 @@ export function DeploymentProgress({ job, provider, onComplete }: DeploymentProg
       }
     };
   }, [currentJob.status]);
+
+  // Auto-scroll to bottom when new logs are added
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+  }, [currentJob.logs]);
 
   const startDeployment = async () => {
     const deployment = await clientSyncService.startDeployment(
@@ -250,7 +261,7 @@ export function DeploymentProgress({ job, provider, onComplete }: DeploymentProg
       {/* Deployment Logs */}
       <div className="rounded-xl bg-black/30 border border-white/10 p-4">
         <h4 className="text-sm font-semibold text-white mb-3">Deployment Logs</h4>
-        <ScrollArea className="h-32">
+        <ScrollArea ref={scrollAreaRef} className="h-48">
           <div className="space-y-1">
             {currentJob.logs.map((log, index) => (
               <motion.div

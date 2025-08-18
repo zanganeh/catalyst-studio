@@ -8,12 +8,8 @@ class ClientSyncService {
   private csrfToken: string | null = null;
 
   private async getCSRFToken(): Promise<string> {
-    if (!this.csrfToken) {
-      const response = await fetch('/api/csrf-token');
-      const data = await response.json();
-      this.csrfToken = data.token;
-    }
-    return this.csrfToken;
+    // CSRF removed for MVP - return empty string
+    return '';
   }
 
   async startDeployment(
@@ -22,15 +18,11 @@ class ClientSyncService {
     onUpdate: (job: DeploymentJob) => void
   ): Promise<{ cancel: () => void }> {
     try {
-      // Get CSRF token
-      const csrfToken = await this.getCSRFToken();
-      
-      // Start the deployment via API
+      // Start the deployment via API (CSRF removed for MVP)
       const response = await fetch('/api/sync/start-deployment', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'x-csrf-token': csrfToken,
         },
         body: JSON.stringify({
           websiteId: job.websiteId,
@@ -91,14 +83,11 @@ class ClientSyncService {
             this.pollingIntervals.delete(deploymentId);
           }
           
-          // Get CSRF token for DELETE request
-          const deleteToken = await this.getCSRFToken();
-          
-          // Cancel deployment via API
+          // Cancel deployment via API (CSRF removed for MVP)
           await fetch(`/api/sync/start-deployment?id=${deploymentId}`, {
             method: 'DELETE',
             headers: {
-              'x-csrf-token': deleteToken,
+              'Content-Type': 'application/json',
             },
           });
         },

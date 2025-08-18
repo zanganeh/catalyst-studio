@@ -71,19 +71,21 @@ export function MainContentPanel({ children }: { children: React.ReactNode }) {
   // All features are always enabled
 
   return (
-    <AnimatedPanel direction="right" delay={0.3}>
-      <div className="h-full flex flex-col relative backdrop-blur-sm bg-gray-950/80">
-        <>
-          <FloatingShape size={120} color="orange" position={{ top: '10%', right: '15%' }} delay={0} />
-          <FloatingShape size={90} color="green" position={{ bottom: '20%', left: '20%' }} delay={2} />
-        </>
-        {children || (
-          <div className="p-4 text-gray-400">
-            {/* Empty shell for main content - Story 1.1a */}
-            <p>Main Content (Coming Soon)</p>
-          </div>
-        )}
-      </div>
-    </AnimatedPanel>
+    <div className="h-full relative overflow-hidden">
+      <AnimatedPanel direction="right" delay={0.3}>
+        <div className="h-full flex flex-col relative overflow-hidden backdrop-blur-sm bg-gray-950/80">
+          <>
+            <FloatingShape size={120} color="orange" position={{ top: '10%', right: '15%' }} delay={0} />
+            <FloatingShape size={90} color="green" position={{ bottom: '20%', left: '20%' }} delay={2} />
+          </>
+          {children || (
+            <div className="p-4 text-gray-400">
+              {/* Empty shell for main content - Story 1.1a */}
+              <p>Main Content (Coming Soon)</p>
+            </div>
+          )}
+        </div>
+      </AnimatedPanel>
+    </div>
   );
 }
