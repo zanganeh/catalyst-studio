@@ -25,13 +25,13 @@ export class AIContextService {
     };
     
     const [contexts, total] = await Promise.all([
-      prisma.aiContext.findMany({
+      prisma.aIContext.findMany({
         where,
         skip: offset,
         take: limit,
         orderBy: { updatedAt: 'desc' },
       }),
-      prisma.aiContext.count({ where })
+      prisma.aIContext.count({ where })
     ]);
     
     // Filter by isActive in memory since it's stored in the context JSON
@@ -55,7 +55,7 @@ export class AIContextService {
    * Get a specific AI context by sessionId
    */
   static async getAIContext(websiteId: string, sessionId: string): Promise<AIContext | null> {
-    const context = await prisma.aiContext.findUnique({
+    const context = await prisma.aIContext.findUnique({
       where: {
         websiteId_sessionId: {
           websiteId,
@@ -93,7 +93,7 @@ export class AIContextService {
     };
     
     try {
-      const context = await prisma.aiContext.create({
+      const context = await prisma.aIContext.create({
         data: {
           websiteId,
           sessionId: newSessionId,
@@ -150,7 +150,7 @@ export class AIContextService {
       tokens: await this.estimateTokens(messages)
     };
     
-    const updated = await prisma.aiContext.update({
+    const updated = await prisma.aIContext.update({
       where: {
         websiteId_sessionId: {
           websiteId,
@@ -209,7 +209,7 @@ export class AIContextService {
     // For now, return a placeholder
     const summary = `Conversation summary: ${context.messages.length} messages exchanged`;
     
-    await prisma.aiContext.update({
+    await prisma.aIContext.update({
       where: {
         websiteId_sessionId: {
           websiteId,
@@ -234,7 +234,7 @@ export class AIContextService {
       throw new ApiError(404, 'AI context not found');
     }
     
-    const updated = await prisma.aiContext.update({
+    const updated = await prisma.aIContext.update({
       where: {
         websiteId_sessionId: {
           websiteId,
@@ -258,7 +258,7 @@ export class AIContextService {
    * Soft delete a context session
    */
   static async deleteContext(websiteId: string, sessionId: string): Promise<void> {
-    const existing = await prisma.aiContext.findUnique({
+    const existing = await prisma.aIContext.findUnique({
       where: {
         websiteId_sessionId: {
           websiteId,
@@ -268,7 +268,7 @@ export class AIContextService {
     });
     
     if (existing) {
-      await prisma.aiContext.update({
+      await prisma.aIContext.update({
         where: {
           websiteId_sessionId: {
             websiteId,
@@ -322,7 +322,7 @@ export class AIContextService {
     cutoffDate.setDate(cutoffDate.getDate() - OLD_MESSAGE_DAYS);
     
     // First find all inactive sessions
-    const oldInactiveSessions = await prisma.aiContext.findMany({
+    const oldInactiveSessions = await prisma.aIContext.findMany({
       where: {
         updatedAt: {
           lt: cutoffDate
@@ -338,7 +338,7 @@ export class AIContextService {
     
     // Delete the inactive sessions
     if (toDelete.length > 0) {
-      const result = await prisma.aiContext.deleteMany({
+      const result = await prisma.aIContext.deleteMany({
         where: {
           id: {
             in: toDelete.map(s => s.id)

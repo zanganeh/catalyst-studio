@@ -23,7 +23,7 @@ import {
 import type { ContentItem } from '@/lib/content-types/types';
 
 export default function ContentPage() {
-  const contentStore = useContentStore();
+  const { contentItems, isLoading: isContentLoading, error: contentError, loadContent } = useContentStore();
   const { toast } = useToast();
   const { contentTypes, isLoading, error } = useContentTypes();
   const [modalOpen, setModalOpen] = useState(false);
@@ -31,17 +31,20 @@ export default function ContentPage() {
   const [selectedContentTypeId, setSelectedContentTypeId] = useState<string>('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
+  const [hasLoadedContent, setHasLoadedContent] = useState(false);
   
   // Get website ID from context or use default
   const { websiteId: contextWebsiteId } = useWebsiteContext() || {};
   const websiteId = contextWebsiteId || DEFAULT_WEBSITE_ID;
+  const contentStore = useContentStore();
   
   // Load content when component mounts or website changes
   useEffect(() => {
-    if (websiteId) {
-      contentStore.loadContent(websiteId);
+    if (websiteId && !hasLoadedContent) {
+      loadContent(websiteId);
+      setHasLoadedContent(true);
     }
-  }, [websiteId, contentStore]); // Include contentStore for proper dependency tracking
+  }, [websiteId]); // Only depend on websiteId
   
   // Get selected content type for modal
   const selectedContentType = contentTypes.find(
@@ -153,7 +156,7 @@ export default function ContentPage() {
     }
   };
   
-  if (isLoading || contentStore.isLoading) {
+  if (isLoading || isContentLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
@@ -177,14 +180,18 @@ export default function ContentPage() {
     );
   }
 
-  if (contentStore.error) {
+  if (contentError) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <p className="text-destructive mb-2">Failed to load content</p>
-          <p className="text-sm text-muted-foreground">{contentStore.error}</p>
+          <p className="text-sm text-muted-foreground">{contentError}</p>
           <button 
-            onClick={() => contentStore.loadContent(websiteId)}
+            onClick={() => {
+              setHasLoadedContent(false);
+              loadContent(websiteId);
+              setHasLoadedContent(true);
+            }}
             className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
             Retry
@@ -197,7 +204,7 @@ export default function ContentPage() {
   return (
     <ContentErrorBoundary>
       <ContentList
-        contentItems={contentStore.contentItems}
+        contentItems={contentItems}
         contentTypes={contentTypes}
         onNewContent={handleNewContent}
         onEditContent={handleEditContent}

@@ -78,13 +78,18 @@ export async function PUT(
     // For now, we'll update via direct prisma call since service doesn't have full update
     const { prisma } = await import('@/lib/prisma');
     
-    const updateData: Record<string, unknown> = {};
-    if (messages !== undefined) updateData.messages = JSON.stringify(messages);
-    if (metadata !== undefined) updateData.metadata = JSON.stringify(metadata);
-    if (summary !== undefined) updateData.summary = summary;
-    if (isActive !== undefined) updateData.isActive = isActive;
+    const currentContext = context.context || {};
+    const updateContext: Record<string, unknown> = { ...currentContext };
+    if (messages !== undefined) updateContext.messages = messages;
+    if (summary !== undefined) updateContext.summary = summary;
+    if (isActive !== undefined) updateContext.isActive = isActive;
     
-    const updated = await prisma.aiContext.update({
+    const updateData: Record<string, unknown> = {
+      context: updateContext
+    };
+    if (metadata !== undefined) updateData.metadata = metadata;
+    
+    const updated = await prisma.aIContext.update({
       where: {
         websiteId_sessionId: {
           websiteId,
@@ -94,14 +99,15 @@ export async function PUT(
       data: updateData
     });
     
+    const contextData = updated.context as any || {};
     const transformedContext = {
       id: updated.id,
       websiteId: updated.websiteId,
       sessionId: updated.sessionId,
-      messages: JSON.parse(updated.messages || '[]'),
-      metadata: updated.metadata ? JSON.parse(updated.metadata) : undefined,
-      summary: updated.summary,
-      isActive: updated.isActive,
+      messages: contextData.messages || [],
+      metadata: updated.metadata || undefined,
+      summary: contextData.summary || undefined,
+      isActive: contextData.isActive !== false,
       createdAt: updated.createdAt,
       updatedAt: updated.updatedAt
     };
