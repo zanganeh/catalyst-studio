@@ -11,14 +11,8 @@ module.exports = async () => {
   try {
     // Set test environment variables
     process.env.NODE_ENV = 'test';
-    process.env.DATABASE_URL = 'file:./test.db';
-    
-    // Clean up any existing test database
-    try {
-      execSync('rm -f test.db test.db-journal', { stdio: 'ignore' });
-    } catch (error) {
-      // Ignore errors - files might not exist
-    }
+    // Load DATABASE_URL from .env.test for PostgreSQL
+    require('dotenv').config({ path: '.env.test' });
     
     // Generate Prisma client for test environment
     console.log('📦 Generating Prisma client...');

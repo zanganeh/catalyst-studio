@@ -6,7 +6,7 @@ async function main() {
   console.log('🌱 Starting database seeding...')
   
   // Clean existing data
-  await prisma.aIContext.deleteMany()
+  await prisma.aiContext.deleteMany()
   await prisma.contentItem.deleteMany()
   await prisma.contentType.deleteMany()
   await prisma.website.deleteMany()

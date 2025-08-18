@@ -26,7 +26,7 @@ export class VersionHistoryManager {
    * @param message - Optional change message
    */
   async onDataChange(
-    contentType: Record<string, unknown>,
+    contentType: Record<string, unknown> & { id?: string },
     source: 'UI' | 'AI' | 'SYNC',
     author?: string,
     message?: string
@@ -34,20 +34,28 @@ export class VersionHistoryManager {
     try {
       // Calculate hash for the new version
       const newHash = this.hasher.calculateHash(contentType);
+      const typeKey = (contentType.key || contentType.name || 'unknown') as string;
       
-      // Get the current version to link as parent
-      const currentVersion = await this.getCurrentVersion((contentType.key || contentType.name) as string);
+      // Get the current version to determine the next version number
+      const currentVersion = await this.getCurrentVersion(typeKey);
+      const nextVersion = currentVersion ? (currentVersion.version + 1) : 1;
       
-      // Create new version record
+      // Ensure we have a contentTypeId
+      const contentTypeId = contentType.id as string;
+      if (!contentTypeId) {
+        console.error('ContentType ID is required for version tracking');
+        return;
+      }
+      
+      // Create new version record with correct schema fields
       await this.prisma.contentTypeVersion.create({
         data: {
-          typeKey: (contentType.key || contentType.name || 'unknown') as string,
-          versionHash: newHash,
-          parentHash: currentVersion?.versionHash || null,
-          contentSnapshot: JSON.stringify(contentType),
-          changeSource: source,
-          author: author || 'system',
-          message: message || null
+          contentTypeId: contentTypeId,
+          typeKey: typeKey,
+          version: nextVersion,
+          hash: newHash,
+          data: contentType, // This will be automatically serialized to JSON
+          parentHash: currentVersion?.hash || null
         }
       });
     } catch (error) {
@@ -123,7 +131,7 @@ export class VersionHistoryManager {
         orderBy: { createdAt: 'desc' },
         take: limit,
         include: {
-          parentVersions: true
+          contentType: true
         }
       });
     } catch (error) {
@@ -151,7 +159,7 @@ export class VersionHistoryManager {
         },
         orderBy: { createdAt: 'desc' },
         include: {
-          parentVersions: true
+          contentType: true
         }
       });
     } catch (error) {
@@ -171,7 +179,7 @@ export class VersionHistoryManager {
         where: { author },
         orderBy: { createdAt: 'desc' },
         include: {
-          parentVersions: true
+          contentType: true
         }
       });
     } catch (error) {
@@ -191,7 +199,7 @@ export class VersionHistoryManager {
         where: { changeSource: source },
         orderBy: { createdAt: 'desc' },
         include: {
-          parentVersions: true
+          contentType: true
         }
       });
     } catch (error) {
@@ -205,13 +213,13 @@ export class VersionHistoryManager {
    * @param versionHash - The version hash
    * @returns The version record or null
    */
-  async getVersionByHash(versionHash: string) {
+  async getVersionByHash(hash: string) {
     try {
       return await this.prisma.contentTypeVersion.findUnique({
-        where: { versionHash }
+        where: { hash }
       });
     } catch (error) {
-      console.error(`Failed to get version ${versionHash}:`, error);
+      console.error(`Failed to get version ${hash}:`, error);
       return null;
     }
   }

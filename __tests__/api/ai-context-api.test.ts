@@ -9,7 +9,7 @@ import { AIMessage } from '@/types/ai-context';
 // Mock prisma client
 jest.mock('@/lib/prisma', () => ({
   prisma: {
-    aIContext: {
+    aiContext: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
@@ -35,9 +35,9 @@ describe('Story 4.7: AI Context Database Implementation', () => {
       // - messages (JSON), metadata (JSON), summary
       // - isActive, createdAt, updatedAt
       // - unique constraint on [websiteId, sessionId]
-      expect(prisma.aIContext).toBeDefined();
-      expect(prisma.aIContext.create).toBeDefined();
-      expect(prisma.aIContext.findUnique).toBeDefined();
+      expect(prisma.aiContext).toBeDefined();
+      expect(prisma.aiContext.create).toBeDefined();
+      expect(prisma.aiContext.findUnique).toBeDefined();
     });
   });
 
@@ -61,7 +61,7 @@ describe('Story 4.7: AI Context Database Implementation', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.aIContext.create as jest.Mock).mockResolvedValue(mockCreated);
+      (prisma.aiContext.create as jest.Mock).mockResolvedValue(mockCreated);
 
       const result = await AIContextService.createAIContext(
         mockWebsiteId,
@@ -73,7 +73,7 @@ describe('Story 4.7: AI Context Database Implementation', () => {
       expect(result.sessionId).toBe(mockSessionId);
       expect(result.messages).toHaveLength(1);
       expect(result.messages[0].content).toBe('Hello AI');
-      expect(prisma.aIContext.create).toHaveBeenCalledWith(
+      expect(prisma.aiContext.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             websiteId: mockWebsiteId,
@@ -98,7 +98,7 @@ describe('Story 4.7: AI Context Database Implementation', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.aIContext.findUnique as jest.Mock).mockResolvedValue(mockContext);
+      (prisma.aiContext.findUnique as jest.Mock).mockResolvedValue(mockContext);
 
       const result = await AIContextService.getAIContext(mockWebsiteId, mockSessionId);
 
@@ -128,8 +128,8 @@ describe('Story 4.7: AI Context Database Implementation', () => {
         timestamp: new Date(),
       };
 
-      (prisma.aIContext.findUnique as jest.Mock).mockResolvedValue(existingContext);
-      (prisma.aIContext.update as jest.Mock).mockResolvedValue({
+      (prisma.aiContext.findUnique as jest.Mock).mockResolvedValue(existingContext);
+      (prisma.aiContext.update as jest.Mock).mockResolvedValue({
         ...existingContext,
         messages: JSON.stringify([
           { role: 'user', content: 'Hello', timestamp: new Date() },
@@ -146,18 +146,18 @@ describe('Story 4.7: AI Context Database Implementation', () => {
 
       expect(result.messages).toHaveLength(2);
       expect(result.messages[1].content).toBe('Hi there!');
-      expect(prisma.aIContext.update).toHaveBeenCalled();
+      expect(prisma.aiContext.update).toHaveBeenCalled();
     });
 
     it('should soft delete context session', async () => {
-      (prisma.aIContext.update as jest.Mock).mockResolvedValue({
+      (prisma.aiContext.update as jest.Mock).mockResolvedValue({
         id: 'context-1',
         isActive: false,
       });
 
       await AIContextService.deleteContext(mockWebsiteId, mockSessionId);
 
-      expect(prisma.aIContext.update).toHaveBeenCalledWith(
+      expect(prisma.aiContext.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
             websiteId_sessionId: {
@@ -198,14 +198,14 @@ describe('Story 4.7: AI Context Database Implementation', () => {
         },
       ];
 
-      (prisma.aIContext.findMany as jest.Mock).mockResolvedValue(mockContexts);
-      (prisma.aIContext.count as jest.Mock).mockResolvedValue(2);
+      (prisma.aiContext.findMany as jest.Mock).mockResolvedValue(mockContexts);
+      (prisma.aiContext.count as jest.Mock).mockResolvedValue(2);
 
       const result = await AIContextService.getAIContexts(mockWebsiteId);
 
       expect(result.contexts).toHaveLength(2);
       expect(result.total).toBe(2);
-      expect(prisma.aIContext.findMany).toHaveBeenCalledWith(
+      expect(prisma.aiContext.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { websiteId: mockWebsiteId },
         })
@@ -227,8 +227,8 @@ describe('Story 4.7: AI Context Database Implementation', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.aIContext.findUnique as jest.Mock).mockResolvedValue(existingContext);
-      (prisma.aIContext.update as jest.Mock).mockResolvedValue({
+      (prisma.aiContext.findUnique as jest.Mock).mockResolvedValue(existingContext);
+      (prisma.aiContext.update as jest.Mock).mockResolvedValue({
         ...existingContext,
         messages: JSON.stringify([]),
         metadata: JSON.stringify({ totalMessages: 0, tokens: 0 }),
@@ -270,10 +270,10 @@ describe('Story 4.7: AI Context Database Implementation', () => {
         timestamp: new Date(),
       };
 
-      (prisma.aIContext.findUnique as jest.Mock).mockResolvedValue(existingContext);
+      (prisma.aiContext.findUnique as jest.Mock).mockResolvedValue(existingContext);
       
       // Mock the update to simulate pruning
-      (prisma.aIContext.update as jest.Mock).mockImplementation(async () => {
+      (prisma.aiContext.update as jest.Mock).mockImplementation(async () => {
         // Simulate pruning logic - keep last 30 messages + new one
         const prunedMessages = [...longMessages.slice(-29), newMessage];
         return {
@@ -324,8 +324,8 @@ describe('Story 4.7: AI Context Database Implementation', () => {
   describe('✅ AC7: Fresh Database Verification', () => {
     it('should handle operations with no existing data', async () => {
       // Simulate fresh database - no existing context
-      (prisma.aIContext.findUnique as jest.Mock).mockResolvedValue(null);
-      (prisma.aIContext.create as jest.Mock).mockResolvedValue({
+      (prisma.aiContext.findUnique as jest.Mock).mockResolvedValue(null);
+      (prisma.aiContext.create as jest.Mock).mockResolvedValue({
         id: 'first-context',
         websiteId: mockWebsiteId,
         sessionId: 'first-session',
@@ -345,12 +345,12 @@ describe('Story 4.7: AI Context Database Implementation', () => {
     });
 
     it('should handle cleanup of old sessions', async () => {
-      (prisma.aIContext.deleteMany as jest.Mock).mockResolvedValue({ count: 5 });
+      (prisma.aiContext.deleteMany as jest.Mock).mockResolvedValue({ count: 5 });
 
       const deletedCount = await AIContextService.cleanupOldSessions();
 
       expect(deletedCount).toBe(5);
-      expect(prisma.aIContext.deleteMany).toHaveBeenCalledWith(
+      expect(prisma.aiContext.deleteMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             isActive: false,
@@ -364,7 +364,7 @@ describe('Story 4.7: AI Context Database Implementation', () => {
     it('should maintain unique constraint on websiteId and sessionId', async () => {
       // Try to create duplicate context
       const mockError = new Error('Unique constraint failed on the fields: (`websiteId`,`sessionId`)');
-      (prisma.aIContext.create as jest.Mock).mockRejectedValue(mockError);
+      (prisma.aiContext.create as jest.Mock).mockRejectedValue(mockError);
 
       await expect(
         AIContextService.createAIContext(mockWebsiteId, undefined, mockSessionId)
@@ -384,8 +384,8 @@ describe('Story 4.7: AI Context Database Implementation', () => {
         updatedAt: new Date(),
       };
 
-      (prisma.aIContext.findUnique as jest.Mock).mockResolvedValue(existingContext);
-      (prisma.aIContext.update as jest.Mock).mockResolvedValue({
+      (prisma.aiContext.findUnique as jest.Mock).mockResolvedValue(existingContext);
+      (prisma.aiContext.update as jest.Mock).mockResolvedValue({
         ...existingContext,
         messages: JSON.stringify([
           { role: 'user', content: 'Message 1', timestamp: new Date() },
@@ -410,7 +410,7 @@ describe('Story 4.7: AI Context Database Implementation', () => {
       const results = await Promise.all(promises);
       
       expect(results).toHaveLength(2);
-      expect(prisma.aIContext.update).toHaveBeenCalled();
+      expect(prisma.aiContext.update).toHaveBeenCalled();
     });
   });
 });

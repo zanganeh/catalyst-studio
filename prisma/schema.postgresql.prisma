@@ -22,7 +22,6 @@ model Website {
   contentTypes ContentType[]
   pages        Page[]
   deployments  Deployment[]
-  aiContexts   AIContext[]
 }
 
 model ContentType {
@@ -199,19 +198,4 @@ model ConflictLog {
   
   @@index([typeKey, createdAt])
   @@index([resolution])
-}
-
-model AIContext {
-  id           String   @id @default(cuid())
-  websiteId    String
-  sessionId    String   @default("default")
-  context      Json
-  metadata     Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  
-  website      Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
-  
-  @@unique([websiteId, sessionId])
-  @@index([websiteId])
 }
