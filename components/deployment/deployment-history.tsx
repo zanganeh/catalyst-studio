@@ -12,6 +12,8 @@ import {
   Download,
   Trash2,
   ExternalLink,
+  GitMerge,
+  BarChart3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,13 +41,15 @@ import { CMS_PROVIDERS } from '@/lib/deployment/cms-providers';
 
 interface DeploymentHistoryProps {
   onRedeploy?: (job: DeploymentJob) => void;
+  onViewSyncAnalytics?: (deploymentId: string) => void;
   className?: string;
 }
 
-export function DeploymentHistory({ onRedeploy, className }: DeploymentHistoryProps) {
+export function DeploymentHistory({ onRedeploy, onViewSyncAnalytics, className }: DeploymentHistoryProps) {
   const [history, setHistory] = useState<DeploymentJob[]>([]);
   const [selectedJob, setSelectedJob] = useState<DeploymentJob | null>(null);
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [syncRecords, setSyncRecords] = useState<Record<string, any>>({});
 
   useEffect(() => {
     loadHistory();
@@ -72,9 +76,23 @@ export function DeploymentHistory({ onRedeploy, className }: DeploymentHistoryPr
     };
   }, []);
 
-  const loadHistory = () => {
+  const loadHistory = async () => {
     const deploymentHistory = clientSyncService.getDeploymentHistory();
     setHistory(deploymentHistory);
+    
+    // Load sync records for each deployment
+    const records: Record<string, any> = {};
+    for (const job of deploymentHistory) {
+      try {
+        const response = await fetch(`/api/sync/analytics?deploymentId=${job.id}`);
+        if (response.ok) {
+          records[job.id] = await response.json();
+        }
+      } catch (error) {
+        console.error(`Failed to load sync record for ${job.id}:`, error);
+      }
+    }
+    setSyncRecords(records);
   };
 
   const handleExportLogs = (job: DeploymentJob) => {
@@ -199,6 +217,15 @@ export function DeploymentHistory({ onRedeploy, className }: DeploymentHistoryPr
                             <span>{getDuration(job)}</span>
                             <span>•</span>
                             <span className="font-mono">{job.id.slice(0, 8)}...</span>
+                            {syncRecords[job.id] && (
+                              <>
+                                <span>•</span>
+                                <span className="flex items-center gap-1">
+                                  <GitMerge className="h-3 w-3" />
+                                  Synced
+                                </span>
+                              </>
+                            )}
                           </div>
                           {job.error && (
                             <p className="text-xs text-red-400 mt-1">
@@ -253,6 +280,15 @@ export function DeploymentHistory({ onRedeploy, className }: DeploymentHistoryPr
                             <Download className="mr-2 h-4 w-4" />
                             Export Logs
                           </DropdownMenuItem>
+                          {syncRecords[job.id] && (
+                            <DropdownMenuItem
+                              onClick={() => onViewSyncAnalytics?.(job.id)}
+                              className="text-white hover:bg-white/10"
+                            >
+                              <BarChart3 className="mr-2 h-4 w-4" />
+                              View Sync Analytics
+                            </DropdownMenuItem>
+                          )}
                           {job.status === 'completed' && (
                             <DropdownMenuItem
                               onClick={() => window.open(`https://${job.providerId}-preview.example.com/deployment/${job.id}`, '_blank')}

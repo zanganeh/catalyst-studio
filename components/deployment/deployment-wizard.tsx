@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, CheckCircle, AlertCircle, Loader2, X } from 'lucide-react';
+import { ChevronRight, CheckCircle, AlertCircle, Loader2, X, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { CMSProviderSelector } from './cms-provider-selector';
 import { DeploymentProgress } from './deployment-progress';
 import { ContentMapping } from './content-mapping';
+import { SyncStatusDisplay } from '@/components/sync/sync-status-display';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   CMSProvider,
   DeploymentJob,
@@ -34,18 +36,46 @@ export function DeploymentWizard({ onComplete, onCancel, websiteId }: Deployment
   const [selectedProvider, setSelectedProvider] = useState<CMSProvider | null>(null);
   const [deploymentJob, setDeploymentJob] = useState<DeploymentJob | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [syncStatus, setSyncStatus] = useState<any>(null);
+  const [validationErrors, setValidationErrors] = useState<any[]>([]);
 
   const handleProviderSelect = useCallback((provider: CMSProvider) => {
     setSelectedProvider(provider);
     setError(null);
   }, []);
 
-  const handleNextStep = useCallback(() => {
+  const handleNextStep = useCallback(async () => {
     const currentIndex = STEPS.findIndex(s => s.id === currentStep);
     if (currentIndex < STEPS.length - 1) {
       const nextStep = STEPS[currentIndex + 1].id;
       
       if (nextStep === 'deploying' && selectedProvider) {
+        // Check sync status before deployment
+        try {
+          const syncStatusResponse = await fetch('/api/sync/status');
+          const syncData = await syncStatusResponse.json();
+          
+          // Check for validation errors
+          if (syncData.validationResults && !syncData.validationResults.passed) {
+            setValidationErrors(syncData.validationResults.details || []);
+            setError('Validation errors detected. Please resolve them before deploying.');
+            return;
+          }
+          
+          // Check for unresolved conflicts
+          const conflictsResponse = await fetch('/api/sync/conflicts?status=unresolved');
+          const conflictsData = await conflictsResponse.json();
+          
+          if (conflictsData.unresolved > 0) {
+            setError(`${conflictsData.unresolved} unresolved conflict(s) detected. Please resolve them before deploying.`);
+            return;
+          }
+          
+          setSyncStatus(syncData);
+        } catch (err) {
+          console.error('Failed to check sync status:', err);
+        }
+        
         // Start deployment when moving to deploying step
         const job: DeploymentJob = {
           id: `deploy-${Date.now()}`,
@@ -207,6 +237,28 @@ export function DeploymentWizard({ onComplete, onCancel, websiteId }: Deployment
                 </p>
               </div>
               
+              {/* Sync Status Display */}
+              <div className="mb-6">
+                <SyncStatusDisplay />
+              </div>
+              
+              {/* Validation Errors Display */}
+              {validationErrors.length > 0 && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Validation Errors:</strong>
+                    <ul className="mt-2 space-y-1">
+                      {validationErrors.map((error, index) => (
+                        <li key={index} className="text-sm">
+                          <strong>{error.field}:</strong> {error.message}
+                        </li>
+                      ))}
+                    </ul>
+                  </AlertDescription>
+                </Alert>
+              )}
+              
               <ContentMapping 
                 providerId={selectedProvider.id}
                 websiteId={websiteId}
@@ -225,8 +277,13 @@ export function DeploymentWizard({ onComplete, onCancel, websiteId }: Deployment
                   Deploying to {selectedProvider.name}
                 </h2>
                 <p className="text-white/60">
-                  Your content is being deployed
+                  Your content is being deployed with synchronization tracking
                 </p>
+              </div>
+              
+              {/* Sync Status Display During Deployment */}
+              <div className="mb-4">
+                <SyncStatusDisplay />
               </div>
               
               <DeploymentProgress
