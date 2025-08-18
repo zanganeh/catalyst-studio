@@ -43,6 +43,10 @@ export interface DeploymentJob {
   error?: string;
   retryCount?: number;
   maxRetries?: number;
+  initiatedBy?: string;
+  options?: {
+    bypassValidation?: boolean;
+  };
 }
 
 export interface DeploymentMetrics {
