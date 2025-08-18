@@ -22,27 +22,35 @@ export async function GET(request: NextRequest) {
     const { page, limit, status, contentTypeId, websiteId, sortBy, sortOrder } = validation.data;
     
     // Build where clause with proper typing
-    const where: Prisma.ContentItemWhereInput = {};
+    const where: Prisma.ContentInstanceWhereInput = {};
     if (status) where.status = status;
     if (contentTypeId) where.contentTypeId = contentTypeId;
-    if (websiteId) where.websiteId = websiteId;
+    // Filter by websiteId through contentType relationship
+    if (websiteId) {
+      where.contentType = {
+        websiteId: websiteId
+      };
+    }
     
     // Get total count
-    const total = await prisma.contentItem.count({ where });
+    const total = await prisma.contentInstance.count({ where });
     
     // Calculate pagination
     const totalPages = Math.ceil(total / limit);
     const skip = (page - 1) * limit;
     
     // Fetch items with relations
-    const items = await prisma.contentItem.findMany({
+    const items = await prisma.contentInstance.findMany({
       where,
       skip,
       take: limit,
       orderBy: { [sortBy]: sortOrder },
       include: {
-        contentType: true,
-        website: true,
+        contentType: {
+          include: {
+            website: true
+          }
+        },
       },
     });
     
@@ -50,12 +58,10 @@ export async function GET(request: NextRequest) {
     const transformedItems = items.map(item => ({
       id: item.id,
       contentTypeId: item.contentTypeId,
-      websiteId: item.websiteId,
-      slug: item.slug || undefined, // Convert null to undefined for type compatibility
+      websiteId: item.contentType.websiteId, // Get websiteId from contentType
       data: safeJsonParse(item.data, {}) || {},
-      metadata: safeJsonParse(item.metadata, null),
       status: item.status as ContentStatus, // Cast status to ContentStatus type
-      publishedAt: item.publishedAt || undefined, // Convert null to undefined
+      version: item.version,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
     }));
@@ -129,19 +135,18 @@ export async function POST(request: NextRequest) {
     const validatedData = validation.data;
     
     // Create content item
-    const contentItem = await prisma.contentItem.create({
+    const contentItem = await prisma.contentInstance.create({
       data: {
         contentTypeId: validatedData.contentTypeId,
-        websiteId: validatedData.websiteId,
-        slug: validatedData.slug || undefined,
         data: JSON.stringify(validatedData.data),
-        metadata: validatedData.metadata ? JSON.stringify(validatedData.metadata) : undefined,
         status: validatedData.status || 'draft',
-        publishedAt: validatedData.publishedAt ? new Date(validatedData.publishedAt) : undefined,
       },
       include: {
-        contentType: true,
-        website: true,
+        contentType: {
+          include: {
+            website: true
+          }
+        },
       },
     });
     
@@ -149,16 +154,15 @@ export async function POST(request: NextRequest) {
     const transformed = {
       ...contentItem,
       data: safeJsonParse(contentItem.data, {}),
-      metadata: safeJsonParse(contentItem.metadata, null),
       contentType: {
         ...contentItem.contentType,
         fields: safeJsonParse(contentItem.contentType.fields, []),
-        settings: safeJsonParse(contentItem.contentType.settings, null),
+        settings: safeJsonParse(contentItem.contentType.schema, null),
       },
-      website: {
-        ...contentItem.website,
-        metadata: safeJsonParse(contentItem.website.metadata, null),
-      },
+      website: contentItem.contentType.website ? {
+        ...contentItem.contentType.website,
+        metadata: safeJsonParse(contentItem.contentType.website.metadata, null),
+      } : undefined,
     };
     
     return NextResponse.json({ data: transformed }, { status: 201 });

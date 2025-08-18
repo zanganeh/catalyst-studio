@@ -77,13 +77,13 @@ export async function POST(request: NextRequest) {
         data: {
           id: deploymentId,
           websiteId,
-          providerId: provider.id,
-          providerName: provider.name,
-          selectedTypes: JSON.stringify(selectedTypes || []),
+          provider: provider.id,  // Changed from providerId to provider
           status: 'pending',
-          progress: 0,
-          logs: JSON.stringify([]),
-          startedAt: new Date(),
+          deploymentData: JSON.stringify({
+            providerName: provider.name,
+            selectedTypes: selectedTypes || [],
+            progress: 0
+          }),
         },
       });
     });
@@ -99,20 +99,21 @@ export async function POST(request: NextRequest) {
           where: { id: deploymentId },
           data: {
             status: 'failed',
-            error: error instanceof Error ? error.message : 'Unknown error',
-            completedAt: new Date(),
+            errorMessage: error instanceof Error ? error.message : 'Unknown error',
           }
         });
       }
     });
 
+    const deploymentData = deployment.deploymentData ? safeJsonParse(deployment.deploymentData, {}) || {} : {};
+    
     return NextResponse.json({ 
       success: true, 
       deploymentId,
       deployment: {
         id: deployment.id,
         status: deployment.status,
-        progress: deployment.progress,
+        progress: deploymentData.progress || 0,
       }
     });
   } catch (error) {
@@ -151,20 +152,23 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
       where: { id: deploymentId },
     });
     
-    const logs: any[] = deployment?.logs ? safeJsonParse(deployment.logs, []) || [] : [];
+    const deploymentDataObj = deployment?.deploymentData ? safeJsonParse(deployment.deploymentData, {}) || {} : {};
+    const logs: any[] = deploymentDataObj.logs || [];
     logs.push({
       timestamp: new Date().toISOString(),
       level,
       message,
     });
     
+    deploymentDataObj.logs = logs;
+    deploymentDataObj.progress = progress;
+    
     // Use transaction for atomic update
     await withTransaction(async (tx) => {
       await tx.deployment.update({
         where: { id: deploymentId },
         data: { 
-          progress,
-          logs: JSON.stringify(logs),
+          deploymentData: JSON.stringify(deploymentDataObj),
         },
       });
     });
@@ -176,7 +180,7 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
       where: { id: deploymentId },
       select: { 
         websiteId: true,
-        selectedTypes: true,
+        deploymentData: true,
       },
     });
     
@@ -185,11 +189,15 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
     }
 
     // Update status to running
+    const currentDeploymentData = deployment.deploymentData ? safeJsonParse(deployment.deploymentData, {}) || {} : {};
     await prisma.deployment.update({
       where: { id: deploymentId },
       data: { 
         status: 'running',
-        progress: 5,
+        deploymentData: JSON.stringify({
+          ...currentDeploymentData,
+          progress: 5
+        }),
       },
     });
     
@@ -277,7 +285,7 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
         where: { id: deploymentId },
         data: { 
           status: 'completed',
-          completedAt: new Date(),
+          deployedAt: new Date(),
         },
       });
     } else {
@@ -297,8 +305,7 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
       where: { id: deploymentId },
       data: { 
         status: 'failed',
-        completedAt: new Date(),
-        error: errorMessage,
+        errorMessage: errorMessage,
       },
     });
   }
@@ -327,18 +334,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    const deploymentDataObj = deployment.deploymentData ? safeJsonParse(deployment.deploymentData, {}) || {} : {};
+    
     return NextResponse.json({ 
       success: true, 
       job: {
         id: deployment.id,
         websiteId: deployment.websiteId,
-        providerId: deployment.providerId,
+        provider: deployment.provider,
         status: deployment.status,
-        progress: deployment.progress,
-        logs: safeJsonParse(deployment.logs, []),
-        startedAt: deployment.startedAt,
-        completedAt: deployment.completedAt,
-        error: deployment.error,
+        progress: deploymentDataObj.progress || 0,
+        logs: deploymentDataObj.logs || [],
+        startedAt: deployment.createdAt,
+        completedAt: deployment.updatedAt,
+        error: deployment.errorMessage,
       }
     });
   } catch (error) {
@@ -379,19 +388,21 @@ export async function DELETE(request: NextRequest) {
       where: { id: deploymentId },
     });
     
-    const cancelLogs: any[] = currentDeployment?.logs ? safeJsonParse(currentDeployment.logs, []) || [] : [];
+    const deploymentDataObj = currentDeployment?.deploymentData ? safeJsonParse(currentDeployment.deploymentData, {}) || {} : {};
+    const cancelLogs: any[] = deploymentDataObj.logs || [];
     cancelLogs.push({
       timestamp: new Date().toISOString(),
       level: 'warning',
       message: 'Deployment cancelled by user',
     });
     
+    deploymentDataObj.logs = cancelLogs;
+    
     const deployment = await prisma.deployment.update({
       where: { id: deploymentId },
       data: { 
         status: 'cancelled',
-        completedAt: new Date(),
-        logs: JSON.stringify(cancelLogs),
+        deploymentData: JSON.stringify(deploymentDataObj),
       },
     });
 
