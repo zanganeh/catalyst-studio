@@ -170,8 +170,27 @@ model SyncState {
   lastSyncAt      DateTime? @map("last_sync_at")
   lastCheckedAt   DateTime @map("last_checked_at")
   changeSource    String?  @map("change_source") // UI/AI/SYNC
+  conflictStatus  String?  @map("conflict_status") // none/detected/resolved
+  lastConflictAt  DateTime? @map("last_conflict_at")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
   
   @@map("sync_state")
+}
+
+model ConflictLog {
+  id              String   @id @default(cuid())
+  typeKey         String   @map("type_key")
+  localHash       String   @map("local_hash")
+  remoteHash      String   @map("remote_hash")
+  ancestorHash    String?  @map("ancestor_hash")
+  conflictType    String   @map("conflict_type") // field/structural/delete
+  conflictDetails Json     @map("conflict_details")
+  resolution      String?  @map("resolution") // local_wins/remote_wins/merged/pending
+  resolvedBy      String?  @map("resolved_by")
+  resolvedAt      DateTime? @map("resolved_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  @@map("conflict_log")
+  @@index([typeKey, createdAt])
 }

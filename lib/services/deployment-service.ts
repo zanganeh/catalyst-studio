@@ -5,6 +5,10 @@ import { ContentTypeHasher } from '../sync/versioning/ContentTypeHasher';
 import { OptimizelyApiClient } from '../sync/adapters/optimizely-api-client';
 import { SyncStateManager } from '../sync/persistence/SyncStateManager';
 import { ChangeDetector } from '../sync/detection/ChangeDetector';
+import { ConflictDetector } from '../sync/conflict/ConflictDetector';
+import { ConflictManager } from '../sync/conflict/ConflictManager';
+import { ResolutionStrategyManager } from '../sync/conflict/ResolutionStrategy';
+import { VersionHistory } from '../sync/versioning/VersionHistory';
 
 export interface DeploymentConfig {
   deploymentId: string;
@@ -41,6 +45,10 @@ export class DeploymentService {
   private syncStateManager: SyncStateManager;
   private hasher: ContentTypeHasher;
   private changeDetector: ChangeDetector;
+  private conflictDetector: ConflictDetector;
+  private conflictManager: ConflictManager;
+  private resolutionManager: ResolutionStrategyManager;
+  private versionHistory: VersionHistory;
   
   constructor(
     private prisma: PrismaClient,
@@ -52,6 +60,11 @@ export class DeploymentService {
     this.hasher = new ContentTypeHasher();
     // Initialize the native TypeScript change detector
     this.changeDetector = new ChangeDetector(prisma, this.syncStateManager);
+    // Initialize conflict detection components
+    this.versionHistory = new VersionHistory(prisma);
+    this.conflictDetector = new ConflictDetector(this.changeDetector, this.versionHistory);
+    this.conflictManager = new ConflictManager(prisma);
+    this.resolutionManager = new ResolutionStrategyManager();
   }
   
   /**
@@ -88,13 +101,195 @@ export class DeploymentService {
   }
   
   /**
+   * Check for conflicts before deployment
+   */
+  async checkForConflicts(contentTypeKeys?: string[]): Promise<{
+    hasConflicts: boolean;
+    conflicts: any[];
+    canAutoResolve: boolean;
+  }> {
+    try {
+      let conflicts: any[] = [];
+      
+      if (contentTypeKeys && contentTypeKeys.length > 0) {
+        // Check specific content types
+        for (const typeKey of contentTypeKeys) {
+          const conflict = await this.conflictDetector.detectConflicts(typeKey);
+          if (conflict.hasConflict) {
+            const flagged = await this.conflictManager.flagForReview(typeKey, conflict);
+            conflicts.push({
+              ...conflict,
+              id: flagged.id,
+              priority: flagged.priority
+            });
+          }
+        }
+      } else {
+        // Check all modified types
+        conflicts = await this.conflictDetector.detectAllConflicts();
+        for (const conflict of conflicts) {
+          const flagged = await this.conflictManager.flagForReview(
+            (conflict as any).typeKey,
+            conflict
+          );
+          (conflict as any).id = flagged.id;
+          (conflict as any).priority = flagged.priority;
+        }
+      }
+      
+      // Check if any conflicts can be auto-resolved
+      let canAutoResolve = false;
+      for (const conflict of conflicts) {
+        const strategy = this.resolutionManager.selectBestStrategy(conflict);
+        if (strategy !== 'manual_merge') {
+          canAutoResolve = true;
+          break;
+        }
+      }
+      
+      return {
+        hasConflicts: conflicts.length > 0,
+        conflicts,
+        canAutoResolve
+      };
+    } catch (error) {
+      console.error('Error checking for conflicts:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Resolve conflicts with specified strategy
+   */
+  async resolveConflicts(
+    conflicts: any[],
+    strategy: string = 'auto_merge',
+    resolvedBy: string = 'system'
+  ): Promise<{
+    resolved: number;
+    failed: number;
+    results: any[];
+  }> {
+    const results = {
+      resolved: 0,
+      failed: 0,
+      results: [] as any[]
+    };
+    
+    for (const conflict of conflicts) {
+      try {
+        const resolution = this.resolutionManager.resolveConflict(conflict, strategy);
+        
+        if (resolution.success) {
+          await this.conflictManager.resolveConflict(
+            conflict.id,
+            strategy,
+            resolution.resolution?.merged,
+            resolvedBy
+          );
+          
+          // Update sync state
+          await this.prisma.syncState.update({
+            where: { typeKey: (conflict as any).typeKey },
+            data: {
+              conflictStatus: 'resolved'
+            }
+          });
+          
+          results.resolved++;
+          results.results.push({
+            conflictId: conflict.id,
+            success: true,
+            resolution: resolution.resolution
+          });
+        } else {
+          results.failed++;
+          results.results.push({
+            conflictId: conflict.id,
+            success: false,
+            error: resolution.error,
+            requiresManual: resolution.requiresManual
+          });
+        }
+      } catch (error) {
+        console.error(`Failed to resolve conflict ${conflict.id}:`, error);
+        results.failed++;
+        results.results.push({
+          conflictId: conflict.id,
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+    
+    return results;
+  }
+  
+  /**
    * Deploy content types to provider with sync tracking
    */
   async deployToProvider(
     deploymentId: string, 
-    contentTypes: ContentType[]
+    contentTypes: ContentType[],
+    options: {
+      skipConflictCheck?: boolean;
+      autoResolveConflicts?: boolean;
+      conflictResolutionStrategy?: string;
+    } = {}
   ): Promise<void> {
     console.log(`Starting deployment ${deploymentId} to ${this.provider}`);
+    
+    // Check for conflicts unless skipped
+    if (!options.skipConflictCheck) {
+      const contentTypeKeys = contentTypes.map(ct => ct.key);
+      const conflictCheck = await this.checkForConflicts(contentTypeKeys);
+      
+      if (conflictCheck.hasConflicts) {
+        console.log(`Found ${conflictCheck.conflicts.length} conflicts`);
+        
+        if (options.autoResolveConflicts && conflictCheck.canAutoResolve) {
+          console.log('Attempting to auto-resolve conflicts...');
+          const resolutionResult = await this.resolveConflicts(
+            conflictCheck.conflicts,
+            options.conflictResolutionStrategy || 'auto_merge'
+          );
+          
+          if (resolutionResult.failed > 0) {
+            // Update deployment status to indicate conflicts
+            await this.prisma.deployment.update({
+              where: { id: deploymentId },
+              data: {
+                status: 'conflict',
+                logs: JSON.stringify([{
+                  timestamp: new Date().toISOString(),
+                  level: 'warning',
+                  message: `${resolutionResult.failed} conflicts require manual resolution`
+                }])
+              }
+            });
+            
+            throw new Error(`${resolutionResult.failed} conflicts could not be auto-resolved. Manual intervention required.`);
+          }
+          
+          console.log(`Successfully resolved ${resolutionResult.resolved} conflicts`);
+        } else {
+          // Halt deployment if conflicts detected and not auto-resolving
+          await this.prisma.deployment.update({
+            where: { id: deploymentId },
+            data: {
+              status: 'conflict',
+              logs: JSON.stringify([{
+                timestamp: new Date().toISOString(),
+                level: 'error',
+                message: `Deployment halted: ${conflictCheck.conflicts.length} conflicts detected`
+              }])
+            }
+          });
+          
+          throw new Error(`Deployment halted: ${conflictCheck.conflicts.length} conflicts detected. Please resolve conflicts before deploying.`);
+        }
+      }
+    }
     
     // Detect changes before deployment
     const changes = await this.detectChanges();
