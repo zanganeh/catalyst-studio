@@ -172,15 +172,18 @@ model SyncState {
   typeKey         String    @unique
   localHash       String?
   remoteHash      String?
+  lastSyncedHash  String?
   lastSyncAt      DateTime?
-  syncStatus      String    @default("pending")
+  syncStatus      String?   @default("pending")
   conflictStatus  String?
+  syncProgress    Json?     // For interrupted sync recovery
   lastConflictAt  DateTime?
   metadata        Json?     // PostgreSQL native JSON
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   
   @@index([syncStatus])
+  @@index([lastSyncAt])
   @@index([conflictStatus])
 }
 

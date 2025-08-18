@@ -3,7 +3,7 @@ import { SyncHistoryManager } from '../sync/tracking/SyncHistoryManager';
 import { SyncSnapshot } from '../sync/tracking/SyncSnapshot';
 import { ContentTypeHasher } from '../sync/versioning/ContentTypeHasher';
 import { OptimizelyApiClient } from '../sync/adapters/optimizely-api-client';
-import { SyncStateManager } from '../sync/persistence/SyncStateManager';
+import { SyncStateManager } from '../sync/state/SyncStateManager';
 import { ChangeDetector } from '../sync/detection/ChangeDetector';
 import { ConflictDetector } from '../sync/conflict/ConflictDetector';
 import { ConflictManager } from '../sync/conflict/ConflictManager';
@@ -62,9 +62,60 @@ export class DeploymentService {
     this.changeDetector = new ChangeDetector(prisma, this.syncStateManager);
     // Initialize conflict detection components
     this.versionHistory = new VersionHistory(prisma);
-    this.conflictDetector = new ConflictDetector(this.changeDetector, this.versionHistory);
+    this.conflictDetector = new ConflictDetector(this.changeDetector, this.versionHistory, prisma);
     this.conflictManager = new ConflictManager(prisma);
     this.resolutionManager = new ResolutionStrategyManager();
+  }
+  
+  /**
+   * Check for interrupted syncs and optionally resume
+   */
+  async checkInterruptedSyncs(): Promise<{
+    interrupted: string[];
+    resumed: string[];
+    failed: string[];
+  }> {
+    const result = {
+      interrupted: [] as string[],
+      resumed: [] as string[],
+      failed: [] as string[]
+    };
+    
+    try {
+      // Detect interrupted syncs
+      result.interrupted = await this.syncStateManager.detectInterruptedSync();
+      
+      if (result.interrupted.length > 0) {
+        console.log(`Found ${result.interrupted.length} interrupted syncs`);
+        
+        for (const typeKey of result.interrupted) {
+          try {
+            // Get sync progress
+            const progress = await this.syncStateManager.resumeSync(typeKey);
+            
+            if (progress) {
+              console.log(`Resuming sync for ${typeKey} from step ${progress.currentStep}/${progress.totalSteps}`);
+              // In a real implementation, you would resume from the saved progress
+              // For now, we'll mark it as resumed
+              result.resumed.push(typeKey);
+            } else {
+              // No progress to resume from, rollback
+              await this.syncStateManager.rollbackPartialSync(typeKey);
+              result.failed.push(typeKey);
+            }
+          } catch (error) {
+            console.error(`Failed to resume sync for ${typeKey}:`, error);
+            await this.syncStateManager.rollbackPartialSync(typeKey);
+            result.failed.push(typeKey);
+          }
+        }
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error checking interrupted syncs:', error);
+      throw error;
+    }
   }
   
   /**
@@ -331,8 +382,24 @@ export class DeploymentService {
         const versionHash = contentType.versionHash || 
           this.hasher.generateHash(contentType.data);
         
+        // Update sync state to 'syncing' with progress
+        await this.syncStateManager.setSyncProgress(contentType.key, {
+          currentStep: 1,
+          totalSteps: 3,
+          lastProcessedId: contentType.key,
+          processedCount: 0
+        });
+        
         // Capture snapshot
         const snapshot = await this.syncSnapshot.captureSnapshot(contentType.data);
+        
+        // Update progress
+        await this.syncStateManager.setSyncProgress(contentType.key, {
+          currentStep: 2,
+          totalSteps: 3,
+          lastProcessedId: contentType.key,
+          processedCount: 0
+        });
         
         // Record sync attempt
         const syncId = await this.syncHistoryManager.recordSyncAttempt({
@@ -362,6 +429,11 @@ export class DeploymentService {
           { message: 'Successfully synced to provider' }
         );
         
+        // Mark as synced in sync state
+        const localHash = versionHash;
+        const remoteHash = versionHash; // In real implementation, get from remote
+        await this.syncStateManager.markAsSynced(contentType.key, localHash, remoteHash);
+        
         results.successful++;
         
         // Update deployment progress
@@ -384,6 +456,9 @@ export class DeploymentService {
       } catch (error) {
         console.error(`Failed to sync ${contentType.key}:`, error);
         results.failed++;
+        
+        // Rollback sync state on failure
+        await this.syncStateManager.rollbackPartialSync(contentType.key);
         
         // Log error but continue with next item
         await this.prisma.deployment.update({

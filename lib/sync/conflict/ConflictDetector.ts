@@ -6,6 +6,8 @@
 import { ChangeDetector } from '../detection/ChangeDetector';
 import { VersionHistory } from '../versioning/VersionHistory';
 import { ThreeWayDiff } from './ThreeWayDiff';
+import { SyncStateManager } from '../state/SyncStateManager';
+import { PrismaClient } from '@/lib/generated/prisma';
 
 export interface ConflictResult {
   hasConflict: boolean;
@@ -31,11 +33,19 @@ export class ConflictDetector {
   private changeDetector: ChangeDetector;
   private versionHistory: VersionHistory;
   private threeWayDiff: ThreeWayDiff;
+  private syncStateManager?: SyncStateManager;
 
-  constructor(changeDetector: ChangeDetector, versionHistory: VersionHistory) {
+  constructor(
+    changeDetector: ChangeDetector, 
+    versionHistory: VersionHistory,
+    prisma?: PrismaClient
+  ) {
     this.changeDetector = changeDetector;
     this.versionHistory = versionHistory;
     this.threeWayDiff = new ThreeWayDiff();
+    if (prisma) {
+      this.syncStateManager = new SyncStateManager(prisma);
+    }
   }
 
   /**
@@ -60,6 +70,15 @@ export class ConflictDetector {
         
         const conflictType = this.determineConflictType(localVersion, remoteVersion, ancestor);
         const conflictDetails = this.generateConflictDetails(localVersion, remoteVersion, ancestor);
+        
+        // Update sync state to mark conflict
+        if (this.syncStateManager) {
+          await this.syncStateManager.markAsConflicted(
+            typeKey,
+            localVersion.hash,
+            remoteVersion.hash
+          );
+        }
         
         return {
           hasConflict: true,
