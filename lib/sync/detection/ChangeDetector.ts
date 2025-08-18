@@ -1,6 +1,6 @@
 import { PrismaClient } from '@/lib/generated/prisma';
 import { ContentTypeHasher } from '../versioning/ContentTypeHasher';
-import { SyncStateManager } from '../persistence/SyncStateManager';
+import { SyncStateManager } from '../state/SyncStateManager';
 import crypto from 'crypto';
 
 export interface ContentType {
@@ -385,38 +385,30 @@ export class ChangeDetector {
   ): Promise<void> {
     if (!this.syncStateManager) return;
     
-    const updates = [];
-    
     // Process created items (new in remote)
     for (const item of changes.created) {
-      updates.push({
-        typeKey: item.key,
-        localHash: '',
+      await this.syncStateManager.updateSyncState(item.key, {
+        localHash: null,
         remoteHash: item.remoteHash,
-        syncStatus: 'new',
-        changeSource: 'SYNC'
+        syncStatus: 'new'
       });
     }
     
     // Process updated items
     for (const item of changes.updated) {
-      updates.push({
-        typeKey: item.key,
+      await this.syncStateManager.updateSyncState(item.key, {
         localHash: item.localHash,
         remoteHash: item.remoteHash,
-        syncStatus: 'modified',
-        changeSource: 'SYNC'
+        syncStatus: 'modified'
       });
     }
     
     // Process deleted items
     for (const item of changes.deleted) {
-      updates.push({
-        typeKey: item.key,
+      await this.syncStateManager.updateSyncState(item.key, {
         localHash: item.localHash,
         remoteHash: null,
-        syncStatus: 'modified',
-        changeSource: 'SYNC'
+        syncStatus: 'deleted'
       });
     }
     
@@ -424,33 +416,11 @@ export class ChangeDetector {
     for (const key of changes.unchanged) {
       const localData = localHashes.get(key);
       if (localData) {
-        updates.push({
-          typeKey: key,
-          localHash: localData.hash,
-          remoteHash: localData.hash,
-          lastSyncedHash: localData.hash,
-          syncStatus: 'in_sync',
-          changeSource: 'SYNC'
-        });
+        await this.syncStateManager.markAsSynced(key, localData.hash, localData.hash);
       }
     }
     
-    // Batch update sync states
-    if (updates.length > 0) {
-      try {
-        // Use the SyncStateManager to persist
-        for (const update of updates) {
-          await this.syncStateManager.upsertSyncState({
-          ...update,
-          syncStatus: update.syncStatus as 'new' | 'modified' | 'conflict' | 'in_sync'
-        });
-        }
-        console.log(`Persisted ${updates.length} sync states to database`);
-      } catch (error) {
-        console.error('Error persisting sync states:', error);
-        // Don't throw - persistence failure shouldn't stop change detection
-      }
-    }
+    console.log(`Updated sync states for ${changes.created.length + changes.updated.length + changes.deleted.length + changes.unchanged.length} content types`);
   }
 
   /**
