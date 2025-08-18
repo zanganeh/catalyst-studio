@@ -4,7 +4,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -13,184 +13,205 @@ model Website {
   name         String
   description  String?
   category     String
-  metadata     String?
+  metadata     Json?         // PostgreSQL native JSON type
   icon         String?
-  settings     String?
+  settings     Json?         // PostgreSQL native JSON type
   isActive     Boolean       @default(true)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
-  aiContexts   AIContext[]
-  contentItems ContentItem[]
   contentTypes ContentType[]
+  pages        Page[]
+  deployments  Deployment[]
+  aiContexts   AIContext[]
 }
 
 model ContentType {
-  id           String        @id @default(cuid())
-  websiteId    String
+  id               String                   @id @default(cuid())
+  key              String
+  name             String
+  pluralName       String
+  displayField     String?
+  schema           Json                     // PostgreSQL native JSON
+  fields           Json                     // PostgreSQL native JSON
+  websiteId        String
+  website          Website                  @relation(fields: [websiteId], references: [id])
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  fields_metadata  FieldMetadata[]
+  contentInstances ContentInstance[]
+  versions         ContentTypeVersion[]
+  
+  @@unique([websiteId, key])
+  @@index([websiteId])
+}
+
+model FieldMetadata {
+  id                   String               @id @default(cuid())
+  websiteId            String
+  contentTypeId        String
+  fieldName            String
+  fieldType            String
+  metadata             Json?                // PostgreSQL native JSON
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  contentType          ContentType          @relation(fields: [contentTypeId], references: [id])
+  fieldRelationships   FieldRelationship[]  @relation("SourceField")
+  targetRelationships  FieldRelationship[]  @relation("TargetField")
+  
+  @@unique([contentTypeId, fieldName])
+  @@index([websiteId])
+  @@index([contentTypeId])
+}
+
+model FieldRelationship {
+  id              String         @id @default(cuid())
+  websiteId       String
+  sourceFieldId   String
+  targetFieldId   String
+  relationshipType String
+  metadata        Json?          // PostgreSQL native JSON
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  sourceField     FieldMetadata  @relation("SourceField", fields: [sourceFieldId], references: [id])
+  targetField     FieldMetadata  @relation("TargetField", fields: [targetFieldId], references: [id])
+  
+  @@unique([sourceFieldId, targetFieldId])
+  @@index([websiteId])
+  @@index([sourceFieldId])
+  @@index([targetFieldId])
+}
+
+model Page {
+  id           String           @id @default(cuid())
+  key          String
   name         String
-  fields       String
-  settings     String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  contentItems ContentItem[]
-  website      Website       @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  path         String
+  content      Json?            // PostgreSQL native JSON
+  metadata     Json?            // PostgreSQL native JSON
+  websiteId    String
+  website      Website          @relation(fields: [websiteId], references: [id])
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  
+  @@unique([websiteId, key])
+  @@unique([websiteId, path])
+  @@index([websiteId])
 }
 
-model ContentItem {
-  id            String      @id @default(cuid())
+model ContentInstance {
+  id            String       @id @default(cuid())
   contentTypeId String
-  websiteId     String
-  data          String
-  status        String      @default("draft")
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-  metadata      String?
-  publishedAt   DateTime?
-  slug          String?
-  website       Website     @relation(fields: [websiteId], references: [id], onDelete: Cascade)
-  contentType   ContentType @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
-
-  @@index([websiteId, contentTypeId])
-  @@index([slug])
-  @@index([status, publishedAt])
-}
-
-model AIContext {
-  id        String   @id @default(cuid())
-  websiteId String
-  sessionId String
-  messages  String
-  metadata  String?
-  summary   String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  website   Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
-
-  @@unique([websiteId, sessionId])
-  @@index([websiteId, sessionId])
+  data          Json         // PostgreSQL native JSON
+  status        String       @default("draft")
+  version       Int          @default(1)
+  contentType   ContentType  @relation(fields: [contentTypeId], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  @@index([contentTypeId])
+  @@index([status])
 }
 
 model Deployment {
-  id            String    @id @default(cuid())
-  websiteId     String
-  providerId    String
-  providerName  String
-  selectedTypes String
-  status        String    @default("pending")
-  progress      Int       @default(0)
-  logs          String    @default("[]")
-  error         String?
-  startedAt     DateTime  @default(now())
-  completedAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id               String   @id @default(cuid())
+  websiteId        String
+  provider         String
+  status           String
+  deploymentData   Json?    // PostgreSQL native JSON
+  errorMessage     String?  @db.Text
+  deployedAt       DateTime?
+  website          Website  @relation(fields: [websiteId], references: [id])
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
   
-  // Relations
-  syncHistory   SyncHistory[]
-
   @@index([websiteId])
+  @@index([provider])
   @@index([status])
-  @@index([startedAt])
 }
 
+// Epic 6 Models
 model ContentTypeVersion {
-  id              Int      @id @default(autoincrement())
-  typeKey         String   @map("type_key")
-  versionHash     String   @unique @map("version_hash")
-  parentHash      String?  @map("parent_hash")
-  contentSnapshot String   @map("content_snapshot")
-  changeSource    String   @map("change_source")
-  author          String?
-  createdAt       DateTime @default(now()) @map("created_at")
-  message         String?
-
-  // Relations for multi-parent support
-  parentVersions  VersionParent[] @relation("VersionToParents")
-  childVersions   VersionParent[] @relation("ParentToVersions")
+  id              String       @id @default(cuid())
+  contentTypeId   String
+  typeKey         String
+  version         Int
+  hash            String
+  data            Json         // PostgreSQL native JSON
+  parentHash      String?
+  createdAt       DateTime     @default(now())
+  contentType     ContentType  @relation(fields: [contentTypeId], references: [id])
   
-  // Sync history relation
-  syncHistory     SyncHistory[]
-
-  @@index([typeKey, createdAt], name: "idx_type_versions")
-  @@index([versionHash], name: "idx_version_hash")
-  @@map("content_type_versions")
-}
-
-model VersionParent {
-  versionHash  String @map("version_hash")
-  parentHash   String @map("parent_hash")
-  parentOrder  Int    @default(0) @map("parent_order")
-  
-  // Relations
-  version ContentTypeVersion @relation("VersionToParents", fields: [versionHash], references: [versionHash])
-  parent  ContentTypeVersion @relation("ParentToVersions", fields: [parentHash], references: [versionHash])
-  
-  @@id([versionHash, parentHash])
-  @@index([versionHash])
+  @@unique([typeKey, version])
+  @@unique([hash])
+  @@index([contentTypeId])
+  @@index([typeKey])
   @@index([parentHash])
-  @@map("version_parents")
 }
 
 model SyncHistory {
   id              String   @id @default(cuid())
-  typeKey         String   @map("type_key")
-  versionHash     String   @map("version_hash")
-  targetPlatform  String   @map("target_platform")
-  syncDirection   String   @map("sync_direction")
-  syncStatus      String   @map("sync_status")
-  pushedData      String   @map("pushed_data")
-  responseData    String?  @map("response_data")
-  errorMessage    String?  @map("error_message")
-  retryCount      Int      @default(0) @map("retry_count")
-  syncMetadata    String?  @map("sync_metadata")
-  deploymentId    String?  @map("deployment_id")
-  startedAt       DateTime @map("started_at")
-  completedAt     DateTime? @map("completed_at")
-  createdAt       DateTime @default(now()) @map("created_at")
+  websiteId       String
+  syncType        String
+  sourceSystem    String
+  targetSystem    String
+  syncData        Json     // PostgreSQL native JSON
+  status          String
+  errorMessage    String?  @db.Text
+  startedAt       DateTime
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
   
-  // Relations
-  version    ContentTypeVersion? @relation(fields: [versionHash], references: [versionHash])
-  deployment Deployment?         @relation(fields: [deploymentId], references: [id])
-  
-  @@index([typeKey, createdAt])
-  @@index([versionHash])
-  @@index([targetPlatform])
-  @@index([syncStatus])
-  @@index([deploymentId])
-  @@map("sync_history")
+  @@index([websiteId])
+  @@index([syncType])
+  @@index([status])
+  @@index([startedAt])
 }
 
 model SyncState {
-  typeKey         String   @id @map("type_key")
-  localHash       String   @map("local_hash")
-  remoteHash      String?  @map("remote_hash")
-  lastSyncedHash  String?  @map("last_synced_hash")
-  syncStatus      String   @map("sync_status") // new/modified/conflict/in_sync
-  lastSyncAt      DateTime? @map("last_sync_at")
-  lastCheckedAt   DateTime @map("last_checked_at")
-  changeSource    String?  @map("change_source") // UI/AI/SYNC
-  conflictStatus  String?  @map("conflict_status") // none/detected/resolved
-  lastConflictAt  DateTime? @map("last_conflict_at")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id              String    @id @default(cuid())
+  typeKey         String    @unique
+  localHash       String?
+  remoteHash      String?
+  lastSyncAt      DateTime?
+  syncStatus      String    @default("pending")
+  conflictStatus  String?
+  lastConflictAt  DateTime?
+  metadata        Json?     // PostgreSQL native JSON
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   
-  @@map("sync_state")
+  @@index([syncStatus])
+  @@index([conflictStatus])
 }
 
 model ConflictLog {
-  id              String   @id @default(cuid())
-  typeKey         String   @map("type_key")
-  localHash       String   @map("local_hash")
-  remoteHash      String   @map("remote_hash")
-  ancestorHash    String?  @map("ancestor_hash")
-  conflictType    String   @map("conflict_type") // field/structural/delete
-  conflictDetails Json     @map("conflict_details")
-  resolution      String?  @map("resolution") // local_wins/remote_wins/merged/pending
-  resolvedBy      String?  @map("resolved_by")
-  resolvedAt      DateTime? @map("resolved_at")
-  createdAt       DateTime @default(now()) @map("created_at")
+  id              String    @id @default(cuid())
+  typeKey         String
+  localHash       String
+  remoteHash      String
+  ancestorHash    String?
+  conflictType    String
+  conflictDetails Json      // PostgreSQL native JSON
+  resolution      String?
+  resolvedBy      String?
+  resolvedAt      DateTime?
+  createdAt       DateTime  @default(now())
   
-  @@map("conflict_log")
   @@index([typeKey, createdAt])
+  @@index([resolution])
+}
+
+model AIContext {
+  id           String   @id @default(cuid())
+  websiteId    String
+  sessionId    String   @default("default")
+  context      Json
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  website      Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  
+  @@unique([websiteId, sessionId])
+  @@index([websiteId])
 }

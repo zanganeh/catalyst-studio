@@ -41,6 +41,7 @@ describe('VersionHistoryManager', () => {
   describe('onDataChange', () => {
     it('should create a new version record for UI changes', async () => {
       const contentType = {
+        id: 'test-id',
         key: 'blog',
         name: 'Blog Post',
         fields: [
@@ -56,19 +57,19 @@ describe('VersionHistoryManager', () => {
 
       expect(mockContentTypeVersion.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
+          contentTypeId: 'test-id',
           typeKey: 'blog',
-          versionHash: expect.stringMatching(/^[a-f0-9]{64}$/),
-          parentHash: null,
-          contentSnapshot: JSON.stringify(contentType),
-          changeSource: 'UI',
-          author: 'user123',
-          message: 'Initial creation'
+          version: 1,
+          hash: expect.stringMatching(/^[a-f0-9]{64}$/),
+          data: contentType,
+          parentHash: null
         })
       });
     });
 
     it('should link to parent version when previous version exists', async () => {
       const contentType = {
+        id: 'test-id',
         key: 'blog',
         name: 'Blog Post Updated',
         fields: []
@@ -76,7 +77,8 @@ describe('VersionHistoryManager', () => {
 
       const previousVersion = {
         id: 1,
-        versionHash: 'abc123def456',
+        version: 1,
+        hash: 'abc123def456',
         typeKey: 'blog'
       };
 
@@ -87,15 +89,16 @@ describe('VersionHistoryManager', () => {
 
       expect(mockContentTypeVersion.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          parentHash: 'abc123def456',
-          changeSource: 'AI',
-          author: 'ai-agent'
+          contentTypeId: 'test-id',
+          version: 2,
+          parentHash: 'abc123def456'
         })
       });
     });
 
     it('should handle SYNC source correctly', async () => {
       const contentType = {
+        id: 'test-id',
         key: 'product',
         name: 'Product'
       };
@@ -107,15 +110,14 @@ describe('VersionHistoryManager', () => {
 
       expect(mockContentTypeVersion.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
-          changeSource: 'SYNC',
-          author: 'system',
-          message: null
+          contentTypeId: 'test-id',
+          version: 1
         })
       });
     });
 
     it('should handle errors gracefully without throwing', async () => {
-      const contentType = { key: 'test', name: 'Test' };
+      const contentType = { id: 'test-id', key: 'test', name: 'Test' };
       
       mockContentTypeVersion.findFirst.mockRejectedValue(new Error('DB Error'));
       mockContentTypeVersion.create.mockRejectedValue(new Error('Create failed'));
@@ -129,7 +131,7 @@ describe('VersionHistoryManager', () => {
     });
 
     it('should use default values when optional parameters are not provided', async () => {
-      const contentType = { name: 'NoKey' };
+      const contentType = { id: 'test-id', name: 'NoKey' };
 
       mockContentTypeVersion.findFirst.mockResolvedValue(null);
       mockContentTypeVersion.create.mockResolvedValue({ id: 1 });
@@ -138,20 +140,29 @@ describe('VersionHistoryManager', () => {
 
       expect(mockContentTypeVersion.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
+          contentTypeId: 'test-id',
           typeKey: 'NoKey',
-          author: 'system',
-          message: null
+          version: 1
         })
       });
+    });
+
+    it('should skip if contentTypeId is missing', async () => {
+      const contentType = { key: 'test', name: 'Test' };
+
+      await manager.onDataChange(contentType, 'UI');
+
+      expect(mockContentTypeVersion.create).not.toHaveBeenCalled();
+      expect(console.error).toHaveBeenCalledWith('ContentType ID is required for version tracking');
     });
   });
 
   describe('getVersionHistory', () => {
     it('should return version history for a content type', async () => {
       const mockHistory = [
-        { id: 3, versionHash: 'hash3', createdAt: new Date() },
-        { id: 2, versionHash: 'hash2', createdAt: new Date() },
-        { id: 1, versionHash: 'hash1', createdAt: new Date() }
+        { id: 3, hash: 'hash3', version: 3, createdAt: new Date() },
+        { id: 2, hash: 'hash2', version: 2, createdAt: new Date() },
+        { id: 1, hash: 'hash1', version: 1, createdAt: new Date() }
       ];
 
       mockContentTypeVersion.findMany.mockResolvedValue(mockHistory);
@@ -163,7 +174,7 @@ describe('VersionHistoryManager', () => {
         orderBy: { createdAt: 'desc' },
         take: 5,
         include: {
-          parentVersions: true
+          contentType: true
         }
       });
       expect(result).toEqual(mockHistory);
@@ -179,7 +190,7 @@ describe('VersionHistoryManager', () => {
         orderBy: { createdAt: 'desc' },
         take: 10,
         include: {
-          parentVersions: true
+          contentType: true
         }
       });
     });
@@ -198,9 +209,9 @@ describe('VersionHistoryManager', () => {
     it('should return a specific version by hash', async () => {
       const mockVersion = {
         id: 1,
-        versionHash: 'abc123',
+        hash: 'abc123',
         typeKey: 'blog',
-        contentSnapshot: '{"key":"blog"}'
+        data: { key: 'blog' }
       };
 
       mockContentTypeVersion.findUnique.mockResolvedValue(mockVersion);
@@ -208,7 +219,7 @@ describe('VersionHistoryManager', () => {
       const result = await manager.getVersionByHash('abc123');
 
       expect(mockContentTypeVersion.findUnique).toHaveBeenCalledWith({
-        where: { versionHash: 'abc123' }
+        where: { hash: 'abc123' }
       });
       expect(result).toEqual(mockVersion);
     });
@@ -234,6 +245,7 @@ describe('VersionHistoryManager', () => {
   describe('hash consistency', () => {
     it('should generate same hash for same content', async () => {
       const contentType = {
+        id: 'test-id',
         key: 'test',
         name: 'Test Type',
         fields: [{ name: 'field1', type: 'text' }]
@@ -245,9 +257,9 @@ describe('VersionHistoryManager', () => {
 
       mockContentTypeVersion.create.mockImplementation((args: any) => {
         if (!capturedHash1) {
-          capturedHash1 = args.data.versionHash;
+          capturedHash1 = args.data.hash;
         } else {
-          capturedHash2 = args.data.versionHash;
+          capturedHash2 = args.data.hash;
         }
         return Promise.resolve({ id: 1 });
       });
@@ -259,8 +271,8 @@ describe('VersionHistoryManager', () => {
     });
 
     it('should generate different hashes for different content', async () => {
-      const contentType1 = { key: 'test1', name: 'Test 1' };
-      const contentType2 = { key: 'test2', name: 'Test 2' };
+      const contentType1 = { id: 'test-id-1', key: 'test1', name: 'Test 1' };
+      const contentType2 = { id: 'test-id-2', key: 'test2', name: 'Test 2' };
 
       mockContentTypeVersion.findFirst.mockResolvedValue(null);
       let capturedHash1: string = '';
@@ -268,9 +280,9 @@ describe('VersionHistoryManager', () => {
 
       mockContentTypeVersion.create.mockImplementation((args: any) => {
         if (!capturedHash1) {
-          capturedHash1 = args.data.versionHash;
+          capturedHash1 = args.data.hash;
         } else {
-          capturedHash2 = args.data.versionHash;
+          capturedHash2 = args.data.hash;
         }
         return Promise.resolve({ id: 1 });
       });

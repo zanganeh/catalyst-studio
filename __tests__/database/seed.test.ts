@@ -45,7 +45,7 @@ describe('Database Seeding', () => {
     expect(contentItems).toHaveLength(9)
 
     // Verify AI contexts
-    const aiContexts = await prisma.aIContext.findMany()
+    const aiContexts = await prisma.aiContext.findMany()
     expect(aiContexts).toHaveLength(3)
 
     // Verify relationships

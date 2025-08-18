@@ -158,7 +158,7 @@ class AuditLogger {
   private async persistToDatabase(log: ToolExecutionLog): Promise<void> {
     try {
       // Store in AIContext metadata
-      const aiContext = await prisma.aIContext.findFirst({
+      const aiContext = await prisma.aiContext.findFirst({
         where: { websiteId: log.websiteId },
         orderBy: { createdAt: 'desc' }
       });
@@ -176,7 +176,7 @@ class AuditLogger {
         // Keep only last 100 logs per context
         const trimmedLogs = auditLogs.slice(-100);
 
-        await prisma.aIContext.update({
+        await prisma.aiContext.update({
           where: { id: aiContext.id },
           data: {
             metadata: {
@@ -188,7 +188,7 @@ class AuditLogger {
         });
       } else {
         // Create new AI context with audit log
-        await prisma.aIContext.create({
+        await prisma.aiContext.create({
           data: {
             websiteId: log.websiteId!,
             context: {},
@@ -248,7 +248,7 @@ class AuditLogger {
    */
   async getWebsiteLogs(websiteId: string, limit = 100): Promise<ToolExecutionLog[]> {
     try {
-      const aiContext = await prisma.aIContext.findFirst({
+      const aiContext = await prisma.aiContext.findFirst({
         where: { websiteId },
         orderBy: { createdAt: 'desc' }
       });
@@ -341,7 +341,7 @@ class AuditLogger {
 
     // Also clear from database
     try {
-      const aiContexts = await prisma.aIContext.findMany({
+      const aiContexts = await prisma.aiContext.findMany({
         where: {
           createdAt: { lt: cutoffDate }
         }
@@ -357,7 +357,7 @@ class AuditLogger {
         });
 
         if (filteredLogs.length !== auditLogs.length) {
-          await prisma.aIContext.update({
+          await prisma.aiContext.update({
             where: { id: context.id },
             data: {
               metadata: {

@@ -84,7 +84,7 @@ export async function PUT(
     if (summary !== undefined) updateData.summary = summary;
     if (isActive !== undefined) updateData.isActive = isActive;
     
-    const updated = await prisma.aIContext.update({
+    const updated = await prisma.aiContext.update({
       where: {
         websiteId_sessionId: {
           websiteId,

@@ -5,7 +5,7 @@ import { AIMessage } from '@/types/ai-context';
 // Mock prisma
 jest.mock('@/lib/prisma', () => ({
   prisma: {
-    aIContext: {
+    aiContext: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
@@ -40,14 +40,14 @@ describe('AIContextService', () => {
         },
       ];
       
-      (prisma.aIContext.findMany as jest.Mock).mockResolvedValue(mockContexts);
-      (prisma.aIContext.count as jest.Mock).mockResolvedValue(1);
+      (prisma.aiContext.findMany as jest.Mock).mockResolvedValue(mockContexts);
+      (prisma.aiContext.count as jest.Mock).mockResolvedValue(1);
       
       const result = await AIContextService.getAIContexts(mockWebsiteId);
       
       expect(result.contexts).toHaveLength(1);
       expect(result.total).toBe(1);
-      expect(prisma.aIContext.findMany).toHaveBeenCalledWith(
+      expect(prisma.aiContext.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { websiteId: mockWebsiteId },
         })
@@ -75,7 +75,7 @@ describe('AIContextService', () => {
         updatedAt: new Date(),
       };
       
-      (prisma.aIContext.create as jest.Mock).mockResolvedValue(mockCreated);
+      (prisma.aiContext.create as jest.Mock).mockResolvedValue(mockCreated);
       
       const result = await AIContextService.createAIContext(
         mockWebsiteId,
@@ -102,7 +102,7 @@ describe('AIContextService', () => {
         updatedAt: new Date(),
       };
       
-      (prisma.aIContext.create as jest.Mock).mockResolvedValue(mockCreated);
+      (prisma.aiContext.create as jest.Mock).mockResolvedValue(mockCreated);
       
       const result = await AIContextService.createAIContext(mockWebsiteId);
       
@@ -133,8 +133,8 @@ describe('AIContextService', () => {
         timestamp: new Date(),
       };
       
-      (prisma.aIContext.findUnique as jest.Mock).mockResolvedValue(existingContext);
-      (prisma.aIContext.update as jest.Mock).mockResolvedValue({
+      (prisma.aiContext.findUnique as jest.Mock).mockResolvedValue(existingContext);
+      (prisma.aiContext.update as jest.Mock).mockResolvedValue({
         ...existingContext,
         messages: JSON.stringify([
           { role: 'user', content: 'Hello', timestamp: new Date() },
@@ -154,7 +154,7 @@ describe('AIContextService', () => {
     });
     
     it('should throw error if context not found', async () => {
-      (prisma.aIContext.findUnique as jest.Mock).mockResolvedValue(null);
+      (prisma.aiContext.findUnique as jest.Mock).mockResolvedValue(null);
       
       const newMessage: AIMessage = {
         role: 'user',
@@ -184,8 +184,8 @@ describe('AIContextService', () => {
         updatedAt: new Date(),
       };
       
-      (prisma.aIContext.findUnique as jest.Mock).mockResolvedValue(existingContext);
-      (prisma.aIContext.update as jest.Mock).mockResolvedValue({
+      (prisma.aiContext.findUnique as jest.Mock).mockResolvedValue(existingContext);
+      (prisma.aiContext.update as jest.Mock).mockResolvedValue({
         ...existingContext,
         messages: JSON.stringify([]),
         metadata: JSON.stringify({ totalMessages: 0, tokens: 0 }),
@@ -202,14 +202,14 @@ describe('AIContextService', () => {
   
   describe('deleteContext', () => {
     it('should soft delete context', async () => {
-      (prisma.aIContext.update as jest.Mock).mockResolvedValue({
+      (prisma.aiContext.update as jest.Mock).mockResolvedValue({
         id: 'context-1',
         isActive: false,
       });
       
       await AIContextService.deleteContext(mockWebsiteId, mockSessionId);
       
-      expect(prisma.aIContext.update).toHaveBeenCalledWith(
+      expect(prisma.aiContext.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {
             websiteId_sessionId: {
@@ -225,12 +225,12 @@ describe('AIContextService', () => {
   
   describe('cleanupOldSessions', () => {
     it('should delete old inactive sessions', async () => {
-      (prisma.aIContext.deleteMany as jest.Mock).mockResolvedValue({ count: 5 });
+      (prisma.aiContext.deleteMany as jest.Mock).mockResolvedValue({ count: 5 });
       
       const result = await AIContextService.cleanupOldSessions();
       
       expect(result).toBe(5);
-      expect(prisma.aIContext.deleteMany).toHaveBeenCalledWith(
+      expect(prisma.aiContext.deleteMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             isActive: false,
