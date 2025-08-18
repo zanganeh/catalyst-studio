@@ -10,6 +10,9 @@ import { OptimizelyTransformer } from '../transformers/optimizely-transformer';
 import { OptimizelyApiClient } from '../adapters/optimizely-api-client';
 import { SyncOrchestrator, SyncStorage, SyncState } from './sync-orchestrator';
 import { DatabaseStorage } from '../storage/database-storage';
+import { ContentTypeValidator } from '../validation/ContentTypeValidator';
+import { CompatibilityChecker } from '../validation/CompatibilityChecker';
+import { ValidationErrorReporter } from '../validation/ValidationErrorReporter';
 
 const DEPLOYMENT_HISTORY_KEY = 'deployment-history';
 
@@ -18,6 +21,9 @@ interface SyncComponents {
   extractor?: DatabaseExtractor;
   transformer?: OptimizelyTransformer;
   apiClient?: OptimizelyApiClient;
+  validator?: ContentTypeValidator;
+  compatibilityChecker?: CompatibilityChecker;
+  errorReporter?: ValidationErrorReporter;
 }
 
 class SyncEngine {
@@ -54,6 +60,19 @@ class SyncEngine {
           clientSecret
         });
       }
+    }
+
+    // Initialize validation components
+    if (!this.components.validator) {
+      this.components.validator = new ContentTypeValidator();
+    }
+
+    if (!this.components.compatibilityChecker) {
+      this.components.compatibilityChecker = new CompatibilityChecker();
+    }
+
+    if (!this.components.errorReporter) {
+      this.components.errorReporter = new ValidationErrorReporter();
     }
 
     if (!this.components.orchestrator) {
@@ -172,6 +191,67 @@ class SyncEngine {
         }
 
         updateProgress(20, 'Extracting content types from database...');
+
+        // Extract content types for validation
+        const contentTypes = await this.components.extractor!.extractContentTypes(job.websiteId);
+        
+        if (cancelled) {
+          throw new Error('Deployment cancelled by user');
+        }
+
+        // Validation checkpoint
+        const bypassValidation = job.options?.bypassValidation || false;
+        
+        if (!bypassValidation) {
+          updateProgress(25, 'Validating content types...');
+          
+          let hasValidationErrors = false;
+          const validationErrors: string[] = [];
+          
+          for (const contentType of contentTypes) {
+            // Structure and business rule validation
+            const validationResult = this.components.validator!.validate(contentType);
+            
+            // Compatibility check
+            const compatibilityResult = this.components.compatibilityChecker!.checkPlatformCompatibility(
+              contentType,
+              provider.id.toLowerCase()
+            );
+            
+            // Combine results
+            const allErrors = [...validationResult.errors, ...compatibilityResult.errors];
+            const allWarnings = compatibilityResult.warnings || [];
+            
+            if (allErrors.length > 0) {
+              hasValidationErrors = true;
+              const report = this.components.errorReporter!.formatDetailedReport({
+                valid: false,
+                errors: allErrors
+              });
+              validationErrors.push(`Content type "${contentType.name}": ${report}`);
+              updateProgress(25, `Validation errors found in "${contentType.name}"`, 'error');
+            }
+            
+            if (allWarnings.length > 0) {
+              const warningReport = this.components.errorReporter!.formatDetailedReport({
+                valid: true,
+                errors: allWarnings
+              });
+              updateProgress(25, `Warnings for "${contentType.name}": ${warningReport}`, 'warning');
+            }
+          }
+          
+          if (hasValidationErrors) {
+            const errorMessage = `Validation failed. ${validationErrors.length} content type(s) have errors:\n${validationErrors.join('\n')}`;
+            throw new Error(errorMessage);
+          }
+          
+          updateProgress(30, 'All content types validated successfully');
+        } else {
+          // Bypass validation with audit logging
+          updateProgress(25, `VALIDATION BYPASSED by user ${job.initiatedBy || 'unknown'} at ${new Date().toISOString()}`, 'warning');
+          console.warn(`SECURITY AUDIT: Validation bypass requested by ${job.initiatedBy || 'unknown'} for deployment ${job.id}`);
+        }
 
         // Execute the actual sync
         const syncResult = await this.components.orchestrator.sync({
