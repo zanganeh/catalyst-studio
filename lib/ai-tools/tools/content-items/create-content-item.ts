@@ -21,10 +21,25 @@ export const createContentItem = tool({
     try {
       const prisma = getClient();
       
-      // Fetch content type to validate fields
-      const contentType = await getContentType(contentTypeId);
+      // Try to find content type by ID or key
+      let contentType = await getContentType(contentTypeId);
+      
+      // If not found by ID, try to find by key
       if (!contentType) {
-        throw new Error(`Content type with ID '${contentTypeId}' not found`);
+        const contentTypeByKey = await prisma.contentType.findFirst({
+          where: {
+            websiteId: websiteId,
+            key: contentTypeId
+          }
+        });
+        
+        if (contentTypeByKey) {
+          contentType = await getContentType(contentTypeByKey.id);
+        }
+      }
+      
+      if (!contentType) {
+        throw new Error(`Content type with ID or key '${contentTypeId}' not found for website '${websiteId}'`);
       }
       
       // Validate against content type field definitions
@@ -205,19 +220,19 @@ export const createContentItem = tool({
       
       // Create content item in a transaction
       const contentItem = await prisma.$transaction(async (tx) => {
-        const created = await tx.contentItem.create({
+        const created = await tx.contentInstance.create({
           data: {
-            websiteId,
             contentTypeId,
-            slug: slug || undefined,
-            data: JSON.stringify(finalData),
-            metadata: metadata ? JSON.stringify(metadata) : undefined,
+            data: finalData,
             status,
-            publishedAt: publishedAt ? new Date(publishedAt) : undefined,
+            version: 1,
           },
           include: {
-            contentType: true,
-            website: true,
+            contentType: {
+              include: {
+                website: true
+              }
+            },
           }
         });
         
@@ -230,32 +245,32 @@ export const createContentItem = tool({
       }
       
       // Transform response
-      const contentTypeFields = contentItem.contentType.fields ? JSON.parse(contentItem.contentType.fields) : {};
-      const contentTypeSettings = contentItem.contentType.settings ? JSON.parse(contentItem.contentType.settings) : {};
+      const contentTypeFields = contentItem.contentType.fields ? 
+        (typeof contentItem.contentType.fields === 'string' ? JSON.parse(contentItem.contentType.fields) : contentItem.contentType.fields) : {};
+      const contentTypeSchema = contentItem.contentType.schema ? 
+        (typeof contentItem.contentType.schema === 'string' ? JSON.parse(contentItem.contentType.schema) : contentItem.contentType.schema) : {};
       
       return {
         success: true,
         item: {
           id: contentItem.id,
-          websiteId: contentItem.websiteId,
+          websiteId: contentItem.contentType.websiteId,
           contentTypeId: contentItem.contentTypeId,
-          slug: contentItem.slug,
           status: contentItem.status,
-          data: JSON.parse(contentItem.data),
-          metadata: contentItem.metadata ? JSON.parse(contentItem.metadata) : {},
-          publishedAt: contentItem.publishedAt,
+          data: typeof contentItem.data === 'string' ? JSON.parse(contentItem.data) : contentItem.data,
+          version: contentItem.version,
           createdAt: contentItem.createdAt,
           updatedAt: contentItem.updatedAt,
           contentType: {
             id: contentItem.contentType.id,
             name: contentItem.contentType.name,
             fields: contentTypeFields,
-            settings: contentTypeSettings
+            schema: contentTypeSchema
           },
           website: {
-            id: contentItem.website.id,
-            name: contentItem.website.name,
-            category: contentItem.website.category
+            id: contentItem.contentType.website.id,
+            name: contentItem.contentType.website.name,
+            category: contentItem.contentType.website.category
           }
         },
         executionTime: `${executionTime}ms`
