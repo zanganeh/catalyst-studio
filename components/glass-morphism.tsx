@@ -77,7 +77,7 @@ export function AnimatedPanel({
       animate="visible"
       variants={variants}
       transition={{ duration: 0.5, delay, ease: 'easeOut' }}
-      className={className}
+      className={`h-full ${className}`}
     >
       {children}
     </motion.div>
@@ -119,7 +119,7 @@ export function FloatingShape({
         repeat: Infinity,
         ease: 'easeInOut',
       }}
-      className="absolute"
+      className="absolute pointer-events-none"
       style={{
         width: size,
         height: size,

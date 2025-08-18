@@ -148,9 +148,9 @@ function DeploymentPageContent() {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="p-6">
       {/* Content */}
-      <div className="flex-1 p-6 overflow-auto">
+      <div>
         {showResults && lastDeployment ? (
           <div className="max-w-4xl mx-auto">
             <DeploymentResults
