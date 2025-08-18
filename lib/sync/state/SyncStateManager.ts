@@ -205,7 +205,7 @@ export class SyncStateManager {
     
     await this.updateSyncState(typeKey, {
       syncStatus: 'syncing',
-      syncProgress: progress as Record<string, unknown>
+      syncProgress: progress as unknown as Record<string, unknown>
     });
   }
 
