@@ -78,7 +78,7 @@ export async function PUT(
     // For now, we'll update via direct prisma call since service doesn't have full update
     const { prisma } = await import('@/lib/prisma');
     
-    const currentContext = context.context || {};
+    const currentContext = (context as any).context || {};
     const updateContext: Record<string, unknown> = { ...currentContext };
     if (messages !== undefined) updateContext.messages = messages;
     if (summary !== undefined) updateContext.summary = summary;

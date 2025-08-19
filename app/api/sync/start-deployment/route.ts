@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    const deploymentData = deployment.deploymentData || {};
+    const deploymentData = deployment.deploymentData as any || {};
     
     return NextResponse.json({ 
       success: true, 
@@ -141,7 +141,7 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
       where: { id: deploymentId },
     });
     
-    const deploymentDataObj = deployment?.deploymentData || {};
+    const deploymentDataObj = deployment?.deploymentData as any || {};
     const logs: any[] = deploymentDataObj.logs || [];
     logs.push({
       timestamp: new Date().toISOString(),
@@ -178,7 +178,7 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
     }
 
     // Update status to running
-    const currentDeploymentData = deployment.deploymentData || {};
+    const currentDeploymentData = deployment.deploymentData as any || {};
     await prisma.deployment.update({
       where: { id: deploymentId },
       data: { 
@@ -323,7 +323,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const deploymentDataObj = deployment.deploymentData || {};
+    const deploymentDataObj = deployment.deploymentData as any || {};
     
     return NextResponse.json({ 
       success: true, 
@@ -368,7 +368,7 @@ export async function DELETE(request: NextRequest) {
       where: { id: deploymentId },
     });
     
-    const deploymentDataObj = currentDeployment?.deploymentData || {};
+    const deploymentDataObj = currentDeployment?.deploymentData as any || {};
     const cancelLogs: any[] = deploymentDataObj.logs || [];
     cancelLogs.push({
       timestamp: new Date().toISOString(),

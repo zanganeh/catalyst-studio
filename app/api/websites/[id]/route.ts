@@ -23,11 +23,11 @@ export async function GET(
       throw new ApiError(404, 'Website not found', 'NOT_FOUND');
     }
     
-    // Parse JSON fields for response
+    // Format website for response (metadata and settings are already JSON)
     const formattedWebsite = {
       ...website,
-      metadata: website.metadata ? JSON.parse(website.metadata) : null,
-      settings: website.settings ? JSON.parse(website.settings) : null
+      metadata: website.metadata || null,
+      settings: website.settings || null
     };
     
     return Response.json({ data: formattedWebsite });
@@ -60,14 +60,14 @@ export async function PUT(
       throw new ApiError(404, 'Website not found', 'NOT_FOUND');
     }
     
-    // Convert JSON fields to strings for storage
+    // Prepare data - metadata and settings are already JSON type
     const dataToUpdate = {
       ...validated,
       metadata: validated.metadata !== undefined 
-        ? (validated.metadata ? JSON.stringify(validated.metadata) : null)
+        ? validated.metadata
         : undefined,
       settings: validated.settings !== undefined
-        ? (validated.settings ? JSON.stringify(validated.settings) : null)
+        ? validated.settings
         : undefined
     };
     
@@ -77,11 +77,11 @@ export async function PUT(
       data: dataToUpdate
     });
     
-    // Parse JSON fields for response
+    // Format website for response (metadata and settings are already JSON)
     const formattedWebsite = {
       ...website,
-      metadata: website.metadata ? JSON.parse(website.metadata) : null,
-      settings: website.settings ? JSON.parse(website.settings) : null
+      metadata: website.metadata || null,
+      settings: website.settings || null
     };
     
     return Response.json({ data: formattedWebsite });
