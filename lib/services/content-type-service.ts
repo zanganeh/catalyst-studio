@@ -78,8 +78,8 @@ export async function getContentTypes(websiteId?: string): Promise<ContentTypeWi
 
   return contentTypes.map(ct => ({
     ...ct,
-    fields: parseJsonField<ContentTypeFields>(ct.fields) || {},
-    settings: parseJsonField<ContentTypeSettings>(ct.schema) || {},
+    fields: (ct.fields as ContentTypeFields) || {},
+    settings: (ct.schema as ContentTypeSettings) || {},
   }));
 }
 
@@ -94,8 +94,8 @@ export async function getContentType(id: string): Promise<ContentTypeWithParsedF
 
   return {
     ...contentType,
-    fields: parseJsonField<ContentTypeFields>(contentType.fields) || {},
-    settings: parseJsonField<ContentTypeSettings>(contentType.schema) || {},
+    fields: (contentType.fields as ContentTypeFields) || {},
+    settings: (contentType.schema as ContentTypeSettings) || {},
   };
 }
 
@@ -133,8 +133,8 @@ export async function createContentType(data: CreateContentTypeRequest, source: 
       name: contentTypeData.name,
       pluralName: contentTypeData.pluralName,
       displayField: fields && fields.length > 0 ? fields[0].name : null,
-      schema: stringifyJsonField(schema),
-      fields: stringifyJsonField(contentTypeFields),
+      schema: schema as any,
+      fields: contentTypeFields as any,
     },
   });
 
@@ -152,8 +152,8 @@ export async function createContentType(data: CreateContentTypeRequest, source: 
 
   return {
     ...contentType,
-    fields: contentTypeFields,
-    settings,
+    fields: contentTypeFields as any,
+    settings: settings as any,
   };
 }
 
@@ -198,8 +198,8 @@ export async function updateContentType(id: string, data: UpdateContentTypeReque
     data: {
       ...(contentTypeData.name && { name: contentTypeData.name }),
       ...(contentTypeData.pluralName && { pluralName: contentTypeData.pluralName }),
-      fields: stringifyJsonField(updatedFields),
-      schema: stringifyJsonField(updatedSchema),
+      fields: updatedFields as any,
+      schema: updatedSchema as any,
     },
   });
 
@@ -217,13 +217,13 @@ export async function updateContentType(id: string, data: UpdateContentTypeReque
 
   return {
     ...contentType,
-    fields: updatedFields,
-    settings: updatedSettings,
+    fields: updatedFields as any,
+    settings: updatedSettings as any,
   };
 }
 
 export async function deleteContentType(id: string): Promise<void> {
-  const contentItemsCount = await prisma.contentInstance.count({
+  const contentItemsCount = await prisma.contentItem.count({
     where: { contentTypeId: id },
   });
 
@@ -279,8 +279,8 @@ export async function compareVersions(hash1: string, hash2: string) {
   
   const versionDiff = new VersionDiff();
   return versionDiff.calculateDiff(
-    version1.contentSnapshot,
-    version2.contentSnapshot
+    version1.data,
+    version2.data
   );
 }
 

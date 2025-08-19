@@ -97,7 +97,10 @@ async function main() {
   const blogPost = await prisma.contentType.create({
     data: {
       websiteId: techBlog.id,
+      key: 'blog-post',
       name: 'Blog Post',
+      pluralName: 'Blog Posts',
+      displayField: 'title',
       fields: JSON.stringify([
         { name: 'title', type: 'text', required: true, maxLength: 200 },
         { name: 'slug', type: 'text', required: true, unique: true },
@@ -110,7 +113,7 @@ async function main() {
         { name: 'publishDate', type: 'datetime', required: true },
         { name: 'readTime', type: 'number', min: 1, max: 60 }
       ]),
-      settings: JSON.stringify({
+      schema: JSON.stringify({
         displayName: 'Blog Posts',
         icon: '📝',
         defaultStatus: 'draft',
@@ -123,7 +126,10 @@ async function main() {
   const author = await prisma.contentType.create({
     data: {
       websiteId: techBlog.id,
+      key: 'author',
       name: 'Author',
+      pluralName: 'Authors',
+      displayField: 'name',
       fields: JSON.stringify([
         { name: 'name', type: 'text', required: true },
         { name: 'bio', type: 'textarea', required: true },
@@ -135,7 +141,7 @@ async function main() {
           { name: 'linkedin', type: 'text' }
         ]}
       ]),
-      settings: JSON.stringify({
+      schema: JSON.stringify({
         displayName: 'Authors',
         icon: '👤',
         singleton: false
@@ -147,7 +153,10 @@ async function main() {
   const product = await prisma.contentType.create({
     data: {
       websiteId: ecommerce.id,
+      key: 'product',
       name: 'Product',
+      pluralName: 'Products',
+      displayField: 'name',
       fields: JSON.stringify([
         { name: 'name', type: 'text', required: true },
         { name: 'slug', type: 'text', required: true, unique: true },
@@ -161,7 +170,7 @@ async function main() {
         { name: 'features', type: 'array', itemType: 'text' },
         { name: 'digital', type: 'boolean', default: true }
       ]),
-      settings: JSON.stringify({
+      schema: JSON.stringify({
         displayName: 'Products',
         icon: '📦',
         enableSearch: true,
@@ -174,7 +183,10 @@ async function main() {
   const project = await prisma.contentType.create({
     data: {
       websiteId: portfolio.id,
+      key: 'project',
       name: 'Project',
+      pluralName: 'Projects',
+      displayField: 'title',
       fields: JSON.stringify([
         { name: 'title', type: 'text', required: true },
         { name: 'client', type: 'text', required: false },
@@ -187,7 +199,7 @@ async function main() {
         { name: 'featured', type: 'boolean', default: false },
         { name: 'category', type: 'select', options: ['Web Design', 'Mobile App', 'Branding', 'UI/UX'] }
       ]),
-      settings: JSON.stringify({
+      schema: JSON.stringify({
         displayName: 'Portfolio Projects',
         icon: '🎯',
         sortBy: 'year',
@@ -269,7 +281,15 @@ async function main() {
   ]
   
   for (const post of blogPosts) {
-    await prisma.contentItem.create({ data: post })
+    const postData = JSON.parse(post.data);
+    const { data, ...postWithoutData } = post;
+    await prisma.contentItem.create({ 
+      data: {
+        ...postWithoutData,
+        title: postData.title,
+        content: data
+      }
+    })
   }
   
   console.log('✅ Created 3 blog posts')
@@ -328,7 +348,15 @@ async function main() {
   ]
   
   for (const prod of products) {
-    await prisma.contentItem.create({ data: prod })
+    const prodData = JSON.parse(prod.data);
+    const { data, ...prodWithoutData } = prod;
+    await prisma.contentItem.create({ 
+      data: {
+        ...prodWithoutData,
+        title: prodData.name,
+        content: data
+      }
+    })
   }
   
   console.log('✅ Created 2 products')
@@ -374,7 +402,16 @@ async function main() {
   ]
   
   for (const proj of projects) {
-    await prisma.contentItem.create({ data: proj })
+    const projData = JSON.parse(proj.data);
+    const { data, ...projWithoutData } = proj;
+    await prisma.contentItem.create({ 
+      data: {
+        ...projWithoutData,
+        title: projData.title,
+        content: data,
+        slug: projData.title.toLowerCase().replace(/\s+/g, '-')
+      }
+    })
   }
   
   console.log('✅ Created 2 portfolio projects')
@@ -435,8 +472,14 @@ async function main() {
     }
   ]
   
-  for (const context of aiContexts) {
-    await prisma.aIContext.create({ data: context })
+  for (const aiContext of aiContexts) {
+    const { messages, summary, isActive, ...contextData } = aiContext;
+    await prisma.aIContext.create({ 
+      data: {
+        ...contextData,
+        context: JSON.parse(messages)
+      }
+    })
   }
   
   console.log('✅ Created 3 AI contexts')
@@ -480,7 +523,16 @@ async function main() {
   ]
   
   for (const auth of authors) {
-    await prisma.contentItem.create({ data: auth })
+    const authData = JSON.parse(auth.data);
+    const { data, ...authWithoutData } = auth;
+    await prisma.contentItem.create({ 
+      data: {
+        ...authWithoutData,
+        title: authData.name,
+        slug: authData.name.toLowerCase().replace(/\s+/g, '-'),
+        content: data
+      }
+    })
   }
   
   console.log('✅ Created 2 authors')

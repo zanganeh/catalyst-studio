@@ -60,8 +60,8 @@ export class DatabaseExtractor {
         websiteId: ct.websiteId,
         websiteName: ct.website?.name || null,
         name: ct.name,
-        fields: ct.fields || {},
-        settings: ct.settings || {},
+        fields: (ct.fields || {}) as Record<string, any>,
+        settings: (ct.schema || {}) as Record<string, any>,
         createdAt: ct.createdAt.toISOString(),
         updatedAt: ct.updatedAt.toISOString(),
         metadata: {
@@ -94,8 +94,8 @@ export class DatabaseExtractor {
         websiteId: ct.websiteId,
         websiteName: ct.website?.name || null,
         name: ct.name,
-        fields: ct.fields || {},
-        settings: ct.settings || {},
+        fields: (ct.fields || {}) as Record<string, any>,
+        settings: (ct.schema || {}) as Record<string, any>,
         createdAt: ct.createdAt.toISOString(),
         updatedAt: ct.updatedAt.toISOString(),
         metadata: {

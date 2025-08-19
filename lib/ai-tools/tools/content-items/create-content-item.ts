@@ -218,14 +218,22 @@ export const createContentItem = tool({
         }
       }
       
+      // Generate title from data or use a default
+      const title = finalData.title || finalData.name || 'Untitled Content';
+      
+      // Generate slug if not provided
+      const finalSlug = slug || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      
       // Create content item in a transaction
       const contentItem = await prisma.$transaction(async (tx) => {
-        const created = await tx.contentInstance.create({
+        const created = await tx.contentItem.create({
           data: {
+            title,
+            slug: finalSlug,
+            websiteId,
             contentTypeId,
-            data: finalData,
+            content: finalData,
             status,
-            version: 1,
           },
           include: {
             contentType: {
@@ -254,11 +262,12 @@ export const createContentItem = tool({
         success: true,
         item: {
           id: contentItem.id,
-          websiteId: contentItem.contentType.websiteId,
+          title: contentItem.title,
+          slug: contentItem.slug,
+          websiteId: contentItem.websiteId,
           contentTypeId: contentItem.contentTypeId,
           status: contentItem.status,
-          data: typeof contentItem.data === 'string' ? JSON.parse(contentItem.data) : contentItem.data,
-          version: contentItem.version,
+          content: typeof contentItem.content === 'string' ? JSON.parse(contentItem.content) : contentItem.content,
           createdAt: contentItem.createdAt,
           updatedAt: contentItem.updatedAt,
           contentType: {

@@ -51,12 +51,12 @@ export class WebsiteService {
   async createWebsite(data: CreateWebsiteRequest): Promise<Website> {
     const dataToStore = {
       ...data,
-      metadata: data.metadata ? JSON.stringify(data.metadata) : null,
-      settings: data.settings ? JSON.stringify(data.settings) : null
+      metadata: data.metadata || {},
+      settings: data.settings || {}
     };
 
     const website = await this.prisma.website.create({
-      data: dataToStore
+      data: dataToStore as any
     });
 
     return this.formatWebsite(website);
@@ -75,20 +75,20 @@ export class WebsiteService {
       throw new ApiError(404, 'Website not found', 'NOT_FOUND');
     }
 
-    // Convert JSON fields to strings for storage
+    // Prisma handles JSON fields automatically
     const dataToUpdate: Record<string, unknown> = { ...data };
     
     if (data.metadata !== undefined) {
-      dataToUpdate.metadata = data.metadata ? JSON.stringify(data.metadata) : null;
+      dataToUpdate.metadata = data.metadata || {};
     }
     
     if (data.settings !== undefined) {
-      dataToUpdate.settings = data.settings ? JSON.stringify(data.settings) : null;
+      dataToUpdate.settings = data.settings || {};
     }
 
     const website = await this.prisma.website.update({
       where: { id },
-      data: dataToUpdate
+      data: dataToUpdate as any
     });
 
     return this.formatWebsite(website);
@@ -132,8 +132,8 @@ export class WebsiteService {
       isActive: website.isActive,
       createdAt: website.createdAt,
       updatedAt: website.updatedAt,
-      metadata: website.metadata ? JSON.parse(website.metadata as string) : undefined,
-      settings: website.settings ? JSON.parse(website.settings as string) : undefined
+      metadata: website.metadata as any || undefined,
+      settings: website.settings as any || undefined
     };
   }
 }

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import type { ContentType, ContentItem, Field } from '@/lib/content-types/types';
+import { FieldType } from '@/lib/content-types/types';
 import type { Control, FieldErrors } from 'react-hook-form';
 
 interface FormGeneratorProps {
@@ -521,7 +522,7 @@ export function FormGenerator({ contentType, contentItem, onSubmit, onChange }: 
     id: 'title',
     name: 'title',
     label: 'Title',
-    type: 'text',
+    type: FieldType.TEXT,
     required: true,
     order: -1, // Always first
     placeholder: `Enter ${contentType.name.toLowerCase()} title`,

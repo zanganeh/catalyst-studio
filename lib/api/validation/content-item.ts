@@ -6,16 +6,25 @@ export const ContentStatusSchema = z.enum(['draft', 'published', 'archived']);
 // Create content item schema
 export const CreateContentItemSchema = z.object({
   contentTypeId: z.string().min(1, 'Content type ID is required'),
-  data: z.record(z.any()).refine((data) => Object.keys(data).length > 0, {
-    message: 'Data object cannot be empty',
+  websiteId: z.string().min(1, 'Website ID is required'),
+  title: z.string().min(1, 'Title is required'),
+  slug: z.string().min(1, 'Slug is required'),
+  content: z.record(z.any()).refine((data) => Object.keys(data).length > 0, {
+    message: 'Content object cannot be empty',
   }),
+  metadata: z.record(z.any()).optional(),
   status: ContentStatusSchema.optional().default('draft'),
+  publishedAt: z.string().datetime().optional(),
 });
 
 // Update content item schema
 export const UpdateContentItemSchema = z.object({
-  data: z.record(z.any()).optional(),
+  title: z.string().min(1).optional(),
+  slug: z.string().min(1).optional(),
+  content: z.record(z.any()).optional(),
+  metadata: z.record(z.any()).optional(),
   status: ContentStatusSchema.optional(),
+  publishedAt: z.string().datetime().nullable().optional(),
 });
 
 // Query parameters schema with clamping for invalid values

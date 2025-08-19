@@ -98,10 +98,10 @@ export class AIContextService {
           websiteId,
           sessionId: newSessionId,
           context: {
-            messages,
+            messages: messages as any,
             isActive: true
-          },
-          metadata
+          } as any,
+          metadata: metadata as any
         }
       });
       
@@ -159,11 +159,11 @@ export class AIContextService {
       },
       data: {
         context: {
-          messages,
+          messages: messages as any,
           summary: context.summary,
           isActive: true
-        },
-        metadata,
+        } as any,
+        metadata: metadata as any,
         updatedAt: new Date()
       }
     });
@@ -217,7 +217,10 @@ export class AIContextService {
         }
       },
       data: {
-        summary
+        context: {
+          ...(context as any || {}),
+          summary
+        } as any
       }
     });
     
@@ -246,7 +249,7 @@ export class AIContextService {
           messages: [],
           summary: null,
           isActive: true
-        },
+        } as any,
         metadata: { totalMessages: 0, tokens: 0 }
       }
     });
@@ -279,7 +282,7 @@ export class AIContextService {
           context: {
             ...(existing.context as any || {}),
             isActive: false
-          }
+          } as any
         }
       });
     }

@@ -140,7 +140,7 @@ export function VersionHistoryBrowser({ contentTypeId }: VersionHistoryBrowserPr
                       {item.changeSource}
                     </Badge>
                     {isLatest && (
-                      <Badge variant="success">Latest</Badge>
+                      <Badge variant="default" className="bg-green-100 text-green-800">Latest</Badge>
                     )}
                   </div>
                   

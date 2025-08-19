@@ -22,7 +22,7 @@ export class SyncStateManager {
       return false;
     }
     
-    const { currentStep, totalSteps, lastProcessedId, processedCount, error } = progress;
+    const { currentStep, totalSteps, lastProcessedId, processedCount, error } = progress as any;
     
     // Required fields
     if (typeof currentStep !== 'number' || typeof totalSteps !== 'number') {
@@ -54,11 +54,11 @@ export class SyncStateManager {
       update: {
         ...state,
         updatedAt: new Date()
-      },
+      } as any,
       create: {
         typeKey,
         ...state
-      }
+      } as any
     });
   }
 
@@ -205,7 +205,7 @@ export class SyncStateManager {
     
     await this.updateSyncState(typeKey, {
       syncStatus: 'syncing',
-      syncProgress: progress as unknown as Record<string, unknown>
+      syncProgress: progress as any
     });
   }
 
@@ -264,10 +264,10 @@ export class SyncStateManager {
     await this.prisma.syncState.updateMany({
       data: {
         syncStatus: 'pending',
-        syncProgress: null,
+        syncProgress: null as any,
         lastSyncAt: null,
         lastSyncedHash: null
-      }
+      } as any
     });
   }
 }

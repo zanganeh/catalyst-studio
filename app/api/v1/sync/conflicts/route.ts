@@ -9,7 +9,7 @@ import { ConflictDetector } from '@/lib/sync/conflict/ConflictDetector';
 import { ConflictManager } from '@/lib/sync/conflict/ConflictManager';
 import { ResolutionStrategyManager } from '@/lib/sync/conflict/ResolutionStrategy';
 import { ChangeDetector } from '@/lib/sync/detection/ChangeDetector';
-import { VersionHistoryManager } from '@/lib/sync/versioning/VersionHistoryManager';
+import { VersionHistory } from '@/lib/sync/versioning/VersionHistory';
 
 /**
  * GET /api/v1/sync/conflicts
@@ -133,11 +133,21 @@ export async function POST(request: NextRequest) {
 
       // Initialize services
       const changeDetector = new ChangeDetector(prisma);
-      const versionHistory = new VersionHistoryManager(prisma);
+      const versionHistory = new VersionHistory(prisma);
       const conflictDetector = new ConflictDetector(changeDetector, versionHistory);
 
       // Detect conflicts for the type
       const conflictResult = await conflictDetector.detectConflicts(typeKey);
+
+      // Check if conflict detection failed due to missing version data
+      if (!conflictResult.hasConflict && conflictResult.reason === 'Missing version data') {
+        return NextResponse.json({
+          hasConflict: false,
+          typeKey,
+          warning: 'Version history not implemented - conflict detection is limited',
+          message: 'Full conflict detection will be available in a future release'
+        });
+      }
 
       if (conflictResult.hasConflict) {
         // Store conflict in database
@@ -251,24 +261,34 @@ export async function POST(request: NextRequest) {
     // Handle batch conflict detection
     if (action === 'detect-all') {
       const changeDetector = new ChangeDetector(prisma);
-      const versionHistory = new VersionHistoryManager(prisma);
+      const versionHistory = new VersionHistory(prisma);
       const conflictDetector = new ConflictDetector(changeDetector, versionHistory);
 
       const allConflicts = await conflictDetector.detectAllConflicts();
+      
+      // Check if we're getting empty results due to missing version history
+      if (allConflicts.length === 0) {
+        return NextResponse.json({
+          totalConflicts: 0,
+          conflicts: [],
+          warning: 'Version history not implemented - conflict detection is limited',
+          message: 'Full conflict detection will be available in a future release'
+        });
+      }
       
       if (allConflicts.length > 0) {
         const conflictManager = new ConflictManager(prisma);
         
         // Flag all conflicts for review
         const flaggedConflicts = await Promise.all(
-          allConflicts.map(c => conflictManager.flagForReview(c.typeKey, c))
+          allConflicts.map(c => conflictManager.flagForReview(c.type || '', c))
         );
 
         // Update sync states
         await Promise.all(
           allConflicts.map(c => 
             prisma.syncState.update({
-              where: { typeKey: c.typeKey },
+              where: { typeKey: c.type || '' },
               data: {
                 conflictStatus: 'detected',
                 lastConflictAt: new Date()

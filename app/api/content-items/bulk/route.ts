@@ -18,9 +18,9 @@ export async function POST(request: NextRequest) {
     // Validate all items have required fields
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      if (!item.contentTypeId || !item.websiteId || !item.data) {
+      if (!item.contentTypeId || !item.websiteId || !item.title || !item.slug || !item.content) {
         return NextResponse.json(
-          { error: { message: `Item at index ${i} missing required fields` } },
+          { error: { message: `Item at index ${i} missing required fields (title, slug, content)` } },
           { status: 400 }
         );
       }
@@ -33,9 +33,10 @@ export async function POST(request: NextRequest) {
           data: {
             contentTypeId: item.contentTypeId,
             websiteId: item.websiteId,
-            slug: item.slug || undefined,
-            data: JSON.stringify(item.data),
-            metadata: item.metadata ? JSON.stringify(item.metadata) : undefined,
+            title: item.title,
+            slug: item.slug,
+            content: item.content,
+            metadata: item.metadata || undefined,
             status: item.status || 'draft',
             publishedAt: item.publishedAt ? new Date(item.publishedAt) : undefined,
           },
@@ -43,11 +44,11 @@ export async function POST(request: NextRequest) {
       )
     );
     
-    // Transform response
+    // Transform response - Json fields are already parsed by Prisma
     const transformedItems = createdItems.map(item => ({
       ...item,
-      data: JSON.parse(item.data),
-      metadata: item.metadata ? JSON.parse(item.metadata) : null,
+      content: item.content,
+      metadata: item.metadata,
     }));
     
     return NextResponse.json({ 

@@ -8,13 +8,12 @@ export const updateContentItem = tool({
   description: 'Update an existing content item with field validation',
   parameters: z.object({
     id: z.string().describe('The ID of the content item to update'),
+    title: z.string().optional().describe('Updated title for the content item'),
     slug: z.string().optional().describe('Updated URL slug for the content item'),
     data: z.record(z.any()).optional().describe('Updated content data (will be merged with existing)'),
-    metadata: z.record(z.any()).optional().describe('Updated metadata (will be merged with existing)'),
-    status: z.enum(['draft', 'published', 'archived']).optional().describe('Updated publication status'),
-    publishedAt: z.string().datetime().optional().describe('Updated publication date in ISO format')
+    status: z.enum(['draft', 'published', 'archived']).optional().describe('Updated publication status')
   }),
-  execute: async ({ id, slug, data, metadata, status, publishedAt }) => {
+  execute: async ({ id, title, slug, data, status }) => {
     const startTime = Date.now();
     
     try {
@@ -39,13 +38,13 @@ export const updateContentItem = tool({
         throw new Error(`Content type with ID '${existingItem.contentTypeId}' not found`);
       }
       
-      // Parse existing data
-      const existingData = existingItem.data ? JSON.parse(existingItem.data) : {};
-      const existingMetadata = existingItem.metadata ? JSON.parse(existingItem.metadata) : {};
+      // Prisma already parses JSON fields
+      const existingData = (typeof existingItem.content === 'object' && existingItem.content !== null && !Array.isArray(existingItem.content)) 
+        ? existingItem.content as Record<string, any> 
+        : {};
       
       // Merge data if provided
       const mergedData = data ? { ...existingData, ...data } : existingData;
-      const mergedMetadata = metadata ? { ...existingMetadata, ...metadata } : existingMetadata;
       
       // Validate merged data against content type field definitions
       const contentTypeFieldDefs = contentType.fields?.fields || [];
@@ -212,11 +211,10 @@ export const updateContentItem = tool({
       const updatedItem = await prisma.$transaction(async (tx) => {
         const updateData: Record<string, unknown> = {};
         
+        if (title !== undefined) updateData.title = title;
         if (slug !== undefined) updateData.slug = slug || null;
-        if (data !== undefined) updateData.data = JSON.stringify(mergedData);
-        if (metadata !== undefined) updateData.metadata = JSON.stringify(mergedMetadata);
+        if (data !== undefined) updateData.content = mergedData;
         if (status !== undefined) updateData.status = status;
-        if (publishedAt !== undefined) updateData.publishedAt = new Date(publishedAt);
         
         const updated = await tx.contentItem.update({
           where: { id },
@@ -236,27 +234,26 @@ export const updateContentItem = tool({
       }
       
       // Transform response
-      const contentTypeFields = updatedItem.contentType.fields ? JSON.parse(updatedItem.contentType.fields) : {};
-      const contentTypeSettings = updatedItem.contentType.settings ? JSON.parse(updatedItem.contentType.settings) : {};
+      const contentTypeFields = updatedItem.contentType.fields || {};
+      const contentTypeSchema = updatedItem.contentType.schema || {};
       
       return {
         success: true,
         item: {
           id: updatedItem.id,
+          title: updatedItem.title,
+          slug: updatedItem.slug,
           websiteId: updatedItem.websiteId,
           contentTypeId: updatedItem.contentTypeId,
-          slug: updatedItem.slug,
           status: updatedItem.status,
-          data: JSON.parse(updatedItem.data),
-          metadata: updatedItem.metadata ? JSON.parse(updatedItem.metadata) : {},
-          publishedAt: updatedItem.publishedAt,
+          content: updatedItem.content || {},
           createdAt: updatedItem.createdAt,
           updatedAt: updatedItem.updatedAt,
           contentType: {
             id: updatedItem.contentType.id,
             name: updatedItem.contentType.name,
             fields: contentTypeFields,
-            settings: contentTypeSettings
+            schema: contentTypeSchema
           },
           website: {
             id: updatedItem.website.id,

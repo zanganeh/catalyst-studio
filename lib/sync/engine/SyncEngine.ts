@@ -83,7 +83,7 @@ class SyncEngine {
         this.components.extractor,
         storage,
         this.components.transformer,
-        this.components.apiClient
+        this.components.apiClient || null
       );
     }
   }

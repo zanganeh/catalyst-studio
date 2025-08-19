@@ -64,8 +64,9 @@ export interface ContentItem {
   id: string;
   contentTypeId: string;
   websiteId: string;
-  slug?: string;
-  data: Record<string, any>;
+  title: string;
+  slug: string;
+  content: Record<string, any>;
   metadata?: Record<string, any>;
   status: ContentStatus;
   publishedAt?: Date | null;
@@ -78,16 +79,18 @@ export interface ContentItem {
 export interface CreateContentItemRequest {
   contentTypeId: string;
   websiteId: string;
-  slug?: string;
-  data: Record<string, any>;
+  title: string;
+  slug: string;
+  content: Record<string, any>;
   metadata?: Record<string, any>;
   status?: ContentStatus;
   publishedAt?: Date | string | null;
 }
 
 export interface UpdateContentItemRequest {
+  title?: string;
   slug?: string;
-  data?: Record<string, any>;
+  content?: Record<string, any>;
   metadata?: Record<string, any>;
   status?: ContentStatus;
   publishedAt?: Date | string | null;
