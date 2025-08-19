@@ -9,6 +9,26 @@ A streamlined AI chat application built with Next.js and the Vercel AI SDK, powe
 - 🎨 Beautiful UI with shadcn/ui components
 - ⚡ Built with Next.js 15 and React 19
 - 🔄 OpenRouter integration for multiple AI models
+- 🔌 **Epic 7**: Universal CMS Content Type Architecture (New!)
+
+## Getting Started
+
+### Epic 7 - Universal CMS Integration
+
+For Epic 7's Universal CMS Content Type Architecture setup:
+
+1. **Credential Setup**: [Optimizely API Credentials Guide](./docs/setup/optimizely-credentials.md)
+2. **Local Development**: [Local Development Setup](./docs/setup/local-development.md)
+3. **Troubleshooting**: [Common Issues & Solutions](./docs/setup/troubleshooting.md)
+4. **Environment Configuration**: See [.env.template](./.env.template) for Epic 7 variables
+5. **Mock Data**: Test without API credentials using `/mock-data/optimizely/`
+
+Quick start with mock data:
+```bash
+# .env.local
+PROVIDER_TYPE=mock
+USE_MOCK_PROVIDER=true
+```
 
 ## Getting Started
 
