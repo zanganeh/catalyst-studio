@@ -17,6 +17,15 @@ export class ProviderRegistry {
   }
 
   /**
+   * Environment-aware logging
+   */
+  private log(message: string, level: 'log' | 'warn' | 'error' = 'log'): void {
+    if (process.env.NODE_ENV !== 'production' || level === 'error') {
+      console[level](`[ProviderRegistry] ${message}`);
+    }
+  }
+
+  /**
    * Get the singleton instance of ProviderRegistry
    * @returns The singleton ProviderRegistry instance
    */
@@ -40,13 +49,13 @@ export class ProviderRegistry {
       throw new Error('Provider instance is required for registration');
     }
 
-    console.log(`[ProviderRegistry] Registering provider: ${platformId}`);
+    this.log(`Registering provider: ${platformId}`);
     this.providers.set(platformId, provider);
 
     // If this is the first provider, set it as active
     if (this.providers.size === 1) {
       this.activeProviderId = platformId;
-      console.log(`[ProviderRegistry] Setting ${platformId} as active provider (first registered)`);
+      this.log(`Setting ${platformId} as active provider (first registered)`);
     }
   }
 
@@ -58,7 +67,7 @@ export class ProviderRegistry {
   public getProvider(platformId: string): ICMSProvider | null {
     const provider = this.providers.get(platformId) || null;
     if (!provider) {
-      console.warn(`[ProviderRegistry] Provider not found: ${platformId}`);
+      this.log(`Provider not found: ${platformId}`, 'warn');
     }
     return provider;
   }
@@ -81,7 +90,7 @@ export class ProviderRegistry {
       throw new ProviderNotFoundError(platformId);
     }
 
-    console.log(`[ProviderRegistry] Setting active provider: ${platformId}`);
+    this.log(`Setting active provider: ${platformId}`);
     this.activeProviderId = platformId;
   }
 
@@ -91,13 +100,13 @@ export class ProviderRegistry {
    */
   public getActiveProvider(): ICMSProvider | null {
     if (!this.activeProviderId) {
-      console.warn('[ProviderRegistry] No active provider set');
+      this.log('No active provider set', 'warn');
       return null;
     }
 
     const provider = this.providers.get(this.activeProviderId) || null;
     if (!provider) {
-      console.error(`[ProviderRegistry] Active provider '${this.activeProviderId}' not found in registry`);
+      this.log(`Active provider '${this.activeProviderId}' not found in registry`, 'error');
       this.activeProviderId = null;
     }
     return provider;
@@ -120,12 +129,12 @@ export class ProviderRegistry {
     const existed = this.providers.delete(platformId);
     
     if (existed) {
-      console.log(`[ProviderRegistry] Unregistered provider: ${platformId}`);
+      this.log(`Unregistered provider: ${platformId}`);
       
       // If the unregistered provider was active, clear the active provider
       if (this.activeProviderId === platformId) {
         this.activeProviderId = null;
-        console.log('[ProviderRegistry] Active provider cleared');
+        this.log('Active provider cleared');
       }
     }
     
@@ -136,7 +145,7 @@ export class ProviderRegistry {
    * Clear all providers from the registry
    */
   public clear(): void {
-    console.log('[ProviderRegistry] Clearing all providers');
+    this.log('Clearing all providers');
     this.providers.clear();
     this.activeProviderId = null;
   }

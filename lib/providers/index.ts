@@ -2,10 +2,13 @@
 // Clean exports for provider system
 
 // Core interfaces and types
-export {
+export type {
   ICMSProvider,
   ProviderCapabilities,
-  ValidationResult,
+  ValidationResult
+} from './types';
+
+export {
   ProviderError,
   ProviderNotFoundError,
   ProviderValidationError,
@@ -17,7 +20,7 @@ export {
 export { ProviderRegistry, providerRegistry } from './registry';
 
 // Universal type system
-export {
+export type {
   UniversalContentType,
   UniversalField,
   UniversalValidation,
@@ -39,7 +42,10 @@ export {
 export {
   COMMON_PATTERNS,
   COMMON_PATTERN_DEFAULTS,
-  isCommonPattern,
+  isCommonPattern
+} from './universal/common';
+
+export type {
   MediaType,
   SelectOption
 } from './universal/common';
