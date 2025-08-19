@@ -4,7 +4,6 @@ import { ContentItemsResponse, ContentStatus } from '@/types/api';
 import { Prisma } from '@/lib/generated/prisma';
 import { validateContentItemsQuery, validateCreateContentItem } from '@/lib/api/validation/content-item';
 import { safeJsonParse } from '@/lib/utils/safe-json';
-
 // GET /api/content-items - Get paginated content items
 export async function GET(request: NextRequest) {
   try {
@@ -54,12 +53,12 @@ export async function GET(request: NextRequest) {
       },
     });
     
-    // Transform data field from string to JSON
+    // Transform items - data field is already parsed by Prisma (Json type)
     const transformedItems = items.map(item => ({
       id: item.id,
       contentTypeId: item.contentTypeId,
       websiteId: item.contentType.websiteId, // Get websiteId from contentType
-      data: safeJsonParse(item.data, {}) || {},
+      data: item.data || {}, // Prisma Json fields are automatically parsed
       status: item.status as ContentStatus, // Cast status to ContentStatus type
       version: item.version,
       createdAt: item.createdAt,
@@ -134,11 +133,11 @@ export async function POST(request: NextRequest) {
     
     const validatedData = validation.data;
     
-    // Create content item
+    // Create content item - Prisma will handle JSON serialization for Json fields
     const contentItem = await prisma.contentInstance.create({
       data: {
         contentTypeId: validatedData.contentTypeId,
-        data: JSON.stringify(validatedData.data),
+        data: validatedData.data, // Prisma handles JSON serialization for Json type fields
         status: validatedData.status || 'draft',
       },
       include: {
@@ -150,18 +149,18 @@ export async function POST(request: NextRequest) {
       },
     });
     
-    // Transform response
+    // Transform response - all Json fields are already parsed by Prisma
     const transformed = {
       ...contentItem,
-      data: safeJsonParse(contentItem.data, {}),
+      data: contentItem.data || {},
       contentType: {
         ...contentItem.contentType,
-        fields: safeJsonParse(contentItem.contentType.fields, []),
-        settings: safeJsonParse(contentItem.contentType.schema, null),
+        fields: contentItem.contentType.fields || [],
+        settings: contentItem.contentType.schema || null,
       },
       website: contentItem.contentType.website ? {
         ...contentItem.contentType.website,
-        metadata: safeJsonParse(contentItem.contentType.website.metadata, null),
+        metadata: contentItem.contentType.website.metadata || null,
       } : undefined,
     };
     

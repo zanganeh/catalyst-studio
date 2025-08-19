@@ -7,7 +7,6 @@ import { OptimizelyApiClient } from '@/lib/sync/adapters/optimizely-api-client';
 import { SyncOrchestrator } from '@/lib/sync/engine/sync-orchestrator';
 import { DatabaseStorage } from '@/lib/sync/storage/database-storage';
 import { startDeploymentSchema } from '@/lib/api/validation/deployment';
-import { safeJsonParse } from '@/lib/utils/safe-json';
 import { withTransaction } from '@/lib/sync/utils/transaction-manager';
 
 interface CMSProviderInfo {
@@ -69,11 +68,11 @@ export async function POST(request: NextRequest) {
           websiteId,
           provider: provider.id,  // Changed from providerId to provider
           status: 'pending',
-          deploymentData: JSON.stringify({
+          deploymentData: {
             providerName: provider.name,
             selectedTypes: selectedTypes || [],
             progress: 0
-          }),
+          },
         },
       });
     });
@@ -95,7 +94,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    const deploymentData = deployment.deploymentData ? safeJsonParse(deployment.deploymentData, {}) || {} : {};
+    const deploymentData = deployment.deploymentData || {};
     
     return NextResponse.json({ 
       success: true, 
@@ -142,7 +141,7 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
       where: { id: deploymentId },
     });
     
-    const deploymentDataObj = deployment?.deploymentData ? safeJsonParse(deployment.deploymentData, {}) || {} : {};
+    const deploymentDataObj = deployment?.deploymentData || {};
     const logs: any[] = deploymentDataObj.logs || [];
     logs.push({
       timestamp: new Date().toISOString(),
@@ -158,7 +157,7 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
       await tx.deployment.update({
         where: { id: deploymentId },
         data: { 
-          deploymentData: JSON.stringify(deploymentDataObj),
+          deploymentData: deploymentDataObj,
         },
       });
     });
@@ -179,15 +178,15 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
     }
 
     // Update status to running
-    const currentDeploymentData = deployment.deploymentData ? safeJsonParse(deployment.deploymentData, {}) || {} : {};
+    const currentDeploymentData = deployment.deploymentData || {};
     await prisma.deployment.update({
       where: { id: deploymentId },
       data: { 
         status: 'running',
-        deploymentData: JSON.stringify({
+        deploymentData: {
           ...currentDeploymentData,
           progress: 5
-        }),
+        },
       },
     });
     
@@ -324,7 +323,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const deploymentDataObj = deployment.deploymentData ? safeJsonParse(deployment.deploymentData, {}) || {} : {};
+    const deploymentDataObj = deployment.deploymentData || {};
     
     return NextResponse.json({ 
       success: true, 
@@ -369,7 +368,7 @@ export async function DELETE(request: NextRequest) {
       where: { id: deploymentId },
     });
     
-    const deploymentDataObj = currentDeployment?.deploymentData ? safeJsonParse(currentDeployment.deploymentData, {}) || {} : {};
+    const deploymentDataObj = currentDeployment?.deploymentData || {};
     const cancelLogs: any[] = deploymentDataObj.logs || [];
     cancelLogs.push({
       timestamp: new Date().toISOString(),
@@ -383,7 +382,7 @@ export async function DELETE(request: NextRequest) {
       where: { id: deploymentId },
       data: { 
         status: 'cancelled',
-        deploymentData: JSON.stringify(deploymentDataObj),
+        deploymentData: deploymentDataObj,
       },
     });
 

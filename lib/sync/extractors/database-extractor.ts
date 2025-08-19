@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/prisma';
-import { safeJsonParse } from '@/lib/utils/safe-json';
 
 export interface ExtractedContentType {
   id: string;
@@ -61,8 +60,8 @@ export class DatabaseExtractor {
         websiteId: ct.websiteId,
         websiteName: ct.website?.name || null,
         name: ct.name,
-        fields: typeof ct.fields === 'string' ? safeJsonParse(ct.fields, {}) || {} : ct.fields || {},
-        settings: ct.settings ? (typeof ct.settings === 'string' ? safeJsonParse(ct.settings, {}) : ct.settings) : {},
+        fields: ct.fields || {},
+        settings: ct.settings || {},
         createdAt: ct.createdAt.toISOString(),
         updatedAt: ct.updatedAt.toISOString(),
         metadata: {
@@ -95,8 +94,8 @@ export class DatabaseExtractor {
         websiteId: ct.websiteId,
         websiteName: ct.website?.name || null,
         name: ct.name,
-        fields: typeof ct.fields === 'string' ? safeJsonParse(ct.fields, {}) || {} : ct.fields || {},
-        settings: ct.settings ? (typeof ct.settings === 'string' ? safeJsonParse(ct.settings, {}) : ct.settings) : {},
+        fields: ct.fields || {},
+        settings: ct.settings || {},
         createdAt: ct.createdAt.toISOString(),
         updatedAt: ct.updatedAt.toISOString(),
         metadata: {
