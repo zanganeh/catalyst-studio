@@ -5,18 +5,20 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ syncId: string }> }
+  { params }: { params: { syncId: string } }
 ) {
   try {
-    const { syncId } = await params;
     const syncRecord = await prisma.syncHistory.findUnique({
-      where: { id: syncId },
+      where: { id: params.syncId },
       select: {
         id: true,
-        status: true,
+        syncStatus: true,
         startedAt: true,
         completedAt: true,
-        errorMessage: true
+        errorMessage: true,
+        retryCount: true,
+        typeKey: true,
+        targetPlatform: true
       }
     });
     
@@ -29,21 +31,21 @@ export async function GET(
     
     // Calculate progress percentage for in-progress syncs
     let progress = 0;
-    if (syncRecord.status === 'IN_PROGRESS') {
+    if (syncRecord.syncStatus === 'IN_PROGRESS') {
       // Simple time-based progress estimation
       const elapsed = Date.now() - syncRecord.startedAt.getTime();
       const estimatedDuration = 30000; // 30 seconds estimated
       progress = Math.min(95, Math.round((elapsed / estimatedDuration) * 100));
-    } else if (syncRecord.status === 'SUCCESS') {
+    } else if (syncRecord.syncStatus === 'SUCCESS') {
       progress = 100;
-    } else if (syncRecord.status === 'FAILED') {
+    } else if (syncRecord.syncStatus === 'FAILED') {
       progress = 0;
     }
     
     return NextResponse.json({
       ...syncRecord,
       progress,
-      status: syncRecord.status
+      status: syncRecord.syncStatus
     });
   } catch (error) {
     console.error('Error fetching sync status:', error);

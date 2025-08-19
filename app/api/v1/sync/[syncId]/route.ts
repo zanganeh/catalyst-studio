@@ -6,12 +6,11 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ syncId: string }> }
+  { params }: { params: { syncId: string } }
 ) {
   try {
-    const { syncId } = await params;
     const syncManager = new SyncHistoryManager(prisma);
-    const syncRecord = await syncManager.getSyncById(syncId);
+    const syncRecord = await syncManager.getSyncById(params.syncId);
     
     if (!syncRecord) {
       return NextResponse.json(

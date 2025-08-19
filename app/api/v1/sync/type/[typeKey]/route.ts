@@ -6,10 +6,9 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ typeKey: string }> }
+  { params }: { params: { typeKey: string } }
 ) {
   try {
-    const { typeKey } = await params;
     const url = new URL(request.url);
     const platform = url.searchParams.get('platform');
     const status = url.searchParams.get('status');
@@ -19,7 +18,7 @@ export async function GET(
     const syncManager = new SyncHistoryManager(prisma);
     
     const filters: SyncHistoryFilters = {
-      typeKey: typeKey
+      typeKey: params.typeKey
     };
     
     if (platform) filters.targetPlatform = platform;
@@ -32,11 +31,11 @@ export async function GET(
     
     // Get last successful sync for this type
     const lastSuccess = platform 
-      ? await syncManager.getLastSuccessfulSync(typeKey, platform)
+      ? await syncManager.getLastSuccessfulSync(params.typeKey, platform)
       : null;
     
     return NextResponse.json({
-      typeKey: typeKey,
+      typeKey: params.typeKey,
       data: paginatedHistory,
       total: history.length,
       limit,

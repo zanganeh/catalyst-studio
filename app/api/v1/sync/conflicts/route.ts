@@ -9,7 +9,7 @@ import { ConflictDetector } from '@/lib/sync/conflict/ConflictDetector';
 import { ConflictManager } from '@/lib/sync/conflict/ConflictManager';
 import { ResolutionStrategyManager } from '@/lib/sync/conflict/ResolutionStrategy';
 import { ChangeDetector } from '@/lib/sync/detection/ChangeDetector';
-import { VersionHistory } from '@/lib/sync/versioning/VersionHistory';
+import { VersionHistoryManager } from '@/lib/sync/versioning/VersionHistoryManager';
 
 /**
  * GET /api/v1/sync/conflicts
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
 
       // Initialize services
       const changeDetector = new ChangeDetector(prisma);
-      const versionHistory = new VersionHistory(prisma);
+      const versionHistory = new VersionHistoryManager(prisma);
       const conflictDetector = new ConflictDetector(changeDetector, versionHistory);
 
       // Detect conflicts for the type
@@ -251,7 +251,7 @@ export async function POST(request: NextRequest) {
     // Handle batch conflict detection
     if (action === 'detect-all') {
       const changeDetector = new ChangeDetector(prisma);
-      const versionHistory = new VersionHistory(prisma);
+      const versionHistory = new VersionHistoryManager(prisma);
       const conflictDetector = new ConflictDetector(changeDetector, versionHistory);
 
       const allConflicts = await conflictDetector.detectAllConflicts();
@@ -261,14 +261,14 @@ export async function POST(request: NextRequest) {
         
         // Flag all conflicts for review
         const flaggedConflicts = await Promise.all(
-          allConflicts.map(c => conflictManager.flagForReview(c.type || 'unknown', c))
+          allConflicts.map(c => conflictManager.flagForReview(c.typeKey, c))
         );
 
         // Update sync states
         await Promise.all(
           allConflicts.map(c => 
             prisma.syncState.update({
-              where: { typeKey: c.type || 'unknown' },
+              where: { typeKey: c.typeKey },
               data: {
                 conflictStatus: 'detected',
                 lastConflictAt: new Date()

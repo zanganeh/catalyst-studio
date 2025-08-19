@@ -23,11 +23,11 @@ export async function GET(
     }
 
     const version1 = await prisma.contentTypeVersion.findUnique({
-      where: { hash: hash1 }
+      where: { versionHash: hash1 }
     });
 
     const version2 = await prisma.contentTypeVersion.findUnique({
-      where: { hash: hash2 }
+      where: { versionHash: hash2 }
     });
 
     if (!version1 || !version2) {
@@ -42,8 +42,8 @@ export async function GET(
 
     const versionDiff = new VersionDiff();
     const diff = versionDiff.calculateDiff(
-      version1.data,
-      version2.data
+      version1.contentSnapshot,
+      version2.contentSnapshot
     );
     
     const formatted = versionDiff.formatDiff(diff);
@@ -51,14 +51,16 @@ export async function GET(
     return NextResponse.json({
       success: true,
       version1: {
-        hash: version1.hash,
+        hash: version1.versionHash,
+        author: version1.author,
         createdAt: version1.createdAt,
-        version: version1.version
+        message: version1.message
       },
       version2: {
-        hash: version2.hash,
+        hash: version2.versionHash,
+        author: version2.author,
         createdAt: version2.createdAt,
-        version: version2.version
+        message: version2.message
       },
       diff,
       formatted
