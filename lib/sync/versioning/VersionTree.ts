@@ -16,10 +16,6 @@ export class VersionTree {
   async buildTree(typeKey: string): Promise<TreeNode | null> {
     const versions = await this.prisma.contentTypeVersion.findMany({
       where: { typeKey },
-      include: {
-        parentVersions: true,
-        childVersions: true
-      },
       orderBy: { createdAt: 'asc' }
     });
 
@@ -32,26 +28,24 @@ export class VersionTree {
 
     for (const version of versions) {
       const node: TreeNode = {
-        hash: version.versionHash,
+        hash: version.hash,
         typeKey: version.typeKey,
-        author: version.author,
+        author: '', // Note: author field doesn't exist in ContentTypeVersion
         createdAt: version.createdAt,
-        message: version.message,
+        message: '', // Note: message field doesn't exist in ContentTypeVersion
         parents: [],
         children: []
       };
-      nodeMap.set(version.versionHash, node);
+      nodeMap.set(version.hash, node);
     }
 
     for (const version of versions) {
-      const node = nodeMap.get(version.versionHash)!;
+      const node = nodeMap.get(version.hash)!;
       
-      if (version.parentVersions.length === 0 && !version.parentHash) {
+      if (!version.parentHash) {
         rootNodes.push(node);
       } else {
-        const parentHashes = version.parentVersions.length > 0
-          ? version.parentVersions.sort((a, b) => a.parentOrder - b.parentOrder).map(p => p.parentHash)
-          : version.parentHash ? [version.parentHash] : [];
+        const parentHashes = version.parentHash ? [version.parentHash] : [];
 
         for (const parentHash of parentHashes) {
           const parentNode = nodeMap.get(parentHash);
@@ -83,16 +77,11 @@ export class VersionTree {
         ancestorSet.add(currentHash);
         
         const version = await this.prisma.contentTypeVersion.findUnique({
-          where: { versionHash: currentHash },
-          include: { parentVersions: true }
+          where: { hash: currentHash }
         });
         
-        if (version) {
-          if (version.parentVersions.length > 0) {
-            queue.push(...version.parentVersions.map(p => p.parentHash));
-          } else if (version.parentHash) {
-            queue.push(version.parentHash);
-          }
+        if (version && version.parentHash) {
+          queue.push(version.parentHash);
         }
       }
     };
@@ -114,16 +103,11 @@ export class VersionTree {
       ancestors2.add(currentHash);
       
       const version = await this.prisma.contentTypeVersion.findUnique({
-        where: { versionHash: currentHash },
-        include: { parentVersions: true }
+        where: { hash: currentHash },
       });
       
-      if (version) {
-        if (version.parentVersions.length > 0) {
-          queue.push(...version.parentVersions.map(p => p.parentHash));
-        } else if (version.parentHash) {
-          queue.push(version.parentHash);
-        }
+      if (version && version.parentHash) {
+        queue.push(version.parentHash);
       }
     }
 
@@ -137,20 +121,15 @@ export class VersionTree {
     while (currentHash) {
       lineage.push(currentHash);
       
-      const version = await this.prisma.contentTypeVersion.findUnique({
-        where: { versionHash: currentHash },
-        include: { parentVersions: true }
+      const version: any = await this.prisma.contentTypeVersion.findUnique({
+        where: { hash: currentHash },
       });
       
       if (!version) {
         break;
       }
       
-      if (version.parentVersions.length > 0) {
-        currentHash = version.parentVersions.find(p => p.parentOrder === 0)?.parentHash || null;
-      } else {
-        currentHash = version.parentHash;
-      }
+      currentHash = version.parentHash;
     }
 
     return lineage;

@@ -33,7 +33,7 @@ export function VirtualContentList({
   const [scrollTop, setScrollTop] = React.useState(0);
   const [isScrolling, setIsScrolling] = React.useState(false);
   const [isPending, startTransition] = useTransition();
-  const scrollTimeoutRef = React.useRef<NodeJS.Timeout>();
+  const scrollTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   
   // Calculate visible items
   const visibleItems = useMemo(() => {

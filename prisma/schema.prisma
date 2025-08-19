@@ -21,6 +21,7 @@ model Website {
   updatedAt    DateTime      @updatedAt
   aiContexts   AIContext[]
   contentTypes ContentType[]
+  contentItems ContentItem[]
   deployments  Deployment[]
   pages        Page[]
 }
@@ -36,7 +37,7 @@ model ContentType {
   websiteId        String
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
-  contentInstances ContentInstance[]
+  contentItems     ContentItem[]
   website          Website              @relation(fields: [websiteId], references: [id])
   versions         ContentTypeVersion[]
   fields_metadata  FieldMetadata[]
@@ -98,18 +99,26 @@ model Page {
   @@index([websiteId])
 }
 
-model ContentInstance {
+model ContentItem {
   id            String      @id @default(cuid())
   contentTypeId String
-  data          Json
+  contentType   ContentType @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
+  websiteId     String
+  website       Website     @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  title         String
+  slug          String
   status        String      @default("draft")
-  version       Int         @default(1)
+  content       Json
+  metadata      Json?
+  publishedAt   DateTime?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
-  contentType   ContentType @relation(fields: [contentTypeId], references: [id])
 
+  @@unique([websiteId, slug])
+  @@index([websiteId])
   @@index([contentTypeId])
   @@index([status])
+  @@index([publishedAt])
 }
 
 model Deployment {

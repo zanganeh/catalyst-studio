@@ -28,11 +28,13 @@ class DeploymentQueue {
         where: { id: deploymentId },
         data: { 
           status: 'queued',
-          logs: JSON.stringify([{
-            timestamp: new Date().toISOString(),
-            level: 'info',
-            message: 'Deployment queued - waiting for previous deployment to complete'
-          }])
+          deploymentData: {
+            logs: [{
+              timestamp: new Date().toISOString(),
+              level: 'info',
+              message: 'Deployment queued - waiting for previous deployment to complete'
+            }]
+          } as any
         }
       });
     }
@@ -73,8 +75,7 @@ class DeploymentQueue {
       await prisma.deployment.update({
         where: { id: nextDeployment.deploymentId },
         data: { 
-          status: 'processing',
-          startedAt: new Date()
+          status: 'processing'
         }
       });
       
@@ -89,8 +90,8 @@ class DeploymentQueue {
         where: { id: nextDeployment.deploymentId },
         data: { 
           status: 'failed',
-          error: error instanceof Error ? error.message : 'Deployment failed',
-          completedAt: new Date()
+          errorMessage: error instanceof Error ? error.message : 'Deployment failed',
+          deployedAt: new Date()
         }
       });
     } finally {
@@ -125,7 +126,7 @@ class DeploymentQueue {
         where: { id: deploymentId },
         data: { 
           status: 'cancelled',
-          completedAt: new Date()
+          deployedAt: new Date()
         }
       });
       

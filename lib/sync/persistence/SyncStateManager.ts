@@ -6,7 +6,6 @@ export interface SyncStateUpdate {
   remoteHash?: string;
   lastSyncedHash?: string;
   syncStatus: 'new' | 'modified' | 'conflict' | 'in_sync';
-  changeSource?: 'UI' | 'AI' | 'SYNC';
 }
 
 export class SyncStateManager {
@@ -23,8 +22,7 @@ export class SyncStateManager {
         remoteHash: update.remoteHash,
         lastSyncedHash: update.lastSyncedHash,
         syncStatus: update.syncStatus,
-        lastCheckedAt: new Date(),
-        changeSource: update.changeSource
+        lastSyncAt: new Date()
       },
       create: {
         typeKey: update.typeKey,
@@ -32,8 +30,7 @@ export class SyncStateManager {
         remoteHash: update.remoteHash,
         lastSyncedHash: update.lastSyncedHash,
         syncStatus: update.syncStatus,
-        lastCheckedAt: new Date(),
-        changeSource: update.changeSource
+        lastSyncAt: new Date()
       }
     });
   }
@@ -50,8 +47,7 @@ export class SyncStateManager {
           remoteHash: update.remoteHash,
           lastSyncedHash: update.lastSyncedHash,
           syncStatus: update.syncStatus,
-          lastCheckedAt: new Date(),
-          changeSource: update.changeSource
+          lastSyncAt: new Date()
         },
         create: {
           typeKey: update.typeKey,
@@ -59,8 +55,7 @@ export class SyncStateManager {
           remoteHash: update.remoteHash,
           lastSyncedHash: update.lastSyncedHash,
           syncStatus: update.syncStatus,
-          lastCheckedAt: new Date(),
-          changeSource: update.changeSource
+          lastSyncAt: new Date()
         }
       })
     );
@@ -82,7 +77,7 @@ export class SyncStateManager {
    */
   async getAllSyncStates(): Promise<SyncState[]> {
     return await this.prisma.syncState.findMany({
-      orderBy: { lastCheckedAt: 'desc' }
+      orderBy: { lastSyncAt: 'desc' }
     });
   }
 
@@ -92,7 +87,7 @@ export class SyncStateManager {
   async getSyncStatesByStatus(status: string): Promise<SyncState[]> {
     return await this.prisma.syncState.findMany({
       where: { syncStatus: status },
-      orderBy: { lastCheckedAt: 'desc' }
+      orderBy: { lastSyncAt: 'desc' }
     });
   }
 

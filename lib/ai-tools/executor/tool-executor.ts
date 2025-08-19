@@ -7,7 +7,7 @@
 
 import { z } from 'zod';
 import { getClient } from '@/lib/db/client';
-import type { Prisma } from '@prisma/client';
+import type { Prisma } from '@/lib/generated/prisma';
 
 /**
  * Tool execution result

@@ -23,11 +23,11 @@ export async function GET(
       throw new ApiError(404, 'Website not found', 'NOT_FOUND');
     }
     
-    // Parse JSON fields for response
+    // JSON fields are already parsed by Prisma
     const formattedWebsite = {
       ...website,
-      metadata: website.metadata ? JSON.parse(website.metadata) : null,
-      settings: website.settings ? JSON.parse(website.settings) : null
+      metadata: website.metadata || null,
+      settings: website.settings || null
     };
     
     return Response.json({ data: formattedWebsite });
@@ -60,16 +60,17 @@ export async function PUT(
       throw new ApiError(404, 'Website not found', 'NOT_FOUND');
     }
     
-    // Convert JSON fields to strings for storage
-    const dataToUpdate = {
-      ...validated,
-      metadata: validated.metadata !== undefined 
-        ? (validated.metadata ? JSON.stringify(validated.metadata) : null)
-        : undefined,
-      settings: validated.settings !== undefined
-        ? (validated.settings ? JSON.stringify(validated.settings) : null)
-        : undefined
-    };
+    // Build update object, excluding undefined fields
+    const dataToUpdate: any = {};
+    
+    // Only include fields that are explicitly provided
+    if (validated.name !== undefined) dataToUpdate.name = validated.name;
+    if (validated.description !== undefined) dataToUpdate.description = validated.description;
+    if (validated.category !== undefined) dataToUpdate.category = validated.category;
+    if (validated.icon !== undefined) dataToUpdate.icon = validated.icon;
+    if (validated.isActive !== undefined) dataToUpdate.isActive = validated.isActive;
+    if (validated.metadata !== undefined) dataToUpdate.metadata = validated.metadata;
+    if (validated.settings !== undefined) dataToUpdate.settings = validated.settings;
     
     // Update website
     const website = await prisma.website.update({
@@ -77,11 +78,11 @@ export async function PUT(
       data: dataToUpdate
     });
     
-    // Parse JSON fields for response
+    // JSON fields are already parsed by Prisma
     const formattedWebsite = {
       ...website,
-      metadata: website.metadata ? JSON.parse(website.metadata) : null,
-      settings: website.settings ? JSON.parse(website.settings) : null
+      metadata: website.metadata || null,
+      settings: website.settings || null
     };
     
     return Response.json({ data: formattedWebsite });

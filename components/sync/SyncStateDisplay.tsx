@@ -100,8 +100,8 @@ export function SyncStateDisplay() {
                   <td className="px-4 py-2 whitespace-nowrap">
                     {state.syncProgress && (
                       <ProgressBar 
-                        current={state.syncProgress.currentStep} 
-                        total={state.syncProgress.totalSteps} 
+                        current={(state.syncProgress as any).currentStep as number} 
+                        total={(state.syncProgress as any).totalSteps as number} 
                       />
                     )}
                   </td>

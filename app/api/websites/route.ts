@@ -16,11 +16,11 @@ export async function GET() {
       orderBy: { createdAt: 'desc' }
     });
     
-    // Parse JSON fields for response
+    // JSON fields are already parsed by Prisma
     const formattedWebsites = websites.map(website => ({
       ...website,
-      metadata: website.metadata ? JSON.parse(website.metadata) : null,
-      settings: website.settings ? JSON.parse(website.settings) : null
+      metadata: website.metadata || null,
+      settings: website.settings || null
     }));
     
     return Response.json({ data: formattedWebsites });
@@ -40,22 +40,22 @@ export async function POST(request: NextRequest) {
     
     const prisma = getClient();
     
-    // Convert JSON fields to strings for storage
-    const dataToStore = {
+    // Prisma handles JSON fields automatically
+    const dataToStore: any = {
       ...validated,
-      metadata: validated.metadata ? JSON.stringify(validated.metadata) : null,
-      settings: validated.settings ? JSON.stringify(validated.settings) : null
+      metadata: validated.metadata,
+      settings: validated.settings
     };
     
     const website = await prisma.website.create({
       data: dataToStore
     });
     
-    // Parse JSON fields for response
+    // JSON fields are already parsed by Prisma
     const formattedWebsite = {
       ...website,
-      metadata: website.metadata ? JSON.parse(website.metadata) : null,
-      settings: website.settings ? JSON.parse(website.settings) : null
+      metadata: website.metadata || null,
+      settings: website.settings || null
     };
     
     return Response.json({ data: formattedWebsite }, { status: 201 });

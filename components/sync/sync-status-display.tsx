@@ -200,7 +200,8 @@ export function SyncStatusDisplay() {
           <div className="space-y-2">
             <h4 className="text-sm font-medium">Validation Results</h4>
             <div className="flex gap-4">
-              <Badge variant={syncStatus.validationResults.passed ? 'success' : 'destructive'}>
+              <Badge variant={syncStatus.validationResults.passed ? 'default' : 'destructive'}
+                     className={syncStatus.validationResults.passed ? 'bg-green-100 text-green-800' : ''}>
                 {syncStatus.validationResults.passed ? 'Passed' : 'Failed'}
               </Badge>
               {syncStatus.validationResults.errors > 0 && (

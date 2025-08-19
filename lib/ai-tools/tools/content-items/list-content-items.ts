@@ -45,26 +45,25 @@ export const listContentItems = tool({
       
       // Transform items to include parsed field values
       const transformedItems = items.map(item => {
-        // Parse content type fields to understand the structure
-        const contentTypeFields = item.contentType.fields ? JSON.parse(item.contentType.fields) : {};
-        const contentTypeSettings = item.contentType.settings ? JSON.parse(item.contentType.settings) : {};
+        // Prisma already parses JSON fields, no need for JSON.parse
+        const contentTypeFields = item.contentType.fields || {};
+        const contentTypeSchema = item.contentType.schema || {};
         
         return {
           id: item.id,
+          title: item.title,
+          slug: item.slug,
           websiteId: item.websiteId,
           contentTypeId: item.contentTypeId,
-          slug: item.slug,
           status: item.status,
-          data: item.data ? JSON.parse(item.data) : {},
-          metadata: item.metadata ? JSON.parse(item.metadata) : {},
-          publishedAt: item.publishedAt,
+          content: item.content || {},
           createdAt: item.createdAt,
           updatedAt: item.updatedAt,
           contentType: {
             id: item.contentType.id,
             name: item.contentType.name,
             fields: contentTypeFields,
-            settings: contentTypeSettings
+            schema: contentTypeSchema
           },
           website: {
             id: item.website.id,

@@ -430,9 +430,6 @@ export class ChangeDetector {
     try {
       // Query actual content types from the database
       const contentTypes = await this.prisma.contentType.findMany({
-        where: {
-          deletedAt: null
-        },
         include: {
           website: true
         }

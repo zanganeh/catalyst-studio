@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { ContentItemsResponse, ContentStatus } from '@/types/api';
+import { ContentItem, ContentItemsResponse, ContentStatus } from '@/types/api';
 import { Prisma } from '@/lib/generated/prisma';
 import { validateContentItemsQuery, validateCreateContentItem } from '@/lib/api/validation/content-item';
 import { safeJsonParse } from '@/lib/utils/safe-json';
@@ -21,25 +21,23 @@ export async function GET(request: NextRequest) {
     const { page, limit, status, contentTypeId, websiteId, sortBy, sortOrder } = validation.data;
     
     // Build where clause with proper typing
-    const where: Prisma.ContentInstanceWhereInput = {};
+    const where: Prisma.ContentItemWhereInput = {};
     if (status) where.status = status;
     if (contentTypeId) where.contentTypeId = contentTypeId;
-    // Filter by websiteId through contentType relationship
+    // Filter by websiteId
     if (websiteId) {
-      where.contentType = {
-        websiteId: websiteId
-      };
+      where.websiteId = websiteId;
     }
     
     // Get total count
-    const total = await prisma.contentInstance.count({ where });
+    const total = await prisma.contentItem.count({ where });
     
     // Calculate pagination
     const totalPages = Math.ceil(total / limit);
     const skip = (page - 1) * limit;
     
     // Fetch items with relations
-    const items = await prisma.contentInstance.findMany({
+    const items = await prisma.contentItem.findMany({
       where,
       skip,
       take: limit,
@@ -53,16 +51,20 @@ export async function GET(request: NextRequest) {
       },
     });
     
-    // Transform items - data field is already parsed by Prisma (Json type)
-    const transformedItems = items.map(item => ({
+    // Transform items - Json fields are already parsed by Prisma
+    const transformedItems: ContentItem[] = items.map(item => ({
       id: item.id,
       contentTypeId: item.contentTypeId,
-      websiteId: item.contentType.websiteId, // Get websiteId from contentType
-      data: item.data || {}, // Prisma Json fields are automatically parsed
+      websiteId: item.websiteId,
+      title: item.title,
+      slug: item.slug,
+      content: (item.content as Record<string, any>) || {}, // Cast to proper type
+      metadata: item.metadata as Record<string, any> | undefined,
       status: item.status as ContentStatus, // Cast status to ContentStatus type
-      version: item.version,
+      publishedAt: item.publishedAt,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt,
+      contentType: item.contentType,
     }));
     
     const response: ContentItemsResponse = {
@@ -134,34 +136,30 @@ export async function POST(request: NextRequest) {
     const validatedData = validation.data;
     
     // Create content item - Prisma will handle JSON serialization for Json fields
-    const contentItem = await prisma.contentInstance.create({
+    const contentItem = await prisma.contentItem.create({
       data: {
         contentTypeId: validatedData.contentTypeId,
-        data: validatedData.data, // Prisma handles JSON serialization for Json type fields
+        websiteId: validatedData.websiteId,
+        title: validatedData.title,
+        slug: validatedData.slug,
+        content: validatedData.content, // Prisma handles JSON serialization for Json type fields
+        metadata: validatedData.metadata,
         status: validatedData.status || 'draft',
+        publishedAt: validatedData.publishedAt ? new Date(validatedData.publishedAt) : undefined,
       },
       include: {
-        contentType: {
-          include: {
-            website: true
-          }
-        },
+        contentType: true,
+        website: true,
       },
     });
     
     // Transform response - all Json fields are already parsed by Prisma
     const transformed = {
       ...contentItem,
-      data: contentItem.data || {},
-      contentType: {
-        ...contentItem.contentType,
-        fields: contentItem.contentType.fields || [],
-        settings: contentItem.contentType.schema || null,
-      },
-      website: contentItem.contentType.website ? {
-        ...contentItem.contentType.website,
-        metadata: contentItem.contentType.website.metadata || null,
-      } : undefined,
+      content: contentItem.content || {},
+      metadata: contentItem.metadata,
+      contentType: contentItem.contentType,
+      website: contentItem.website,
     };
     
     return NextResponse.json({ data: transformed }, { status: 201 });

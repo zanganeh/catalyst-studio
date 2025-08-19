@@ -10,7 +10,7 @@ export interface FailurePattern {
   errorType: string;
   count: number;
   platforms: string[];
-  typeKeys: string[];
+  syncTypes: string[];
   lastOccurrence: Date;
 }
 
@@ -31,7 +31,7 @@ export interface HealthReport {
 }
 
 export interface SyncMetrics {
-  typeKey: string;
+  syncType: string;
   platform: string;
   totalAttempts: number;
   successCount: number;
@@ -53,8 +53,8 @@ export class SyncAnalytics {
     timeRange?: TimeRange
   ): Promise<number> {
     const where: any = {
-      targetPlatform: platform,
-      syncStatus: { not: SyncStatus.IN_PROGRESS }
+      targetSystem: platform,
+      status: { not: SyncStatus.IN_PROGRESS }
     };
     
     if (timeRange) {
@@ -67,7 +67,7 @@ export class SyncAnalytics {
     const [totalCount, successCount] = await Promise.all([
       this.prisma.syncHistory.count({ where }),
       this.prisma.syncHistory.count({
-        where: { ...where, syncStatus: SyncStatus.SUCCESS }
+        where: { ...where, status: SyncStatus.SUCCESS }
       })
     ]);
     
@@ -81,8 +81,8 @@ export class SyncAnalytics {
   async getAverageSyncTime(platform: string): Promise<number> {
     const syncs = await this.prisma.syncHistory.findMany({
       where: {
-        targetPlatform: platform,
-        syncStatus: SyncStatus.SUCCESS,
+        targetSystem: platform,
+        status: SyncStatus.SUCCESS,
         completedAt: { not: null }
       },
       select: {
@@ -107,11 +107,11 @@ export class SyncAnalytics {
    */
   async detectFailurePatterns(): Promise<FailurePattern[]> {
     const failedSyncs = await this.prisma.syncHistory.findMany({
-      where: { syncStatus: SyncStatus.FAILED },
+      where: { status: SyncStatus.FAILED },
       select: {
         errorMessage: true,
-        targetPlatform: true,
-        typeKey: true,
+        targetSystem: true,
+        syncType: true,
         createdAt: true
       },
       orderBy: { createdAt: 'desc' },
@@ -131,7 +131,7 @@ export class SyncAnalytics {
           errorType,
           count: 0,
           platforms: [],
-          typeKeys: [],
+          syncTypes: [],
           lastOccurrence: sync.createdAt
         });
       }
@@ -139,12 +139,12 @@ export class SyncAnalytics {
       const pattern = patternMap.get(errorType)!;
       pattern.count++;
       
-      if (!pattern.platforms.includes(sync.targetPlatform)) {
-        pattern.platforms.push(sync.targetPlatform);
+      if (!pattern.platforms.includes(sync.targetSystem)) {
+        pattern.platforms.push(sync.targetSystem);
       }
       
-      if (!pattern.typeKeys.includes(sync.typeKey)) {
-        pattern.typeKeys.push(sync.typeKey);
+      if (!pattern.syncTypes.includes(sync.syncType)) {
+        pattern.syncTypes.push(sync.syncType);
       }
       
       if (sync.createdAt > pattern.lastOccurrence) {
@@ -174,33 +174,33 @@ export class SyncAnalytics {
       lastSuccessfulSync,
       lastFailedSync
     ] = await Promise.all([
-      this.prisma.syncHistory.count({ where: { targetPlatform: platform } }),
+      this.prisma.syncHistory.count({ where: { targetSystem: platform } }),
       this.prisma.syncHistory.count({ 
-        where: { targetPlatform: platform, syncStatus: SyncStatus.SUCCESS } 
+        where: { targetSystem: platform, status: SyncStatus.SUCCESS } 
       }),
       this.prisma.syncHistory.count({ 
-        where: { targetPlatform: platform, syncStatus: SyncStatus.FAILED } 
+        where: { targetSystem: platform, status: SyncStatus.FAILED } 
       }),
       this.prisma.syncHistory.count({ 
-        where: { targetPlatform: platform, syncStatus: SyncStatus.PARTIAL } 
+        where: { targetSystem: platform, status: SyncStatus.PARTIAL } 
       }),
       this.prisma.syncHistory.count({ 
-        where: { targetPlatform: platform, syncStatus: SyncStatus.IN_PROGRESS } 
+        where: { targetSystem: platform, status: SyncStatus.IN_PROGRESS } 
       }),
       this.prisma.syncHistory.count({ 
         where: { 
-          targetPlatform: platform, 
-          syncStatus: SyncStatus.FAILED,
+          targetSystem: platform, 
+          status: SyncStatus.FAILED,
           createdAt: { gte: last24Hours }
         } 
       }),
       this.prisma.syncHistory.findFirst({
-        where: { targetPlatform: platform, syncStatus: SyncStatus.SUCCESS },
+        where: { targetSystem: platform, status: SyncStatus.SUCCESS },
         orderBy: { completedAt: 'desc' },
         select: { completedAt: true }
       }),
       this.prisma.syncHistory.findFirst({
-        where: { targetPlatform: platform, syncStatus: SyncStatus.FAILED },
+        where: { targetSystem: platform, status: SyncStatus.FAILED },
         orderBy: { createdAt: 'desc' },
         select: { createdAt: true }
       })
@@ -244,35 +244,34 @@ export class SyncAnalytics {
    * Get sync metrics by type and platform
    */
   async getSyncMetrics(
-    typeKey?: string,
+    syncType?: string,
     platform?: string
   ): Promise<SyncMetrics[]> {
     const where: any = {};
-    if (typeKey) where.typeKey = typeKey;
-    if (platform) where.targetPlatform = platform;
+    if (syncType) where.syncType = syncType;
+    if (platform) where.targetSystem = platform;
     
     const syncs = await this.prisma.syncHistory.findMany({
       where,
       select: {
-        typeKey: true,
-        targetPlatform: true,
-        syncStatus: true,
-        retryCount: true,
+        syncType: true,
+        targetSystem: true,
+        status: true,
         startedAt: true,
         completedAt: true
       }
     });
     
-    // Group by typeKey and platform
+    // Group by syncType and platform
     const metricsMap = new Map<string, SyncMetrics>();
     
     for (const sync of syncs) {
-      const key = `${sync.typeKey}-${sync.targetPlatform}`;
+      const key = `${sync.syncType}-${sync.targetSystem}`;
       
       if (!metricsMap.has(key)) {
         metricsMap.set(key, {
-          typeKey: sync.typeKey,
-          platform: sync.targetPlatform,
+          syncType: sync.syncType,
+          platform: sync.targetSystem,
           totalAttempts: 0,
           successCount: 0,
           failureCount: 0,
@@ -286,9 +285,9 @@ export class SyncAnalytics {
       const metrics = metricsMap.get(key)!;
       metrics.totalAttempts++;
       
-      if (sync.syncStatus === SyncStatus.SUCCESS) {
+      if (sync.status === SyncStatus.SUCCESS) {
         metrics.successCount++;
-      } else if (sync.syncStatus === SyncStatus.FAILED) {
+      } else if (sync.status === SyncStatus.FAILED) {
         metrics.failureCount++;
       }
       
@@ -299,7 +298,8 @@ export class SyncAnalytics {
         metrics.minDuration = Math.min(metrics.minDuration, duration);
       }
       
-      metrics.averageRetries += sync.retryCount;
+      // Note: retryCount field doesn't exist in SyncHistory model
+      // This would need to be tracked separately if retry metrics are needed
     }
     
     // Calculate averages

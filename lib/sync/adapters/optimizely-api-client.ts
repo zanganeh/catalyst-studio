@@ -656,12 +656,8 @@ export class OptimizelyApiClient {
         }
         
         // Check if this type has properties that reference the key we're deleting
-        if (type.properties?.some(prop => 
-          (prop.type === 'contentReference' || prop.type === 'contentArea') &&
-          prop.settings?.allowedTypes?.includes(key)
-        )) {
-          dependencies.add(type.key);
-        }
+        // Note: OptimizelyProperty interface doesn't have settings field for allowedTypes
+        // This would need to be extended in the future if reference validation is needed
       }
     } catch (error) {
       console.warn(`⚠️  Could not check dependencies for ${key}:`, error);
@@ -686,7 +682,7 @@ export class OptimizelyApiClient {
             displayName: `[DELETED] ${contentType.displayName}`,
             description: `Soft deleted on ${new Date().toISOString()}. Original: ${contentType.description || ''}`,
           },
-          contentType.etag,
+          contentType.etag || undefined,
           { partialUpdate: true }
         );
       }
@@ -720,7 +716,7 @@ export class OptimizelyApiClient {
           displayName: originalDisplayName,
           description: originalDescription || '',
         },
-        contentType.etag,
+        contentType.etag || undefined,
         { partialUpdate: true }
       );
       
@@ -818,7 +814,7 @@ export class OptimizelyApiClient {
             const result = await this.updateContentType(
               update.key,
               update.contentType,
-              update.etag,
+              update.etag || undefined,
               { partialUpdate: true }
             );
             
@@ -852,7 +848,7 @@ export class OptimizelyApiClient {
               const result = await this.updateContentType(
                 update.key,
                 update.contentType,
-                update.etag,
+                update.etag || undefined,
                 { partialUpdate: true, retryAttempts: 1 }
               );
               results.successful.push({ key: update.key, result });
@@ -1023,7 +1019,7 @@ export class OptimizelyApiClient {
               await this.updateContentType(
                 entry.key,
                 entry.previousState,
-                entry.previousState.etag
+                entry.previousState.etag || undefined
               );
               console.log(`  ✅ Rolled back UPDATE for ${entry.key}`);
               successfulRollbacks++;

@@ -25,19 +25,20 @@ export async function GET(
       );
     }
     
-    // Transform response
+    // Transform response - Json fields are already parsed by Prisma
     const transformed = {
       ...contentItem,
-      data: JSON.parse(contentItem.data),
-      metadata: contentItem.metadata ? JSON.parse(contentItem.metadata) : null,
+      content: contentItem.content,
+      metadata: contentItem.metadata,
       contentType: {
         ...contentItem.contentType,
-        fields: JSON.parse(contentItem.contentType.fields),
-        settings: contentItem.contentType.settings ? JSON.parse(contentItem.contentType.settings) : null,
+        fields: contentItem.contentType.fields,
+        schema: contentItem.contentType.schema,
       },
       website: {
         ...contentItem.website,
-        metadata: contentItem.website.metadata ? JSON.parse(contentItem.website.metadata) : null,
+        metadata: contentItem.website.metadata,
+        settings: contentItem.website.settings,
       },
     };
     
@@ -85,9 +86,10 @@ export async function PUT(
     
     // Prepare update data with proper typing
     const updateData: Prisma.ContentItemUpdateInput = {};
+    if (validatedData.title !== undefined) updateData.title = validatedData.title;
     if (validatedData.slug !== undefined) updateData.slug = validatedData.slug;
-    if (validatedData.data !== undefined) updateData.data = JSON.stringify(validatedData.data);
-    if (validatedData.metadata !== undefined) updateData.metadata = JSON.stringify(validatedData.metadata);
+    if (validatedData.content !== undefined) updateData.content = validatedData.content;
+    if (validatedData.metadata !== undefined) updateData.metadata = validatedData.metadata;
     if (validatedData.status !== undefined) updateData.status = validatedData.status;
     if (validatedData.publishedAt !== undefined) {
       updateData.publishedAt = validatedData.publishedAt ? new Date(validatedData.publishedAt) : null;
@@ -103,19 +105,20 @@ export async function PUT(
       },
     });
     
-    // Transform response
+    // Transform response - Json fields are already parsed by Prisma
     const transformed = {
       ...contentItem,
-      data: JSON.parse(contentItem.data),
-      metadata: contentItem.metadata ? JSON.parse(contentItem.metadata) : null,
+      content: contentItem.content,
+      metadata: contentItem.metadata,
       contentType: {
         ...contentItem.contentType,
-        fields: JSON.parse(contentItem.contentType.fields),
-        settings: contentItem.contentType.settings ? JSON.parse(contentItem.contentType.settings) : null,
+        fields: contentItem.contentType.fields,
+        schema: contentItem.contentType.schema,
       },
       website: {
         ...contentItem.website,
-        metadata: contentItem.website.metadata ? JSON.parse(contentItem.website.metadata) : null,
+        metadata: contentItem.website.metadata,
+        settings: contentItem.website.settings,
       },
     };
     

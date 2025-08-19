@@ -143,13 +143,12 @@ export function useCreateContentItem() {
         // Create a temporary item with a fake ID
         const tempItem: ContentItem = {
           id: `temp-${Date.now()}`,
-          contentTypeId: newItem.contentTypeId,
-          websiteId: newItem.websiteId,
+          title: newItem.title || 'Untitled',
           slug: newItem.slug,
-          data: newItem.data,
-          metadata: newItem.metadata,
+          websiteId: newItem.websiteId,
+          contentTypeId: newItem.contentTypeId,
+          content: newItem.content || {},
           status: newItem.status || 'draft',
-          publishedAt: newItem.publishedAt ? new Date(newItem.publishedAt) : null,
           createdAt: new Date(),
           updatedAt: new Date(),
         };

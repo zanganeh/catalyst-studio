@@ -111,7 +111,7 @@ export function SyncAnalyticsDashboard() {
           <CardContent>
             <div className="text-2xl font-bold">{analytics.totalSyncs}</div>
             <div className="flex items-center gap-2 mt-2">
-              <Badge variant="success" className="text-xs">
+              <Badge variant="default" className="text-xs bg-green-100 text-green-800">
                 {analytics.successfulSyncs} successful
               </Badge>
               <Badge variant="destructive" className="text-xs">

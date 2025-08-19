@@ -75,8 +75,6 @@ export default defineConfig({
         navigationTimeout: 90000,
         // Ensure JavaScript is enabled
         javaScriptEnabled: true,
-        // Reduce motion for more stable tests
-        reducedMotion: 'reduce',
       },
     },
     {
@@ -90,8 +88,6 @@ export default defineConfig({
         navigationTimeout: 90000,
         // Ensure JavaScript is enabled
         javaScriptEnabled: true,
-        // Reduce motion for more stable tests
-        reducedMotion: 'reduce',
       },
     },
     // Add tablet testing

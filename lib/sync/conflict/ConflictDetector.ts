@@ -214,9 +214,9 @@ export class ConflictDetector {
       if (remoteModified.has(field)) {
         details.conflictingFields.push({
           field,
-          localValue: localVersion.data[field],
-          remoteValue: remoteVersion.data[field],
-          ancestorValue: ancestor.data ? ancestor.data[field] : undefined
+          localValue: localVersion.data[field as string],
+          remoteValue: remoteVersion.data[field as string],
+          ancestorValue: ancestor.data ? ancestor.data[field as string] : undefined
         });
       }
     }
@@ -272,7 +272,9 @@ export class ConflictDetector {
       const conflicts: ConflictResult[] = [];
       
       // Check each modified type for conflicts
-      for (const typeKey of changes.updated) {
+      const updatedTypes = changes.details?.updated || [];
+      for (const item of updatedTypes) {
+        const typeKey = item.key;
         const conflict = await this.detectConflicts(typeKey);
         if (conflict.hasConflict) {
           conflicts.push({

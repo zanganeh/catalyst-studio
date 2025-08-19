@@ -36,12 +36,12 @@ export async function POST(req: Request) {
     // Create a wrapped version of the tool that automatically includes websiteId
     (acc as any)[key] = {
       ...tool,
-      execute: async (args: any) => {
+      execute: async (args: any, context?: any) => {
         // If the tool has a websiteId parameter and it's not provided, inject it
         if (websiteId && tool.parameters && 'websiteId' in tool.parameters.shape && !args.websiteId) {
           args = { ...args, websiteId };
         }
-        return tool.execute(args);
+        return tool.execute(args, context);
       }
     };
     return acc;
