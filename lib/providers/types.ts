@@ -101,6 +101,13 @@ export interface ICMSProvider {
    * @returns CMS-specific type format
    */
   mapFromUniversal(universalType: UniversalContentType): any;
+
+  /**
+   * Sets dry run mode for the provider
+   * When enabled, no actual API calls are made to the CMS
+   * @param enabled Whether to enable dry run mode
+   */
+  setDryRun?(enabled: boolean): void;
 }
 
 /**

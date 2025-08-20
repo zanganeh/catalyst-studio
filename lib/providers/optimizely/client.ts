@@ -24,6 +24,7 @@ export class OptimizelyClient {
   private accessToken: string | null = null;
   private tokenExpiry: Date | null = null;
   private activeRequests = new Map<string, AbortController>();
+  private dryRun: boolean = false;
 
   constructor() {
     this.baseUrl = process.env.OPTIMIZELY_API_URL || 'https://api.cms.optimizely.com';
@@ -31,6 +32,13 @@ export class OptimizelyClient {
     this.clientId = process.env.OPTIMIZELY_CLIENT_ID;
     this.clientSecret = process.env.OPTIMIZELY_CLIENT_SECRET;
     this.projectId = process.env.OPTIMIZELY_PROJECT_ID;
+  }
+
+  setDryRun(enabled: boolean): void {
+    this.dryRun = enabled;
+    if (enabled) {
+      console.log('🔍 OptimizelyClient: Dry run mode enabled - no API calls will be made');
+    }
   }
 
   private async ensureAuthenticated(): Promise<void> {
@@ -42,6 +50,11 @@ export class OptimizelyClient {
   }
 
   async authenticate(): Promise<void> {
+    if (this.dryRun) {
+      console.log('🔍 Dry run mode: Skipping authentication');
+      return;
+    }
+
     if (!this.clientId || !this.clientSecret) {
       console.log('⚠️  No Optimizely credentials configured - running in offline mode');
       return;
@@ -86,6 +99,11 @@ export class OptimizelyClient {
     options: RequestInit = {},
     requestKey?: string
   ): Promise<T> {
+    // In dry run mode, return mock responses
+    if (this.dryRun) {
+      return this.getMockResponse<T>(path, options);
+    }
+
     await this.ensureAuthenticated();
 
     const controller = new AbortController();
@@ -137,6 +155,47 @@ export class OptimizelyClient {
       }
       throw error;
     }
+  }
+
+  private getMockResponse<T>(path: string, options: RequestInit): T {
+    console.log(`🔍 [DRY-RUN] ${options.method || 'GET'} ${path}`);
+    
+    // Mock responses based on path and method
+    if (path === '/contenttypes' && options.method === 'GET') {
+      return { items: [] } as any;
+    }
+    
+    if (path.startsWith('/contenttypes/') && options.method === 'GET') {
+      return null as any;
+    }
+    
+    if (path === '/contenttypes' && options.method === 'POST') {
+      const body = JSON.parse(options.body as string);
+      console.log(`  ✓ Would create content type: ${body.displayName}`);
+      return { ...body, id: `mock-${Date.now()}` } as any;
+    }
+    
+    if (path.startsWith('/contenttypes/') && (options.method === 'PUT' || options.method === 'PATCH')) {
+      const body = options.body ? JSON.parse(options.body as string) : {};
+      const id = path.split('/').pop();
+      console.log(`  ✓ Would update content type: ${id}`);
+      return { ...body, id } as any;
+    }
+    
+    if (path.startsWith('/contenttypes/') && options.method === 'DELETE') {
+      const id = path.split('/').pop();
+      console.log(`  ✓ Would delete content type: ${id}`);
+      return true as any;
+    }
+    
+    if (path === '/contenttypes/validate' && options.method === 'POST') {
+      const body = JSON.parse(options.body as string);
+      console.log(`  ✓ Would validate content type: ${body.displayName || body.key}`);
+      return { isValid: true, errors: [], warnings: [] } as any;
+    }
+    
+    // Default mock response
+    return {} as T;
   }
 
   async getContentTypes(): Promise<OptimizelyContentType[]> {

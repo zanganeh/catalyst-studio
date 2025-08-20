@@ -16,10 +16,16 @@ import {
 export class OptimizelyProvider implements ICMSProvider {
   private client: OptimizelyClient;
   private typeMapper: TypeMapper;
+  private dryRun: boolean = false;
 
   constructor() {
     this.client = new OptimizelyClient();
     this.typeMapper = new TypeMapper();
+  }
+
+  setDryRun(enabled: boolean): void {
+    this.dryRun = enabled;
+    this.client.setDryRun(enabled);
   }
 
   async getContentTypes(): Promise<UniversalContentType[]> {

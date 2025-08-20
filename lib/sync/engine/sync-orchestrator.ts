@@ -1,7 +1,7 @@
 import * as chalk from 'chalk';
 import { DatabaseExtractor, ExtractedContentType } from '../extractors/database-extractor';
 import { OptimizelyTransformer, TransformationResult } from '../transformers/optimizely-transformer';
-import { OptimizelyApiClient } from '../adapters/optimizely-api-client';
+import { ICMSProvider } from '../../providers/types';
 import { OptimizelyContentTypeResponse } from '../../providers/optimizely/types';
 
 export interface SyncStorage {
@@ -64,7 +64,7 @@ export class SyncOrchestrator {
   private extractor: DatabaseExtractor;
   private storage: SyncStorage;
   private transformer: OptimizelyTransformer;
-  private apiClient: OptimizelyApiClient | null;
+  private provider: ICMSProvider | null;
   private dryRun: boolean = false;
   private statistics: SyncStatistics = {
     extracted: 0,
@@ -80,18 +80,19 @@ export class SyncOrchestrator {
     extractor: DatabaseExtractor,
     storage: SyncStorage,
     transformer: OptimizelyTransformer,
-    apiClient: OptimizelyApiClient | null
+    provider: ICMSProvider | null
   ) {
     this.extractor = extractor;
     this.storage = storage;
     this.transformer = transformer;
-    this.apiClient = apiClient;
+    this.provider = provider;
   }
 
   setDryRun(value: boolean): void {
     this.dryRun = value;
-    if (this.apiClient) {
-      this.apiClient.setDryRun(value);
+    // Pass dry-run mode to provider if it supports it
+    if (this.provider && 'setDryRun' in this.provider && typeof this.provider.setDryRun === 'function') {
+      this.provider.setDryRun(value);
     }
   }
 
@@ -156,10 +157,12 @@ export class SyncOrchestrator {
       results.stored = await this.storage.loadAllContentTypes();
       console.log(chalk.green(`  ✓ Found ${results.stored.length} stored content types`));
       
-      if (this.apiClient) {
-        console.log('  🌐 Fetching remote content types from Optimizely...');
-        results.remote = await this.apiClient.getContentTypes();
-        console.log(chalk.green(`  ✓ Found ${results.remote.length} content types in Optimizely`));
+      if (this.provider) {
+        console.log('  🌐 Fetching remote content types from provider...');
+        const universalTypes = await this.provider.getContentTypes();
+        // Convert UniversalContentTypes to OptimizelyContentTypeResponse format for compatibility
+        results.remote = universalTypes.map(ut => this.provider!.mapFromUniversal(ut));
+        console.log(chalk.green(`  ✓ Found ${results.remote.length} content types in provider`));
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -205,7 +208,7 @@ export class SyncOrchestrator {
         
         await this.storage.saveContentType(localType);
         
-        if (!this.apiClient) {
+        if (!this.provider) {
           analysis.toSkip.push(transformed);
           continue;
         }
@@ -304,8 +307,8 @@ export class SyncOrchestrator {
       failed: []
     };
     
-    if (!this.apiClient) {
-      console.log(chalk.yellow('  ⚠ No API client configured - skipping execution'));
+    if (!this.provider) {
+      console.log(chalk.yellow('  ⚠ No provider configured - skipping execution'));
       return results;
     }
     
@@ -314,8 +317,10 @@ export class SyncOrchestrator {
       try {
         console.log(`  🚀 Creating: ${item.transformed.displayName}`);
         if (!this.dryRun) {
-          const created = await this.apiClient.createContentType(item.transformed);
-          results.created.push(created);
+          // Convert to UniversalContentType and create
+          const universalType = this.provider.mapToUniversal(item.transformed);
+          const created = await this.provider.createContentType(universalType);
+          results.created.push(this.provider.mapFromUniversal(created));
           this.statistics.created++;
         } else {
           console.log(chalk.gray('    [DRY-RUN] Would create content type'));
@@ -334,13 +339,13 @@ export class SyncOrchestrator {
       try {
         console.log(`  🔄 Updating: ${item.transformed.displayName}`);
         if (!this.dryRun) {
-          const updated = await this.apiClient.updateContentType(
+          // Convert to UniversalContentType and update
+          const universalType = this.provider.mapToUniversal(item.transformed);
+          const updated = await this.provider.updateContentType(
             item.transformed.key,
-            item.transformed,
-            item.etag || undefined,
-            { partialUpdate: false }
+            universalType
           );
-          results.updated.push(updated);
+          results.updated.push(this.provider.mapFromUniversal(updated));
           this.statistics.updated++;
         } else {
           console.log(chalk.gray('    [DRY-RUN] Would update content type'));
@@ -359,11 +364,7 @@ export class SyncOrchestrator {
       try {
         console.log(`  🗑️  Deleting: ${item.key}`);
         if (!this.dryRun) {
-          await this.apiClient.deleteContentType(item.key, {
-            checkDependencies: true,
-            softDelete: false,
-            cascadeDelete: false
-          });
+          await this.provider.deleteContentType(item.key);
           results.deleted.push(item.key);
           this.statistics.deleted++;
         } else {

@@ -3,7 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '@/lib/prisma';
 import { DatabaseExtractor } from '@/lib/sync/extractors/database-extractor';
 import { OptimizelyTransformer } from '@/lib/sync/transformers/optimizely-transformer';
-import { OptimizelyApiClient } from '@/lib/sync/adapters/optimizely-api-client';
+import { ProviderRegistry } from '@/lib/providers/registry';
+import { OptimizelyProvider } from '@/lib/providers/optimizely';
 import { SyncOrchestrator } from '@/lib/sync/engine/sync-orchestrator';
 import { DatabaseStorage } from '@/lib/sync/storage/database-storage';
 import { startDeploymentSchema } from '@/lib/api/validation/deployment';
@@ -199,23 +200,19 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
     const transformer = new OptimizelyTransformer();
     const storage = new DatabaseStorage(extractor);
     
-    // Configure API client based on provider
-    let apiClient: OptimizelyApiClient | null = null;
+    // Configure provider based on provider type
+    const registry = ProviderRegistry.getInstance();
+    let cmsProvider = registry.getProvider('optimizely');
     
-    if (provider.id === 'optimizely') {
-      const clientId = process.env.OPTIMIZELY_CLIENT_ID;
-      const clientSecret = process.env.OPTIMIZELY_CLIENT_SECRET;
-      const apiUrl = process.env.OPTIMIZELY_API_URL || 'https://api.cms.optimizely.com/preview3';
-      
-      if (clientId && clientSecret) {
-        apiClient = new OptimizelyApiClient({
-          baseUrl: apiUrl,
-          clientId,
-          clientSecret,
-        });
-      } else {
-        await updateProgress(15, 'Warning: Optimizely credentials not configured. Running in simulation mode.', 'warning');
-      }
+    if (!cmsProvider && provider.id === 'optimizely') {
+      // Register OptimizelyProvider if not already registered
+      cmsProvider = new OptimizelyProvider();
+      registry.register('optimizely', cmsProvider);
+      registry.setActiveProvider('optimizely');
+    }
+    
+    if (!cmsProvider) {
+      await updateProgress(15, 'Warning: Provider not configured. Running in simulation mode.', 'warning');
     }
     
     // Create sync orchestrator
@@ -223,12 +220,16 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
       extractor,
       storage,
       transformer,
-      apiClient
+      cmsProvider
     );
     
-    // Set dry-run mode if no API client
-    if (!apiClient) {
+    // Set dry-run mode if no provider or no credentials
+    const hasCredentials = process.env.OPTIMIZELY_CLIENT_ID && process.env.OPTIMIZELY_CLIENT_SECRET;
+    if (!cmsProvider || !hasCredentials) {
       orchestrator.setDryRun(true);
+      if (!hasCredentials) {
+        await updateProgress(15, 'No Optimizely credentials configured - running in dry-run mode', 'warning');
+      }
     }
 
     if (await checkCancelled()) {
