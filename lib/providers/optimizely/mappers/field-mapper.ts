@@ -55,7 +55,8 @@ export class FieldMapper {
 
   private classifyFieldLayer(optimizelyType: string): FieldLayer {
     const primitiveTypes = ['String', 'Number', 'Boolean', 'Integer', 'Float'];
-    const commonTypes = ['DateTime', 'Url', 'XhtmlString', 'ContentReference', 'ContentArea'];
+    const commonTypes = ['DateTime', 'Url', 'XhtmlString', 'ContentReference', 'ContentArea', 
+                        'Media', 'Image', 'SelectOne', 'SelectMany'];
     
     if (primitiveTypes.includes(optimizelyType)) {
       return 'primitive';

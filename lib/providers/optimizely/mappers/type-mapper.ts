@@ -33,7 +33,12 @@ export class TypeMapper {
       metadata: {
         createdAt: new Date(),
         updatedAt: new Date(),
-        version: '1'
+        version: '1',
+        platformSpecific: {
+          displayName: optimizelyType.displayName,
+          sortOrder: optimizelyType.sortOrder,
+          mayContainTypes: optimizelyType.mayContainTypes
+        }
       },
       validations: []
     };
@@ -48,14 +53,16 @@ export class TypeMapper {
       properties[field.name] = property;
     }
     
+    const platformSpecific = universalType.metadata?.platformSpecific as any;
+    
     return {
       key: universalType.id,
-      displayName: universalType.name,
+      displayName: platformSpecific?.displayName || universalType.name,
       description: universalType.description || '',
       baseType: this.mapToOptimizelyBaseType(universalType.type),
       source: 'catalyst-studio-sync',
-      sortOrder: 100,
-      mayContainTypes: [],
+      sortOrder: platformSpecific?.sortOrder || 100,
+      mayContainTypes: platformSpecific?.mayContainTypes || [],
       properties
     };
   }

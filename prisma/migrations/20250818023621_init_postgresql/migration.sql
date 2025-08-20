@@ -59,21 +59,6 @@ CREATE TABLE "public"."FieldRelationship" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."Page" (
-    "id" TEXT NOT NULL,
-    "key" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "path" TEXT NOT NULL,
-    "content" JSONB,
-    "metadata" JSONB,
-    "websiteId" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "Page_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
 CREATE TABLE "public"."ContentItem" (
     "id" TEXT NOT NULL,
     "contentTypeId" TEXT NOT NULL,
@@ -198,15 +183,6 @@ CREATE INDEX "FieldRelationship_targetFieldId_idx" ON "public"."FieldRelationshi
 CREATE UNIQUE INDEX "FieldRelationship_sourceFieldId_targetFieldId_key" ON "public"."FieldRelationship"("sourceFieldId", "targetFieldId");
 
 -- CreateIndex
-CREATE INDEX "Page_websiteId_idx" ON "public"."Page"("websiteId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Page_websiteId_key_key" ON "public"."Page"("websiteId", "key");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Page_websiteId_path_key" ON "public"."Page"("websiteId", "path");
-
--- CreateIndex
 CREATE INDEX "ContentItem_websiteId_idx" ON "public"."ContentItem"("websiteId");
 
 -- CreateIndex
@@ -283,9 +259,6 @@ ALTER TABLE "public"."FieldRelationship" ADD CONSTRAINT "FieldRelationship_sourc
 
 -- AddForeignKey
 ALTER TABLE "public"."FieldRelationship" ADD CONSTRAINT "FieldRelationship_targetFieldId_fkey" FOREIGN KEY ("targetFieldId") REFERENCES "public"."FieldMetadata"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."Page" ADD CONSTRAINT "Page_websiteId_fkey" FOREIGN KEY ("websiteId") REFERENCES "public"."Website"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."ContentItem" ADD CONSTRAINT "ContentItem_contentTypeId_fkey" FOREIGN KEY ("contentTypeId") REFERENCES "public"."ContentType"("id") ON DELETE CASCADE ON UPDATE CASCADE;
