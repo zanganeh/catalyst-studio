@@ -33,7 +33,6 @@ export async function GET(
       contentType: {
         ...contentItem.contentType,
         fields: contentItem.contentType.fields,
-        schema: contentItem.contentType.schema,
       },
       website: {
         ...contentItem.website,
@@ -113,7 +112,6 @@ export async function PUT(
       contentType: {
         ...contentItem.contentType,
         fields: contentItem.contentType.fields,
-        schema: contentItem.contentType.schema,
       },
       website: {
         ...contentItem.website,

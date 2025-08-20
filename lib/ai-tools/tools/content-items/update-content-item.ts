@@ -235,7 +235,6 @@ export const updateContentItem = tool({
       
       // Transform response
       const contentTypeFields = updatedItem.contentType.fields || {};
-      const contentTypeSchema = updatedItem.contentType.schema || {};
       
       return {
         success: true,
@@ -252,8 +251,7 @@ export const updateContentItem = tool({
           contentType: {
             id: updatedItem.contentType.id,
             name: updatedItem.contentType.name,
-            fields: contentTypeFields,
-            schema: contentTypeSchema
+            fields: contentTypeFields
           },
           website: {
             id: updatedItem.website.id,

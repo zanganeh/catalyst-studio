@@ -21,7 +21,6 @@ CREATE TABLE "public"."ContentType" (
     "name" TEXT NOT NULL,
     "pluralName" TEXT NOT NULL,
     "displayField" TEXT,
-    "schema" JSONB NOT NULL,
     "fields" JSONB NOT NULL,
     "websiteId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -223,15 +222,6 @@ ALTER TABLE "public"."ContentType" ADD CONSTRAINT "ContentType_websiteId_fkey" F
 
 -- AddForeignKey
 ALTER TABLE "public"."AIContext" ADD CONSTRAINT "AIContext_websiteId_fkey" FOREIGN KEY ("websiteId") REFERENCES "public"."Website"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."FieldMetadata" ADD CONSTRAINT "FieldMetadata_contentTypeId_fkey" FOREIGN KEY ("contentTypeId") REFERENCES "public"."ContentType"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."FieldRelationship" ADD CONSTRAINT "FieldRelationship_sourceFieldId_fkey" FOREIGN KEY ("sourceFieldId") REFERENCES "public"."FieldMetadata"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."FieldRelationship" ADD CONSTRAINT "FieldRelationship_targetFieldId_fkey" FOREIGN KEY ("targetFieldId") REFERENCES "public"."FieldMetadata"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."ContentItem" ADD CONSTRAINT "ContentItem_contentTypeId_fkey" FOREIGN KEY ("contentTypeId") REFERENCES "public"."ContentType"("id") ON DELETE CASCADE ON UPDATE CASCADE;

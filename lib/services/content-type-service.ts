@@ -79,7 +79,7 @@ export async function getContentTypes(websiteId?: string): Promise<ContentTypeWi
   return contentTypes.map(ct => ({
     ...ct,
     fields: (ct.fields as ContentTypeFields) || {},
-    settings: (ct.schema as ContentTypeSettings) || {},
+    settings: {} as ContentTypeSettings,
   }));
 }
 
@@ -95,7 +95,7 @@ export async function getContentType(id: string): Promise<ContentTypeWithParsedF
   return {
     ...contentType,
     fields: (contentType.fields as ContentTypeFields) || {},
-    settings: (contentType.schema as ContentTypeSettings) || {},
+    settings: {} as ContentTypeSettings,
   };
 }
 
@@ -114,12 +114,6 @@ export async function createContentType(data: CreateContentTypeRequest, source: 
     relationships,
   };
 
-  // Create schema from fields
-  const schema = {
-    fields: fields || [],
-    relationships: relationships || []
-  };
-
   const settings = {
     pluralName: contentTypeData.pluralName,
     icon: contentTypeData.icon,
@@ -133,7 +127,6 @@ export async function createContentType(data: CreateContentTypeRequest, source: 
       name: contentTypeData.name,
       pluralName: contentTypeData.pluralName,
       displayField: fields && fields.length > 0 ? fields[0].name : null,
-      schema: schema as any,
       fields: contentTypeFields as any,
     },
   });
@@ -187,19 +180,12 @@ export async function updateContentType(id: string, data: UpdateContentTypeReque
     ...(data.settings && data.settings),
   };
 
-  // Create updated schema from fields
-  const updatedSchema = {
-    fields: updatedFields.fields || [],
-    relationships: updatedFields.relationships || []
-  };
-
   const contentType = await prisma.contentType.update({
     where: { id },
     data: {
       ...(contentTypeData.name && { name: contentTypeData.name }),
       ...(contentTypeData.pluralName && { pluralName: contentTypeData.pluralName }),
       fields: updatedFields as any,
-      schema: updatedSchema as any,
     },
   });
 

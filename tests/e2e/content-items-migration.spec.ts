@@ -13,7 +13,9 @@ const TEST_WEBSITE = {
 
 const TEST_CONTENT_TYPE = {
   id: 'test-content-type-e2e',
+  key: 'test-article',
   name: 'Test Article',
+  pluralName: 'Test Articles',
   fields: JSON.stringify([
     { name: 'title', type: 'text', required: true },
     { name: 'content', type: 'richtext', required: true },
@@ -235,7 +237,9 @@ test.describe('Content Items Migration - Story 4.5', () => {
       const items = Array.from({ length: 25 }, (_, i) => ({
         contentTypeId: TEST_CONTENT_TYPE.id,
         websiteId: TEST_WEBSITE.id,
-        data: JSON.stringify({
+        title: `Pagination Test Item ${i + 1}`,
+        slug: `pagination-test-item-${i + 1}`,
+        content: JSON.stringify({
           title: `Pagination Test Item ${i + 1}`,
           content: `Content ${i + 1}`,
         }),

@@ -31,7 +31,6 @@ model ContentType {
   name             String
   pluralName       String
   displayField     String?
-  schema           Json
   fields           Json
   websiteId        String
   createdAt        DateTime             @default(now())
