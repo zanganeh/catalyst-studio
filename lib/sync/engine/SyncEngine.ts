@@ -13,6 +13,9 @@ import { DatabaseStorage } from '../storage/database-storage';
 import { ContentTypeValidator } from '../validation/ContentTypeValidator';
 import { CompatibilityChecker } from '../validation/CompatibilityChecker';
 import { ValidationErrorReporter } from '../validation/ValidationErrorReporter';
+import { ProviderRegistry } from '../../providers/registry';
+import { OptimizelyProvider } from '../../providers/optimizely';
+import { ICMSProvider } from '../../providers/types';
 
 const DEPLOYMENT_HISTORY_KEY = 'deployment-history';
 
@@ -21,6 +24,7 @@ interface SyncComponents {
   extractor?: DatabaseExtractor;
   transformer?: OptimizelyTransformer;
   apiClient?: OptimizelyApiClient;
+  provider?: ICMSProvider;
   validator?: ContentTypeValidator;
   compatibilityChecker?: CompatibilityChecker;
   errorReporter?: ValidationErrorReporter;
@@ -48,17 +52,40 @@ class SyncEngine {
       this.components.transformer = new OptimizelyTransformer();
     }
 
-    if (!this.components.apiClient) {
-      const apiUrl = this.config?.apiUrl || process.env.OPTIMIZELY_API_URL || 'https://api.cms.optimizely.com/preview3';
-      const clientId = this.config?.clientId || process.env.OPTIMIZELY_CLIENT_ID;
-      const clientSecret = this.config?.clientSecret || process.env.OPTIMIZELY_CLIENT_SECRET;
+    // Use provider pattern if enabled
+    const useProviderPattern = process.env.USE_PROVIDER_PATTERN === 'true';
+    
+    if (useProviderPattern) {
+      // Initialize provider and register it
+      if (!this.components.provider) {
+        const registry = ProviderRegistry.getInstance();
+        
+        // Check if OptimizelyProvider is already registered
+        let provider = registry.getProvider('optimizely');
+        
+        if (!provider) {
+          // Register OptimizelyProvider
+          provider = new OptimizelyProvider();
+          registry.register('optimizely', provider);
+          registry.setActiveProvider('optimizely');
+        }
+        
+        this.components.provider = provider;
+      }
+    } else {
+      // Legacy direct integration
+      if (!this.components.apiClient) {
+        const apiUrl = this.config?.apiUrl || process.env.OPTIMIZELY_API_URL || 'https://api.cms.optimizely.com/preview3';
+        const clientId = this.config?.clientId || process.env.OPTIMIZELY_CLIENT_ID;
+        const clientSecret = this.config?.clientSecret || process.env.OPTIMIZELY_CLIENT_SECRET;
 
-      if (clientId && clientSecret) {
-        this.components.apiClient = new OptimizelyApiClient({
-          baseUrl: apiUrl,
-          clientId,
-          clientSecret
-        });
+        if (clientId && clientSecret) {
+          this.components.apiClient = new OptimizelyApiClient({
+            baseUrl: apiUrl,
+            clientId,
+            clientSecret
+          });
+        }
       }
     }
 

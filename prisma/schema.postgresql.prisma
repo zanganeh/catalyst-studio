@@ -23,7 +23,6 @@ model Website {
   contentTypes ContentType[]
   contentItems ContentItem[]
   deployments  Deployment[]
-  pages        Page[]
 }
 
 model ContentType {
@@ -82,22 +81,6 @@ model FieldRelationship {
   @@index([targetFieldId])
 }
 
-model Page {
-  id           String           @id @default(cuid())
-  key          String
-  name         String
-  path         String
-  content      Json?            // PostgreSQL native JSON
-  metadata     Json?            // PostgreSQL native JSON
-  websiteId    String
-  website      Website          @relation(fields: [websiteId], references: [id])
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
-  
-  @@unique([websiteId, key])
-  @@unique([websiteId, path])
-  @@index([websiteId])
-}
 
 model ContentItem {
   id            String      @id @default(cuid())
