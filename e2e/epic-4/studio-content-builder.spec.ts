@@ -170,7 +170,7 @@ test.describe('Studio Content Builder - Complete User Flow', () => {
     if (!builderElementFound) {
       console.log('No specific content builder elements found');
       const bodyText = await page.locator('body').textContent().catch(() => 'Unable to get body text');
-      console.log('Page body text preview:', bodyText.substring(0, 500));
+      console.log('Page body text preview:', bodyText ? bodyText.substring(0, 500) : 'No body text available');
     }
   });
 

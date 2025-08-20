@@ -79,7 +79,7 @@ test.describe('Mobile Responsive and JavaScript Execution Tests', () => {
             consoleWorks: typeof console.log === 'function'
           };
         } catch (error) {
-          return { error: error.message };
+          return { error: error instanceof Error ? error.message : String(error) };
         }
       });
 
@@ -106,7 +106,7 @@ test.describe('Mobile Responsive and JavaScript Execution Tests', () => {
             fetchAPI: hasFetch
           };
         } catch (error) {
-          return { error: error.message };
+          return { error: error instanceof Error ? error.message : String(error) };
         }
       });
 
@@ -329,7 +329,7 @@ test.describe('Mobile Responsive and JavaScript Execution Tests', () => {
         domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
         firstPaint: paint.find(p => p.name === 'first-paint')?.startTime || 0,
         firstContentfulPaint: paint.find(p => p.name === 'first-contentful-paint')?.startTime || 0,
-        navigationStart: navigation.loadEventEnd - navigation.navigationStart
+        navigationStart: navigation.loadEventEnd - navigation.fetchStart
       };
     });
 
