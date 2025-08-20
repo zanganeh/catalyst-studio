@@ -90,7 +90,10 @@ export class SyncOrchestrator {
 
   setDryRun(value: boolean): void {
     this.dryRun = value;
-    // Provider handles dry-run mode internally
+    // Pass dry-run mode to provider if it supports it
+    if (this.provider && 'setDryRun' in this.provider) {
+      this.provider.setDryRun(value);
+    }
   }
 
   async sync(options: SyncOptions = {}): Promise<{

@@ -192,6 +192,10 @@ class SyncEngine {
         const isDryRun = !this.config?.clientId && !process.env.OPTIMIZELY_CLIENT_ID;
         if (isDryRun) {
           this.components.orchestrator.setDryRun(true);
+          // Also set dry run on provider directly
+          if (this.components.provider && 'setDryRun' in this.components.provider) {
+            this.components.provider.setDryRun(true);
+          }
           updateProgress(15, 'Running in simulation mode (no Optimizely credentials configured)', 'warning');
         }
 

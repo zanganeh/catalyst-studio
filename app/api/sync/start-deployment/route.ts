@@ -223,9 +223,13 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
       cmsProvider
     );
     
-    // Set dry-run mode if no provider
-    if (!cmsProvider) {
+    // Set dry-run mode if no provider or no credentials
+    const hasCredentials = process.env.OPTIMIZELY_CLIENT_ID && process.env.OPTIMIZELY_CLIENT_SECRET;
+    if (!cmsProvider || !hasCredentials) {
       orchestrator.setDryRun(true);
+      if (!hasCredentials) {
+        await updateProgress(15, 'No Optimizely credentials configured - running in dry-run mode', 'warning');
+      }
     }
 
     if (await checkCancelled()) {
