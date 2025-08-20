@@ -9,7 +9,8 @@ import type {
   StructuredPrompt,
   ProjectContext,
   PromptCategory,
-  PromptIntent
+  PromptIntent,
+  UniversalTypeContext
 } from './types';
 
 // Website Creation Templates
@@ -125,6 +126,58 @@ export const contentModelingTemplate: PromptTemplate = {
   ]
 };
 
+// Universal Type Generation Template
+export const universalTypeGenerationTemplate: PromptTemplate = {
+  id: 'universal-type-generation',
+  name: 'Universal Type Generation',
+  category: 'universal-type-generation',
+  intent: 'create',
+  description: 'Generate content types using hybrid static/dynamic system',
+  systemPrompt: `You are an expert content architect generating universal content types.
+    Use the dynamic context to avoid duplication and reuse existing components.
+    Follow the generation rules and validate against available primitive types.`,
+  userPromptTemplate: `Generate a {{contentCategory}} type for {{purpose}}.
+    
+    Available Types: {{dynamicTypes.availableTypes}}
+    Existing Types: {{dynamicTypes.existingContentTypes}}
+    Reusable Components: {{dynamicTypes.reusableComponents}}
+    
+    Requirements:
+    - Must not duplicate existing types
+    - Use only available primitive types
+    - Reuse components where applicable
+    - Include proper validation rules`,
+  variables: [
+    {
+      name: 'contentCategory',
+      type: 'string',
+      required: true,
+      description: 'Category of content type (page or component)',
+      options: ['page', 'component']
+    },
+    {
+      name: 'purpose',
+      type: 'string',
+      required: true,
+      description: 'Purpose or use case for the content type',
+      placeholder: 'e.g., blog articles, product listings, hero sections'
+    },
+    {
+      name: 'dynamicTypes',
+      type: 'object',
+      required: true,
+      description: 'Dynamic type context loaded from system'
+    }
+  ],
+  followUpSuggestions: [
+    'Add validation rules',
+    'Create relationships',
+    'Generate example content',
+    'Test type compatibility'
+  ],
+  contextRequirements: ['websiteId', 'dynamicTypes']
+};
+
 export const deploymentTemplate: PromptTemplate = {
   id: 'deployment-basic',
   name: 'Deployment Configuration',
@@ -231,7 +284,8 @@ export const websiteCreationWorkflow: PromptWorkflow = {
 export const promptTemplates = new Map<string, PromptTemplate>([
   ['website-creation-basic', websiteCreationTemplate],
   ['content-modeling-basic', contentModelingTemplate],
-  ['deployment-basic', deploymentTemplate]
+  ['deployment-basic', deploymentTemplate],
+  ['universal-type-generation', universalTypeGenerationTemplate]
 ]);
 
 export const workflows = new Map<string, PromptWorkflow>([

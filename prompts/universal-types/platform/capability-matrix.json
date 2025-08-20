@@ -1,0 +1,198 @@
+{
+  "platforms": {
+    "optimizely": {
+      "name": "Optimizely CMS",
+      "version": "12+",
+      "capabilities": {
+        "fieldTypes": {
+          "Text": { "native": "String", "confidence": 100 },
+          "LongText": { "native": "XhtmlString", "confidence": 100 },
+          "Number": { "native": "Int", "confidence": 100 },
+          "Decimal": { "native": "Double", "confidence": 100 },
+          "Boolean": { "native": "Boolean", "confidence": 100 },
+          "Date": { "native": "DateTime", "confidence": 100 },
+          "Media": { "native": "ContentReference", "confidence": 95 },
+          "JSON": { "native": "String", "confidence": 80, "note": "Stored as JSON string" }
+        },
+        "features": {
+          "contentAreas": true,
+          "blocks": true,
+          "pages": true,
+          "media": true,
+          "versioning": true,
+          "localization": true,
+          "personalization": true,
+          "workflows": true
+        },
+        "limitations": {
+          "maxFields": 200,
+          "maxNesting": 5,
+          "jsonHandling": "string-based",
+          "customValidation": "attribute-based"
+        }
+      }
+    },
+    "contentful": {
+      "name": "Contentful",
+      "version": "latest",
+      "capabilities": {
+        "fieldTypes": {
+          "Text": { "native": "Symbol", "confidence": 100 },
+          "LongText": { "native": "RichText", "confidence": 100 },
+          "Number": { "native": "Integer", "confidence": 100 },
+          "Decimal": { "native": "Number", "confidence": 100 },
+          "Boolean": { "native": "Boolean", "confidence": 100 },
+          "Date": { "native": "Date", "confidence": 100 },
+          "Media": { "native": "Asset", "confidence": 100 },
+          "JSON": { "native": "Object", "confidence": 100 }
+        },
+        "features": {
+          "contentModels": true,
+          "entries": true,
+          "assets": true,
+          "localization": true,
+          "webhooks": true,
+          "environments": true,
+          "apiFirst": true,
+          "graphql": true
+        },
+        "limitations": {
+          "maxFields": 50,
+          "maxNesting": 10,
+          "rateLimit": "10req/s",
+          "maxContentTypes": 48
+        }
+      }
+    },
+    "strapi": {
+      "name": "Strapi",
+      "version": "4.x",
+      "capabilities": {
+        "fieldTypes": {
+          "Text": { "native": "string", "confidence": 100 },
+          "LongText": { "native": "richtext", "confidence": 100 },
+          "Number": { "native": "integer", "confidence": 100 },
+          "Decimal": { "native": "decimal", "confidence": 100 },
+          "Boolean": { "native": "boolean", "confidence": 100 },
+          "Date": { "native": "datetime", "confidence": 100 },
+          "Media": { "native": "media", "confidence": 100 },
+          "JSON": { "native": "json", "confidence": 100 }
+        },
+        "features": {
+          "contentTypes": true,
+          "components": true,
+          "dynamicZones": true,
+          "media": true,
+          "users": true,
+          "roles": true,
+          "apiCustomization": true,
+          "plugins": true
+        },
+        "limitations": {
+          "maxFields": null,
+          "maxNesting": null,
+          "customValidation": "lifecycle-hooks",
+          "database": "configurable"
+        }
+      }
+    },
+    "sanity": {
+      "name": "Sanity",
+      "version": "3.x",
+      "capabilities": {
+        "fieldTypes": {
+          "Text": { "native": "string", "confidence": 100 },
+          "LongText": { "native": "portableText", "confidence": 100 },
+          "Number": { "native": "number", "confidence": 100 },
+          "Decimal": { "native": "number", "confidence": 100 },
+          "Boolean": { "native": "boolean", "confidence": 100 },
+          "Date": { "native": "datetime", "confidence": 100 },
+          "Media": { "native": "image", "confidence": 100 },
+          "JSON": { "native": "object", "confidence": 100 }
+        },
+        "features": {
+          "portableText": true,
+          "realtime": true,
+          "history": true,
+          "customComponents": true,
+          "groq": true,
+          "assets": true,
+          "studio": true,
+          "webhooks": true
+        },
+        "limitations": {
+          "maxFields": null,
+          "maxDocumentSize": "100KB",
+          "queryComplexity": "limited",
+          "customValidation": "schema-based"
+        }
+      }
+    }
+  },
+  "transformationMatrix": {
+    "Text": {
+      "optimizely": "String",
+      "contentful": "Symbol",
+      "strapi": "string",
+      "sanity": "string"
+    },
+    "LongText": {
+      "optimizely": "XhtmlString",
+      "contentful": "RichText",
+      "strapi": "richtext",
+      "sanity": "portableText"
+    },
+    "Number": {
+      "optimizely": "Int",
+      "contentful": "Integer",
+      "strapi": "integer",
+      "sanity": "number"
+    },
+    "Boolean": {
+      "optimizely": "Boolean",
+      "contentful": "Boolean",
+      "strapi": "boolean",
+      "sanity": "boolean"
+    },
+    "Date": {
+      "optimizely": "DateTime",
+      "contentful": "Date",
+      "strapi": "datetime",
+      "sanity": "datetime"
+    },
+    "Media": {
+      "optimizely": "ContentReference",
+      "contentful": "Asset",
+      "strapi": "media",
+      "sanity": "image"
+    },
+    "JSON": {
+      "optimizely": "String",
+      "contentful": "Object",
+      "strapi": "json",
+      "sanity": "object"
+    }
+  },
+  "fallbackStrategies": {
+    "JSON": {
+      "optimizely": "Serialize to string and deserialize in application",
+      "default": "Use native JSON support where available"
+    },
+    "Media": {
+      "default": "Use platform's asset management system",
+      "fallback": "Store as URL reference"
+    },
+    "LongText": {
+      "simple": "Fallback to plain text",
+      "rich": "Use platform's rich text editor"
+    }
+  },
+  "confidenceLevels": {
+    "100": "Perfect transformation - no data loss",
+    "95": "Near perfect - minimal adaptation needed",
+    "90": "Good fit - minor adjustments required",
+    "80": "Acceptable - some features may be limited",
+    "70": "Workable - requires manual intervention",
+    "below70": "Not recommended - significant limitations"
+  }
+}

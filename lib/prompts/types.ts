@@ -9,7 +9,8 @@ export type PromptCategory =
   | 'deployment'
   | 'design'
   | 'optimization'
-  | 'troubleshooting';
+  | 'troubleshooting'
+  | 'universal-type-generation';
 
 export type PromptIntent = 
   | 'create'
@@ -67,6 +68,20 @@ export interface ProjectContext {
   designPreferences?: DesignPreferences;
   technicalRequirements?: TechnicalRequirements;
   currentStage?: 'planning' | 'design' | 'development' | 'testing' | 'deployment';
+  dynamicTypes?: UniversalTypeContext;
+}
+
+export interface UniversalTypeContext {
+  websiteId: string;
+  availableTypes: string[];
+  existingContentTypes: Array<{
+    name: string;
+    category: 'page' | 'component';
+    fields: Array<{ name: string; type: string; required: boolean }>;
+  }>;
+  reusableComponents: string[];
+  commonProperties: Array<{ name: string; type: string; usage: number }>;
+  sessionTypes?: Array<{ name: string; createdAt: Date }>;
 }
 
 export interface ContentType {
