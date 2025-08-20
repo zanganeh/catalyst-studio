@@ -112,14 +112,7 @@ async function main() {
         { name: 'featuredImage', type: 'image', required: false },
         { name: 'publishDate', type: 'datetime', required: true },
         { name: 'readTime', type: 'number', min: 1, max: 60 }
-      ]),
-      schema: JSON.stringify({
-        displayName: 'Blog Posts',
-        icon: '📝',
-        defaultStatus: 'draft',
-        enableComments: true,
-        enableSearch: true
-      })
+      ])
     }
   })
   
@@ -140,12 +133,7 @@ async function main() {
           { name: 'github', type: 'text' },
           { name: 'linkedin', type: 'text' }
         ]}
-      ]),
-      schema: JSON.stringify({
-        displayName: 'Authors',
-        icon: '👤',
-        singleton: false
-      })
+      ])
     }
   })
   
@@ -169,13 +157,7 @@ async function main() {
         { name: 'images', type: 'array', itemType: 'image', maxItems: 10 },
         { name: 'features', type: 'array', itemType: 'text' },
         { name: 'digital', type: 'boolean', default: true }
-      ]),
-      schema: JSON.stringify({
-        displayName: 'Products',
-        icon: '📦',
-        enableSearch: true,
-        enableFilters: true
-      })
+      ])
     }
   })
   
@@ -198,13 +180,7 @@ async function main() {
         { name: 'link', type: 'url', required: false },
         { name: 'featured', type: 'boolean', default: false },
         { name: 'category', type: 'select', options: ['Web Design', 'Mobile App', 'Branding', 'UI/UX'] }
-      ]),
-      schema: JSON.stringify({
-        displayName: 'Portfolio Projects',
-        icon: '🎯',
-        sortBy: 'year',
-        sortOrder: 'desc'
-      })
+      ])
     }
   })
   

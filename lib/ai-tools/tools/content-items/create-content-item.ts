@@ -255,8 +255,6 @@ export const createContentItem = tool({
       // Transform response
       const contentTypeFields = contentItem.contentType.fields ? 
         (typeof contentItem.contentType.fields === 'string' ? JSON.parse(contentItem.contentType.fields) : contentItem.contentType.fields) : {};
-      const contentTypeSchema = contentItem.contentType.schema ? 
-        (typeof contentItem.contentType.schema === 'string' ? JSON.parse(contentItem.contentType.schema) : contentItem.contentType.schema) : {};
       
       return {
         success: true,
@@ -273,8 +271,7 @@ export const createContentItem = tool({
           contentType: {
             id: contentItem.contentType.id,
             name: contentItem.contentType.name,
-            fields: contentTypeFields,
-            schema: contentTypeSchema
+            fields: contentTypeFields
           },
           website: {
             id: contentItem.contentType.website.id,

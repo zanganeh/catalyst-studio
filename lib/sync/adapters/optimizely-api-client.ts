@@ -1,5 +1,5 @@
 import pLimit from 'p-limit';
-import { OptimizelyContentType } from '../transformers/optimizely-transformer';
+import { OptimizelyContentType, OptimizelyContentTypeResponse } from '../../providers/optimizely/types';
 import { SyncHistoryManager, SyncStatus } from '../tracking/SyncHistoryManager';
 import { SyncSnapshot } from '../tracking/SyncSnapshot';
 import { PrismaClient } from '@/lib/generated/prisma';
@@ -11,10 +11,6 @@ export interface OptimizelyConfig {
   clientSecret?: string;
   projectId?: string;
   rateLimit?: number;
-}
-
-export interface OptimizelyContentTypeResponse extends OptimizelyContentType {
-  etag: string | null;
 }
 
 export interface TokenResponse {

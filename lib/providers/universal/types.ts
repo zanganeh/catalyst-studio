@@ -13,6 +13,7 @@ export interface TypeMetadata {
   aiPrompt?: string;
   version?: string;
   tags?: string[];
+  platformSpecific?: Record<string, any>;
 }
 
 /**

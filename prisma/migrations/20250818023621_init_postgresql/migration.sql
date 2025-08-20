@@ -21,7 +21,6 @@ CREATE TABLE "public"."ContentType" (
     "name" TEXT NOT NULL,
     "pluralName" TEXT NOT NULL,
     "displayField" TEXT,
-    "schema" JSONB NOT NULL,
     "fields" JSONB NOT NULL,
     "websiteId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -31,46 +30,16 @@ CREATE TABLE "public"."ContentType" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."FieldMetadata" (
+CREATE TABLE "public"."AIContext" (
     "id" TEXT NOT NULL,
     "websiteId" TEXT NOT NULL,
-    "contentTypeId" TEXT NOT NULL,
-    "fieldName" TEXT NOT NULL,
-    "fieldType" TEXT NOT NULL,
+    "sessionId" TEXT NOT NULL DEFAULT 'default',
+    "context" JSONB NOT NULL,
     "metadata" JSONB,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "FieldMetadata_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."FieldRelationship" (
-    "id" TEXT NOT NULL,
-    "websiteId" TEXT NOT NULL,
-    "sourceFieldId" TEXT NOT NULL,
-    "targetFieldId" TEXT NOT NULL,
-    "relationshipType" TEXT NOT NULL,
-    "metadata" JSONB,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "FieldRelationship_pkey" PRIMARY KEY ("id")
-);
-
--- CreateTable
-CREATE TABLE "public"."Page" (
-    "id" TEXT NOT NULL,
-    "key" TEXT NOT NULL,
-    "name" TEXT NOT NULL,
-    "path" TEXT NOT NULL,
-    "content" JSONB,
-    "metadata" JSONB,
-    "websiteId" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-
-    CONSTRAINT "Page_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "AIContext_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -177,34 +146,10 @@ CREATE INDEX "ContentType_websiteId_idx" ON "public"."ContentType"("websiteId");
 CREATE UNIQUE INDEX "ContentType_websiteId_key_key" ON "public"."ContentType"("websiteId", "key");
 
 -- CreateIndex
-CREATE INDEX "FieldMetadata_websiteId_idx" ON "public"."FieldMetadata"("websiteId");
+CREATE INDEX "AIContext_websiteId_idx" ON "public"."AIContext"("websiteId");
 
 -- CreateIndex
-CREATE INDEX "FieldMetadata_contentTypeId_idx" ON "public"."FieldMetadata"("contentTypeId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "FieldMetadata_contentTypeId_fieldName_key" ON "public"."FieldMetadata"("contentTypeId", "fieldName");
-
--- CreateIndex
-CREATE INDEX "FieldRelationship_websiteId_idx" ON "public"."FieldRelationship"("websiteId");
-
--- CreateIndex
-CREATE INDEX "FieldRelationship_sourceFieldId_idx" ON "public"."FieldRelationship"("sourceFieldId");
-
--- CreateIndex
-CREATE INDEX "FieldRelationship_targetFieldId_idx" ON "public"."FieldRelationship"("targetFieldId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "FieldRelationship_sourceFieldId_targetFieldId_key" ON "public"."FieldRelationship"("sourceFieldId", "targetFieldId");
-
--- CreateIndex
-CREATE INDEX "Page_websiteId_idx" ON "public"."Page"("websiteId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Page_websiteId_key_key" ON "public"."Page"("websiteId", "key");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Page_websiteId_path_key" ON "public"."Page"("websiteId", "path");
+CREATE UNIQUE INDEX "AIContext_websiteId_sessionId_key" ON "public"."AIContext"("websiteId", "sessionId");
 
 -- CreateIndex
 CREATE INDEX "ContentItem_websiteId_idx" ON "public"."ContentItem"("websiteId");
@@ -276,16 +221,7 @@ CREATE INDEX "ConflictLog_resolution_idx" ON "public"."ConflictLog"("resolution"
 ALTER TABLE "public"."ContentType" ADD CONSTRAINT "ContentType_websiteId_fkey" FOREIGN KEY ("websiteId") REFERENCES "public"."Website"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."FieldMetadata" ADD CONSTRAINT "FieldMetadata_contentTypeId_fkey" FOREIGN KEY ("contentTypeId") REFERENCES "public"."ContentType"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."FieldRelationship" ADD CONSTRAINT "FieldRelationship_sourceFieldId_fkey" FOREIGN KEY ("sourceFieldId") REFERENCES "public"."FieldMetadata"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."FieldRelationship" ADD CONSTRAINT "FieldRelationship_targetFieldId_fkey" FOREIGN KEY ("targetFieldId") REFERENCES "public"."FieldMetadata"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "public"."Page" ADD CONSTRAINT "Page_websiteId_fkey" FOREIGN KEY ("websiteId") REFERENCES "public"."Website"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."AIContext" ADD CONSTRAINT "AIContext_websiteId_fkey" FOREIGN KEY ("websiteId") REFERENCES "public"."Website"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."ContentItem" ADD CONSTRAINT "ContentItem_contentTypeId_fkey" FOREIGN KEY ("contentTypeId") REFERENCES "public"."ContentType"("id") ON DELETE CASCADE ON UPDATE CASCADE;

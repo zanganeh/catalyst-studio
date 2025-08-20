@@ -1,22 +1,8 @@
 import { ExtractedContentType } from '../extractors/database-extractor';
-
-export interface OptimizelyProperty {
-  type: string;
-  displayName: string;
-  required: boolean;
-  description?: string;
-}
-
-export interface OptimizelyContentType {
-  key: string;
-  displayName: string;
-  description: string;
-  baseType: string;
-  source: string;
-  sortOrder: number;
-  mayContainTypes: string[];
-  properties: Record<string, OptimizelyProperty>;
-}
+import { 
+  OptimizelyContentType, 
+  OptimizelyProperty 
+} from '../../providers/optimizely/types';
 
 export interface FieldMapping {
   catalystName: string;

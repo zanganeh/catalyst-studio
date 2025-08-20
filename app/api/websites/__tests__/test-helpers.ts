@@ -9,7 +9,7 @@ let originalConsoleError: typeof console.error;
 
 export function suppressConsoleError() {
   originalConsoleError = console.error;
-  console.error = jest.fn();
+  console.error = (global as any).jest?.fn() || (() => {});
 }
 
 export function restoreConsoleError() {

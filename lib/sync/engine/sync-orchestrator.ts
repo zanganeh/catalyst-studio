@@ -1,7 +1,8 @@
 import * as chalk from 'chalk';
 import { DatabaseExtractor, ExtractedContentType } from '../extractors/database-extractor';
 import { OptimizelyTransformer, TransformationResult } from '../transformers/optimizely-transformer';
-import { OptimizelyApiClient, OptimizelyContentTypeResponse } from '../adapters/optimizely-api-client';
+import { OptimizelyApiClient } from '../adapters/optimizely-api-client';
+import { OptimizelyContentTypeResponse } from '../../providers/optimizely/types';
 
 export interface SyncStorage {
   loadAllContentTypes(): Promise<ExtractedContentType[]>;

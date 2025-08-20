@@ -47,7 +47,6 @@ export const listContentItems = tool({
       const transformedItems = items.map(item => {
         // Prisma already parses JSON fields, no need for JSON.parse
         const contentTypeFields = item.contentType.fields || {};
-        const contentTypeSchema = item.contentType.schema || {};
         
         return {
           id: item.id,
@@ -62,8 +61,7 @@ export const listContentItems = tool({
           contentType: {
             id: item.contentType.id,
             name: item.contentType.name,
-            fields: contentTypeFields,
-            schema: contentTypeSchema
+            fields: contentTypeFields
           },
           website: {
             id: item.website.id,
