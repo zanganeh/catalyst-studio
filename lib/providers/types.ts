@@ -1,6 +1,6 @@
 // ICMSProvider Interface and Related Types
 
-import { UniversalContentType } from './universal/types';
+export { UniversalContentType } from './universal/types';
 
 /**
  * Validation result for content type operations
