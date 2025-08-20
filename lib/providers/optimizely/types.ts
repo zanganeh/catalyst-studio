@@ -17,6 +17,10 @@ export interface OptimizelyProperty {
   description?: string;
 }
 
+export interface OptimizelyContentTypeResponse extends OptimizelyContentType {
+  etag: string | null;
+}
+
 export interface OptimizelyValidation {
   required?: boolean;
   pattern?: string;

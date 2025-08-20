@@ -39,47 +39,11 @@ model ContentType {
   contentItems     ContentItem[]
   website          Website              @relation(fields: [websiteId], references: [id])
   versions         ContentTypeVersion[]
-  fields_metadata  FieldMetadata[]
 
   @@unique([websiteId, key])
   @@index([websiteId])
 }
 
-model FieldMetadata {
-  id                  String              @id @default(cuid())
-  websiteId           String
-  contentTypeId       String
-  fieldName           String
-  fieldType           String
-  metadata            Json?
-  createdAt           DateTime            @default(now())
-  updatedAt           DateTime            @updatedAt
-  contentType         ContentType         @relation(fields: [contentTypeId], references: [id])
-  fieldRelationships  FieldRelationship[] @relation("SourceField")
-  targetRelationships FieldRelationship[] @relation("TargetField")
-
-  @@unique([contentTypeId, fieldName])
-  @@index([websiteId])
-  @@index([contentTypeId])
-}
-
-model FieldRelationship {
-  id               String        @id @default(cuid())
-  websiteId        String
-  sourceFieldId    String
-  targetFieldId    String
-  relationshipType String
-  metadata         Json?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  sourceField      FieldMetadata @relation("SourceField", fields: [sourceFieldId], references: [id])
-  targetField      FieldMetadata @relation("TargetField", fields: [targetFieldId], references: [id])
-
-  @@unique([sourceFieldId, targetFieldId])
-  @@index([websiteId])
-  @@index([sourceFieldId])
-  @@index([targetFieldId])
-}
 
 
 model ContentItem {
