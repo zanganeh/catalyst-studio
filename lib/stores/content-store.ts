@@ -8,8 +8,9 @@ interface ApiContentItem {
   id: string;
   contentTypeId: string;
   websiteId: string;
+  title: string;
   slug?: string;
-  data: Record<string, unknown>;
+  content: Record<string, unknown>;
   metadata?: Record<string, unknown>;
   status: 'draft' | 'published' | 'archived';
   publishedAt?: Date | null;
@@ -19,8 +20,8 @@ interface ApiContentItem {
 
 // Transform API content item to internal format
 function transformApiToInternal(apiItem: ApiContentItem): ContentItem {
-  const title = apiItem.data.title as string || 'Untitled';
-  const { title: _, ...fieldData } = apiItem.data;
+  const title = apiItem.title || 'Untitled';
+  const fieldData = apiItem.content || {};
   
   return {
     id: apiItem.id,
@@ -34,13 +35,17 @@ function transformApiToInternal(apiItem: ApiContentItem): ContentItem {
 
 // Transform internal format to API format
 function transformInternalToApi(item: ContentItem, websiteId: string): Partial<ApiContentItem> {
+  // Generate slug from title if not provided
+  const slug = item.title.toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  
   return {
     contentTypeId: item.contentTypeId,
     websiteId,
-    data: {
-      title: item.title,
-      ...item.data,
-    },
+    title: item.title,
+    slug,
+    content: item.data,
     status: 'draft',
   };
 }
@@ -191,10 +196,8 @@ export const useContentStore = create<ContentState>()(
         const response = await api.put(
           `/api/content-items/${id}`,
           {
-            data: {
-              title: title as string,
-              ...fieldData,
-            },
+            title: title as string,
+            content: fieldData,
           },
           undefined,
           `update-content-${id}`
