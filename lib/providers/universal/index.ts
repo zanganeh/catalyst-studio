@@ -9,7 +9,10 @@ export {
   TypeSystem,
   TypeRegistry,
   createTypeSystem,
-  getGlobalTypeSystem,
+  getGlobalTypeSystem
+} from './type-system';
+
+export type {
   UniversalType,
   TypeSystemConfig
 } from './type-system';

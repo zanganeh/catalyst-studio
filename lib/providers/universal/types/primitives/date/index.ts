@@ -27,17 +27,19 @@ export class DatePrimitive extends PrimitiveType<Date, DateConfig> {
     
     // Parse min/max dates
     if (this.config.minDate) {
-      this.minDateParsed = this.parseDate(this.config.minDate);
-      if (!this.minDateParsed) {
+      const parsed = this.parseDate(this.config.minDate);
+      if (!parsed) {
         throw new Error(`Invalid minDate: ${this.config.minDate}`);
       }
+      this.minDateParsed = parsed;
     }
     
     if (this.config.maxDate) {
-      this.maxDateParsed = this.parseDate(this.config.maxDate);
-      if (!this.maxDateParsed) {
+      const parsed = this.parseDate(this.config.maxDate);
+      if (!parsed) {
         throw new Error(`Invalid maxDate: ${this.config.maxDate}`);
       }
+      this.maxDateParsed = parsed;
     }
   }
 

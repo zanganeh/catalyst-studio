@@ -209,9 +209,11 @@ export class FieldMapper {
     // Apply transformation if needed
     if (mapping.transformation?.required && provider) {
       try {
+        // Extract the type identifier from the source type
+        const typeId = 'type' in sourceType ? sourceType.type : sourceType.pattern;
         const result = provider.transformFromUniversal(
           value,
-          sourceType,
+          typeId,
           mapping.targetType
         );
         
@@ -310,7 +312,7 @@ export class FieldMapper {
     
     // Pattern types fallback to their primitive
     if ('pattern' in universalType) {
-      const transformResult = PatternTransformer.transformToFallback(universalType);
+      const transformResult = PatternTransformer.transformToFallback(universalType as CommonPatternType);
       const fallbackPrimitive = transformResult.target as Primitive;
       
       return {

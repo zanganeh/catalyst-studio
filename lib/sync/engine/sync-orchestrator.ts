@@ -91,7 +91,7 @@ export class SyncOrchestrator {
   setDryRun(value: boolean): void {
     this.dryRun = value;
     // Pass dry-run mode to provider if it supports it
-    if (this.provider && 'setDryRun' in this.provider) {
+    if (this.provider && 'setDryRun' in this.provider && typeof this.provider.setDryRun === 'function') {
       this.provider.setDryRun(value);
     }
   }

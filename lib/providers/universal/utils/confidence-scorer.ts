@@ -65,9 +65,9 @@ export class ConfidenceScorer {
     const platformBonus = this.calculatePlatformBonus(
       sourceType, 
       targetType, 
+      factors,
       sourcePlatform, 
-      targetPlatform, 
-      factors
+      targetPlatform
     );
     
     // Calculate final score
@@ -208,16 +208,16 @@ export class ConfidenceScorer {
     
     // Both patterns
     if ('pattern' in sourceType && 'pattern' in targetType) {
-      return this.scorePatternToPattern(sourceType, targetType, factors);
+      return this.scorePatternToPattern(sourceType as CommonPatternType, targetType as CommonPatternType, factors);
     }
     
     // Mixed (primitive <-> pattern)
     if ('type' in sourceType && 'pattern' in targetType) {
-      return this.scorePrimitiveToPattern(sourceType, targetType, factors);
+      return this.scorePrimitiveToPattern(sourceType as Primitive, targetType as CommonPatternType, factors);
     }
     
     if ('pattern' in sourceType && 'type' in targetType) {
-      return this.scorePatternToPrimitive(sourceType, targetType, factors);
+      return this.scorePatternToPrimitive(sourceType as CommonPatternType, targetType as Primitive, factors);
     }
     
     return 50; // Default uncertain score
@@ -285,7 +285,6 @@ export class ConfidenceScorer {
     
     const compatibilityMap: Record<string, Record<string, number>> = {
       [CommonPattern.RICH_TEXT]: {
-        [CommonPattern.LONG_TEXT]: 75,
         [CommonPattern.COMPONENT]: 60
       },
       [CommonPattern.MEDIA]: {
@@ -304,7 +303,7 @@ export class ConfidenceScorer {
         [CommonPattern.COLLECTION]: 85
       },
       [CommonPattern.SLUG]: {
-        [CommonPattern.TEXT]: 90
+        [CommonPattern.TAGS]: 65
       },
       [CommonPattern.TAGS]: {
         [CommonPattern.SELECT]: 75,
@@ -456,9 +455,9 @@ export class ConfidenceScorer {
   private static calculatePlatformBonus(
     sourceType: Primitive | CommonPatternType,
     targetType: Primitive | CommonPatternType,
+    factors: ScoreFactor[],
     sourcePlatform?: string,
-    targetPlatform?: string,
-    factors: ScoreFactor[]
+    targetPlatform?: string
   ): number {
     let bonus = 0;
     
@@ -504,12 +503,12 @@ export class ConfidenceScorer {
     if (typeof data === 'boolean') return 0.5;
     
     if (Array.isArray(data)) {
-      return 1 + data.reduce((sum, item) => sum + this.calculateDataComplexity(item), 0);
+      return 1 + data.reduce((sum: number, item) => sum + this.calculateDataComplexity(item), 0);
     }
     
-    if (typeof data === 'object') {
+    if (typeof data === 'object' && data !== null) {
       return 1 + Object.values(data).reduce(
-        (sum, value) => sum + this.calculateDataComplexity(value), 0
+        (sum: number, value) => sum + this.calculateDataComplexity(value), 0
       );
     }
     

@@ -434,7 +434,7 @@ export class PatternTransformer {
       if (source.pattern === target.pattern) {
         return 95;
       }
-      return this.calculatePatternCompatibility(source, target);
+      return this.calculatePatternCompatibility(source as CommonPatternType, target as CommonPatternType);
     }
 
     // Primitive to primitive
@@ -447,13 +447,13 @@ export class PatternTransformer {
 
     // Pattern to primitive (fallback)
     if ('pattern' in source && 'type' in target) {
-      const fallbackResult = this.transformToFallback(source);
+      const fallbackResult = this.transformToFallback(source as CommonPatternType);
       return fallbackResult.confidence;
     }
 
     // Primitive to pattern (upgrade)
     if ('type' in source && 'pattern' in target) {
-      return this.calculateUpgradeConfidence(source, target);
+      return this.calculateUpgradeConfidence(source as Primitive, target as CommonPatternType);
     }
 
     return 0;
@@ -465,7 +465,6 @@ export class PatternTransformer {
   ): number {
     const compatibilityMatrix: Record<CommonPattern, Partial<Record<CommonPattern, number>>> = {
       [CommonPattern.RICH_TEXT]: {
-        [CommonPattern.LONG_TEXT]: 85,
         [CommonPattern.COMPONENT]: 60
       },
       [CommonPattern.MEDIA]: {
@@ -484,7 +483,6 @@ export class PatternTransformer {
         [CommonPattern.COLLECTION]: 85
       },
       [CommonPattern.SLUG]: {
-        [CommonPattern.TEXT]: 95
       },
       [CommonPattern.TAGS]: {
         [CommonPattern.SELECT]: 75,

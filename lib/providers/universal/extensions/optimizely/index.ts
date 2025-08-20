@@ -5,7 +5,7 @@
 
 import { PlatformExtension } from '../../types/extensions';
 import { PrimitiveType } from '../../types/primitives';
-import { CommonPattern } from '../../types/common-patterns';
+import { CommonPattern, CollectionPattern } from '../../types/common-patterns';
 
 /**
  * Optimizely Content Area extension
@@ -19,8 +19,9 @@ const contentAreaExtension: PlatformExtension = {
   version: '1.0.0',
   extendsType: {
     pattern: CommonPattern.COLLECTION,
+    itemType: { type: PrimitiveType.JSON },
     fallbackPrimitive: PrimitiveType.JSON
-  },
+  } as CollectionPattern,
   platformProperties: {
     allowedTypes: [],
     renderer: 'ContentAreaRenderer',

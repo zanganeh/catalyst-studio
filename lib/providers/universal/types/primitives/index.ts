@@ -4,12 +4,20 @@
  */
 
 // Base class
-export { PrimitiveType } from './base/primitive-type';
+export { PrimitiveType as PrimitiveTypeClass } from './base/primitive-type';
 export type { 
   PrimitiveConfig, 
   ValidationResult, 
   TransformResult 
 } from './base/primitive-type';
+
+// Import for use in this file
+import type { PrimitiveConfig } from './base/primitive-type';
+import { PrimitiveType as PrimitiveTypeClassInternal } from './base/primitive-type';
+
+// Registry
+import { PrimitiveRegistry } from './registry';
+const primitiveRegistry = PrimitiveRegistry.getInstance();
 
 // Primitive implementations
 export { TextPrimitive, createTextPrimitive } from './text';
@@ -52,7 +60,7 @@ export { PrimitiveTypeId as PrimitiveType } from './registry';
 /**
  * Type guard to check if value is a PrimitiveType instance
  */
-export function isPrimitiveType(value: any): value is PrimitiveType {
+export function isPrimitiveType(value: any): value is PrimitiveTypeClassInternal<any, any> {
   return value && 
     typeof value === 'object' && 
     typeof value.typeId === 'string' &&
@@ -63,13 +71,13 @@ export function isPrimitiveType(value: any): value is PrimitiveType {
 /**
  * Helper to create primitive from JSON
  */
-export function primitiveFromJSON(json: any): PrimitiveType {
+export function primitiveFromJSON(json: any): PrimitiveTypeClassInternal<any, any> {
   return primitiveRegistry.fromJSON(json);
 }
 
 /**
  * Helper to detect and create primitive from value
  */
-export function primitiveFromValue(value: any, config?: PrimitiveConfig): PrimitiveType | null {
+export function primitiveFromValue(value: any, config?: PrimitiveConfig): PrimitiveTypeClassInternal<any, any> | null {
   return primitiveRegistry.createFromValue(value, config);
 }

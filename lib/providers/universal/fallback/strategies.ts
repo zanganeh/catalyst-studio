@@ -304,8 +304,9 @@ export class FallbackExecutor {
     // For now, returning a simplified version
     if ('pattern' in sourceType) {
       // Convert pattern to primitive
+      const patternType = sourceType as CommonPatternType;
       return {
-        type: sourceType.fallbackPrimitive || PrimitiveType.JSON
+        type: (patternType as any).fallbackPrimitive || PrimitiveType.JSON
       } as Primitive;
     }
     return sourceType;

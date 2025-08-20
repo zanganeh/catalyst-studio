@@ -87,6 +87,41 @@ export interface MigrationStrategy {
 }
 
 /**
+ * Extension validator for validating platform extensions
+ */
+export class ExtensionValidator {
+  /**
+   * Validate a platform extension
+   */
+  static validate(extension: PlatformExtension): boolean {
+    if (!extension.id || !extension.platform || !extension.name) {
+      return false;
+    }
+    
+    if (!extension.extendsType) {
+      return false;
+    }
+    
+    if (extension.transformationConfidence < 0 || extension.transformationConfidence > 100) {
+      return false;
+    }
+    
+    return true;
+  }
+  
+  /**
+   * Validate extension compatibility
+   */
+  static validateCompatibility(extension: PlatformExtension, capabilities: string[]): boolean {
+    if (!extension.requiredCapabilities) {
+      return true;
+    }
+    
+    return extension.requiredCapabilities.every(cap => capabilities.includes(cap));
+  }
+}
+
+/**
  * Extension registry for managing platform extensions
  */
 export class ExtensionRegistry {
@@ -139,41 +174,6 @@ export class ExtensionRegistry {
    */
   static clear(): void {
     this.extensions.clear();
-  }
-
-  /**
-   * Check if extension is valid
-   */
-  static validate(extension: PlatformExtension): boolean {
-    if (!extension.id || !extension.platform || !extension.name) {
-      return false;
-    }
-
-    if (!extension.extendsType) {
-      return false;
-    }
-
-    if (extension.transformationConfidence < 0 || extension.transformationConfidence > 100) {
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * Check if platform supports required capabilities
-   */
-  static checkCapabilities(
-    extension: PlatformExtension,
-    platformCapabilities: string[]
-  ): boolean {
-    if (!extension.requiredCapabilities) {
-      return true;
-    }
-
-    return extension.requiredCapabilities.every(cap => 
-      platformCapabilities.includes(cap)
-    );
   }
 }
 
@@ -310,6 +310,30 @@ export class ExtensionConflictResolver {
     }
     
     return false;
+  }
+
+  /**
+   * Get conflicts between extensions
+   */
+  static getConflicts(extensions: PlatformExtension[]): PlatformExtension[] {
+    const conflicts: PlatformExtension[] = [];
+    const seen = new Map<string, PlatformExtension>();
+    
+    for (const ext of extensions) {
+      const key = `${ext.platform}:${ext.id}`;
+      if (seen.has(key)) {
+        if (!conflicts.includes(seen.get(key)!)) {
+          conflicts.push(seen.get(key)!);
+        }
+        if (!conflicts.includes(ext)) {
+          conflicts.push(ext);
+        }
+      } else {
+        seen.set(key, ext);
+      }
+    }
+    
+    return conflicts;
   }
 
   /**

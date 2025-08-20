@@ -82,7 +82,7 @@ export class ExtensionLoader {
       // Check for conflicts
       const conflicts = ExtensionConflictResolver.getConflicts(result.loaded);
       if (conflicts.length > 0) {
-        result.conflicts = conflicts;
+        result.conflicts = [conflicts];
         
         // Resolve conflicts if configured
         if (this.config.conflictResolution) {
@@ -140,7 +140,7 @@ export class ExtensionLoader {
 
       // Check platform capabilities
       const capabilities = PLATFORM_CAPABILITIES[this.config.platform];
-      if (capabilities && !ExtensionValidator.checkCapabilities(extension, capabilities.capabilities)) {
+      if (capabilities && !ExtensionValidator.validateCompatibility(extension, capabilities.capabilities)) {
         return { success: false, reason: 'Platform does not support required capabilities' };
       }
     }
@@ -253,7 +253,7 @@ export class ExtensionLoader {
       return true;
     }
 
-    return ExtensionValidator.checkCapabilities(extension, capabilities.capabilities);
+    return ExtensionValidator.validateCompatibility(extension, capabilities.capabilities);
   }
 
   /**

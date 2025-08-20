@@ -241,7 +241,8 @@ export class TypeRegistry {
 /**
  * Export main interfaces
  */
-export { PrimitiveType, CommonPattern } from './types/primitives';
+export { PrimitiveType } from './types/primitives';
+export { CommonPattern } from './types/common-patterns';
 export type { ITypeProvider } from './interfaces/type-provider';
 
 /**

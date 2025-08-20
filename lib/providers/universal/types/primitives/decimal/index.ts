@@ -42,13 +42,14 @@ export class DecimalPrimitive extends PrimitiveType<string, DecimalConfig> {
       };
     }
 
+    // Calculate digits for validation
+    const parts = strValue.replace('-', '').split('.');
+    const integerDigits = parts[0].length;
+    const decimalDigits = parts[1] ? parts[1].length : 0;
+    const totalDigits = integerDigits + decimalDigits;
+
     // Check precision and scale
     if (this.config.precision !== undefined || this.config.scale !== undefined) {
-      const parts = strValue.replace('-', '').split('.');
-      const integerDigits = parts[0].length;
-      const decimalDigits = parts[1] ? parts[1].length : 0;
-      const totalDigits = integerDigits + decimalDigits;
-
       if (this.config.precision !== undefined && totalDigits > this.config.precision) {
         errors.push(`Total digits (${totalDigits}) exceeds precision (${this.config.precision})`);
       }
