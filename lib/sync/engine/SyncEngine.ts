@@ -7,7 +7,6 @@ import {
 import { SyncEngineConfig } from '../types/sync';
 import { DatabaseExtractor } from '../extractors/database-extractor';
 import { OptimizelyTransformer } from '../transformers/optimizely-transformer';
-import { OptimizelyApiClient } from '../adapters/optimizely-api-client';
 import { SyncOrchestrator, SyncStorage, SyncState } from './sync-orchestrator';
 import { DatabaseStorage } from '../storage/database-storage';
 import { ContentTypeValidator } from '../validation/ContentTypeValidator';
@@ -23,7 +22,6 @@ interface SyncComponents {
   orchestrator?: SyncOrchestrator;
   extractor?: DatabaseExtractor;
   transformer?: OptimizelyTransformer;
-  apiClient?: OptimizelyApiClient;
   provider?: ICMSProvider;
   validator?: ContentTypeValidator;
   compatibilityChecker?: CompatibilityChecker;
@@ -52,41 +50,21 @@ class SyncEngine {
       this.components.transformer = new OptimizelyTransformer();
     }
 
-    // Use provider pattern if enabled
-    const useProviderPattern = process.env.USE_PROVIDER_PATTERN === 'true';
-    
-    if (useProviderPattern) {
-      // Initialize provider and register it
-      if (!this.components.provider) {
-        const registry = ProviderRegistry.getInstance();
-        
-        // Check if OptimizelyProvider is already registered
-        let provider = registry.getProvider('optimizely');
-        
-        if (!provider) {
-          // Register OptimizelyProvider
-          provider = new OptimizelyProvider();
-          registry.register('optimizely', provider);
-          registry.setActiveProvider('optimizely');
-        }
-        
-        this.components.provider = provider;
+    // Always use provider pattern
+    if (!this.components.provider) {
+      const registry = ProviderRegistry.getInstance();
+      
+      // Check if OptimizelyProvider is already registered
+      let provider = registry.getProvider('optimizely');
+      
+      if (!provider) {
+        // Register OptimizelyProvider
+        provider = new OptimizelyProvider();
+        registry.register('optimizely', provider);
+        registry.setActiveProvider('optimizely');
       }
-    } else {
-      // Legacy direct integration
-      if (!this.components.apiClient) {
-        const apiUrl = this.config?.apiUrl || process.env.OPTIMIZELY_API_URL || 'https://api.cms.optimizely.com/preview3';
-        const clientId = this.config?.clientId || process.env.OPTIMIZELY_CLIENT_ID;
-        const clientSecret = this.config?.clientSecret || process.env.OPTIMIZELY_CLIENT_SECRET;
-
-        if (clientId && clientSecret) {
-          this.components.apiClient = new OptimizelyApiClient({
-            baseUrl: apiUrl,
-            clientId,
-            clientSecret
-          });
-        }
-      }
+      
+      this.components.provider = provider;
     }
 
     // Initialize validation components
@@ -110,7 +88,7 @@ class SyncEngine {
         this.components.extractor,
         storage,
         this.components.transformer,
-        this.components.apiClient || null
+        this.components.provider || null
       );
     }
   }

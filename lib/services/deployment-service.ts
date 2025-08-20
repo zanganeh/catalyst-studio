@@ -2,7 +2,6 @@ import { PrismaClient } from '@/lib/generated/prisma';
 import { SyncHistoryManager } from '../sync/tracking/SyncHistoryManager';
 import { SyncSnapshot } from '../sync/tracking/SyncSnapshot';
 import { ContentTypeHasher } from '../sync/versioning/ContentTypeHasher';
-import { OptimizelyApiClient } from '../sync/adapters/optimizely-api-client';
 import { SyncStateManager } from '../sync/state/SyncStateManager';
 import { ChangeDetector } from '../sync/detection/ChangeDetector';
 import { ProviderRegistry } from '../providers/registry';
@@ -517,75 +516,35 @@ export class DeploymentService {
       projectId?: string;
     }
   ): Promise<void> {
-    const useProviderPattern = process.env.USE_PROVIDER_PATTERN === 'true';
+    // Always use provider pattern
+    const registry = ProviderRegistry.getInstance();
+    let provider = registry.getProvider('optimizely');
     
-    if (useProviderPattern) {
-      // Use provider pattern
-      const registry = ProviderRegistry.getInstance();
-      let provider = registry.getProvider('optimizely');
-      
-      if (!provider) {
-        provider = new OptimizelyProvider();
-        registry.register('optimizely', provider);
-        registry.setActiveProvider('optimizely');
-      }
-      
-      // Deploy each content type using provider
-      for (const contentType of contentTypes) {
-        try {
-          // Convert Optimizely format to Universal format for provider
-          const universalType = provider.mapToUniversal(contentType);
-          
-          // Check if exists
-          const existing = await provider.getContentType(contentType.key);
-          
-          if (existing) {
-            // Update existing
-            await provider.updateContentType(contentType.key, universalType);
-          } else {
-            // Create new
-            await provider.createContentType(universalType);
-          }
-        } catch (error) {
-          console.error(`Failed to deploy ${contentType.key}:`, error);
-          // Continue with next type
+    if (!provider) {
+      provider = new OptimizelyProvider();
+      registry.register('optimizely', provider);
+      registry.setActiveProvider('optimizely');
+    }
+    
+    // Deploy each content type using provider
+    for (const contentType of contentTypes) {
+      try {
+        // Convert Optimizely format to Universal format for provider
+        const universalType = provider.mapToUniversal(contentType);
+        
+        // Check if exists
+        const existing = await provider.getContentType(contentType.key);
+        
+        if (existing) {
+          // Update existing
+          await provider.updateContentType(contentType.key, universalType);
+        } else {
+          // Create new
+          await provider.createContentType(universalType);
         }
-      }
-    } else {
-      // Legacy direct integration
-      const optimizelyClient = new OptimizelyApiClient({
-        clientId: config.clientId,
-        clientSecret: config.clientSecret,
-        projectId: config.projectId
-      });
-      
-      // Initialize sync tracking in the client
-      optimizelyClient.initializeSyncTracking(this.prisma, deploymentId || undefined);
-      
-      // Authenticate
-      await optimizelyClient.authenticate();
-      
-      // Deploy each content type
-      for (const contentType of contentTypes) {
-        try {
-          // Check if exists
-          const existing = await optimizelyClient.getContentType(contentType.key);
-          
-          if (existing) {
-            // Update existing
-            await optimizelyClient.updateContentType(
-              contentType.key,
-              contentType,
-              existing.etag || undefined
-            );
-          } else {
-            // Create new
-            await optimizelyClient.createContentType(contentType);
-          }
-        } catch (error) {
-          console.error(`Failed to deploy ${contentType.key}:`, error);
-          // Continue with next type
-        }
+      } catch (error) {
+        console.error(`Failed to deploy ${contentType.key}:`, error);
+        // Continue with next type
       }
     }
   }
