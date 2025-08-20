@@ -19,9 +19,11 @@ model Website {
   isActive     Boolean       @default(true)
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  aiContexts   AIContext[]
   contentTypes ContentType[]
-  pages        Page[]
+  contentItems ContentItem[]
   deployments  Deployment[]
+  pages        Page[]
 }
 
 model ContentType {
@@ -33,12 +35,12 @@ model ContentType {
   schema           Json                     // PostgreSQL native JSON
   fields           Json                     // PostgreSQL native JSON
   websiteId        String
-  website          Website                  @relation(fields: [websiteId], references: [id])
   createdAt        DateTime                 @default(now())
   updatedAt        DateTime                 @updatedAt
-  fields_metadata  FieldMetadata[]
-  contentInstances ContentInstance[]
+  contentItems     ContentItem[]
+  website          Website                  @relation(fields: [websiteId], references: [id])
   versions         ContentTypeVersion[]
+  fields_metadata  FieldMetadata[]
   
   @@unique([websiteId, key])
   @@index([websiteId])
@@ -97,18 +99,26 @@ model Page {
   @@index([websiteId])
 }
 
-model ContentInstance {
-  id            String       @id @default(cuid())
+model ContentItem {
+  id            String      @id @default(cuid())
   contentTypeId String
-  data          Json         // PostgreSQL native JSON
-  status        String       @default("draft")
-  version       Int          @default(1)
-  contentType   ContentType  @relation(fields: [contentTypeId], references: [id])
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  
+  contentType   ContentType @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
+  websiteId     String
+  website       Website     @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  title         String
+  slug          String
+  status        String      @default("draft")
+  content       Json        // PostgreSQL native JSON
+  metadata      Json?       // PostgreSQL native JSON
+  publishedAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([websiteId, slug])
+  @@index([websiteId])
   @@index([contentTypeId])
   @@index([status])
+  @@index([publishedAt])
 }
 
 model Deployment {
@@ -172,14 +182,17 @@ model SyncState {
   localHash       String?
   remoteHash      String?
   lastSyncAt      DateTime?
-  syncStatus      String    @default("pending")
+  syncStatus      String?   @default("pending")
   conflictStatus  String?
   lastConflictAt  DateTime?
   metadata        Json?     // PostgreSQL native JSON
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  lastSyncedHash  String?
+  syncProgress    Json?     // PostgreSQL native JSON
   
   @@index([syncStatus])
+  @@index([lastSyncAt])
   @@index([conflictStatus])
 }
 
@@ -198,4 +211,18 @@ model ConflictLog {
   
   @@index([typeKey, createdAt])
   @@index([resolution])
+}
+
+model AIContext {
+  id        String   @id @default(cuid())
+  websiteId String
+  sessionId String   @default("default")
+  context   Json     // PostgreSQL native JSON
+  metadata  Json?    // PostgreSQL native JSON
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  website   Website  @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@unique([websiteId, sessionId])
+  @@index([websiteId])
 }

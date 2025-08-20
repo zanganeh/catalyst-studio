@@ -74,16 +74,20 @@ CREATE TABLE "public"."Page" (
 );
 
 -- CreateTable
-CREATE TABLE "public"."ContentInstance" (
+CREATE TABLE "public"."ContentItem" (
     "id" TEXT NOT NULL,
     "contentTypeId" TEXT NOT NULL,
-    "data" JSONB NOT NULL,
+    "websiteId" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "slug" TEXT NOT NULL,
     "status" TEXT NOT NULL DEFAULT 'draft',
-    "version" INTEGER NOT NULL DEFAULT 1,
+    "content" JSONB NOT NULL,
+    "metadata" JSONB,
+    "publishedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "ContentInstance_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "ContentItem_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -203,10 +207,19 @@ CREATE UNIQUE INDEX "Page_websiteId_key_key" ON "public"."Page"("websiteId", "ke
 CREATE UNIQUE INDEX "Page_websiteId_path_key" ON "public"."Page"("websiteId", "path");
 
 -- CreateIndex
-CREATE INDEX "ContentInstance_contentTypeId_idx" ON "public"."ContentInstance"("contentTypeId");
+CREATE INDEX "ContentItem_websiteId_idx" ON "public"."ContentItem"("websiteId");
 
 -- CreateIndex
-CREATE INDEX "ContentInstance_status_idx" ON "public"."ContentInstance"("status");
+CREATE INDEX "ContentItem_contentTypeId_idx" ON "public"."ContentItem"("contentTypeId");
+
+-- CreateIndex
+CREATE INDEX "ContentItem_status_idx" ON "public"."ContentItem"("status");
+
+-- CreateIndex
+CREATE INDEX "ContentItem_publishedAt_idx" ON "public"."ContentItem"("publishedAt");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "ContentItem_websiteId_slug_key" ON "public"."ContentItem"("websiteId", "slug");
 
 -- CreateIndex
 CREATE INDEX "Deployment_websiteId_idx" ON "public"."Deployment"("websiteId");
@@ -275,7 +288,10 @@ ALTER TABLE "public"."FieldRelationship" ADD CONSTRAINT "FieldRelationship_targe
 ALTER TABLE "public"."Page" ADD CONSTRAINT "Page_websiteId_fkey" FOREIGN KEY ("websiteId") REFERENCES "public"."Website"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "public"."ContentInstance" ADD CONSTRAINT "ContentInstance_contentTypeId_fkey" FOREIGN KEY ("contentTypeId") REFERENCES "public"."ContentType"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "public"."ContentItem" ADD CONSTRAINT "ContentItem_contentTypeId_fkey" FOREIGN KEY ("contentTypeId") REFERENCES "public"."ContentType"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "public"."ContentItem" ADD CONSTRAINT "ContentItem_websiteId_fkey" FOREIGN KEY ("websiteId") REFERENCES "public"."Website"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "public"."Deployment" ADD CONSTRAINT "Deployment_websiteId_fkey" FOREIGN KEY ("websiteId") REFERENCES "public"."Website"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
