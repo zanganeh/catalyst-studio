@@ -1,6 +1,6 @@
 // MockProvider Unit Tests
 
-import { MockProvider } from '../mock/MockProvider';
+import { MockProvider } from '../mock/mock-provider';
 import { UniversalContentType } from '../universal/types';
 
 describe('MockProvider', () => {
