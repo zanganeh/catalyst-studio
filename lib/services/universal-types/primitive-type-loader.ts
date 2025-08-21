@@ -2,7 +2,7 @@
  * Primitive Type Loader
  * Loads all primitive types from the universal type system
  */
-import { UniversalPrimitiveType } from '@/lib/providers/universal/types';
+import { TypeLoadingError, ErrorLogger } from './utils/errors';
 
 export interface LoadedPrimitiveType {
   name: string;
@@ -36,14 +36,20 @@ export class PrimitiveTypeLoader {
       // Get all subdirectories in primitives folder
       const typeDirs = await this.getTypeDirectories();
       
-      for (const typeDir of typeDirs) {
-        await this.loadTypeFromDirectory(typeDir);
-      }
+      // Load all types in parallel for better performance
+      const loadPromises = typeDirs.map(typeDir => this.loadTypeFromDirectory(typeDir));
+      await Promise.all(loadPromises);
       
       return Array.from(this.loadedTypes.values());
     } catch (error) {
-      console.error('Error loading primitive types:', error);
-      return [];
+      ErrorLogger.log(error as Error, { 
+        context: 'loadAllPrimitiveTypes'
+      });
+      // Return cached types if available
+      if (this.loadedTypes.size > 0) {
+        return Array.from(this.loadedTypes.values());
+      }
+      throw new TypeLoadingError('Failed to load primitive types', error as Error);
     }
   }
 
@@ -70,7 +76,7 @@ export class PrimitiveTypeLoader {
   private async loadTypeFromDirectory(typeName: string): Promise<void> {
     try {
       // Use static imports with a switch statement for known types
-      let typeModule: any;
+      let typeModule: { [key: string]: any };
       
       switch(typeName) {
         case 'text':
@@ -105,14 +111,18 @@ export class PrimitiveTypeLoader {
         this.loadedTypes.set(typeName, typeInfo);
       }
     } catch (error) {
-      console.error(`Error loading type ${typeName}:`, error);
+      ErrorLogger.log(error as Error, { 
+        context: 'loadTypeFromDirectory',
+        typeName 
+      });
+      // Don't throw here to allow other types to load
     }
   }
 
   /**
    * Find the main type class in the module
    */
-  private findTypeClass(module: any): any {
+  private findTypeClass(module: { [key: string]: any }): any {
     // Look for exports that extend UniversalPrimitiveType or have type characteristics
     for (const key in module) {
       const exported = module[key];
@@ -129,7 +139,7 @@ export class PrimitiveTypeLoader {
   /**
    * Check if a class looks like a type class
    */
-  private isTypeClass(cls: any): boolean {
+  private isTypeClass(cls: new () => any): boolean {
     const instance = new cls();
     return instance && (
       typeof instance.validate === 'function' ||
@@ -141,7 +151,7 @@ export class PrimitiveTypeLoader {
   /**
    * Extract type information from a type class
    */
-  private extractTypeInfo(name: string, typeClass: any): LoadedPrimitiveType {
+  private extractTypeInfo(name: string, typeClass: new () => any): LoadedPrimitiveType {
     const instance = new typeClass();
     
     return {
@@ -168,7 +178,7 @@ export class PrimitiveTypeLoader {
   /**
    * Get type description
    */
-  private getTypeDescription(name: string, instance: any): string {
+  private getTypeDescription(name: string, instance: { description?: string }): string {
     const descriptions: Record<string, string> = {
       'text': 'Short text field for titles, names, and brief content',
       'long-text': 'Long text field for rich content and descriptions',
@@ -185,7 +195,15 @@ export class PrimitiveTypeLoader {
   /**
    * Extract validation rules from type instance
    */
-  private extractValidationRules(instance: any): Record<string, any> {
+  private extractValidationRules(instance: {
+    validationRules?: Record<string, any>;
+    minLength?: number;
+    maxLength?: number;
+    min?: number;
+    max?: number;
+    pattern?: string;
+    required?: boolean;
+  }): Record<string, any> {
     const rules: Record<string, any> = {};
     
     if (instance.validationRules) {
@@ -206,7 +224,13 @@ export class PrimitiveTypeLoader {
   /**
    * Extract constraints from type instance
    */
-  private extractConstraints(instance: any): LoadedPrimitiveType['constraints'] {
+  private extractConstraints(instance: {
+    minLength?: number;
+    maxLength?: number;
+    min?: number;
+    max?: number;
+    pattern?: string;
+  }): LoadedPrimitiveType['constraints'] {
     return {
       minLength: instance.minLength,
       maxLength: instance.maxLength,
@@ -219,7 +243,13 @@ export class PrimitiveTypeLoader {
   /**
    * Extract capabilities from type
    */
-  private extractCapabilities(name: string, instance: any): string[] {
+  private extractCapabilities(name: string, instance: {
+    searchable?: boolean;
+    sortable?: boolean;
+    localized?: boolean;
+    multivalue?: boolean;
+    richText?: boolean;
+  }): string[] {
     const capabilities: string[] = [];
     
     // Add basic capability based on type

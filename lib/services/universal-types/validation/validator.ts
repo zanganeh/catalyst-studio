@@ -6,6 +6,7 @@
 import { databaseTypeLoader } from '../database-type-loader';
 import { primitiveTypeLoader } from '../primitive-type-loader';
 import { dynamicExamplesLoader } from '../examples/dynamic-loader';
+import { sanitizeTypeName, sanitizeFieldName } from '../utils/input-sanitizer';
 
 export interface ValidationResult {
   isValid: boolean;
@@ -85,6 +86,30 @@ export class ContentTypeValidator {
     const errors: ValidationError[] = [];
     const warnings: ValidationWarning[] = [];
     const suggestions: ValidationSuggestion[] = [];
+    
+    // Sanitize type name first for security
+    try {
+      definition.name = sanitizeTypeName(definition.name);
+    } catch (error: any) {
+      errors.push({
+        field: 'name',
+        message: `Invalid type name: ${error.message}`,
+        severity: 'critical'
+      });
+    }
+    
+    // Sanitize field names
+    definition.fields.forEach(field => {
+      try {
+        field.name = sanitizeFieldName(field.name);
+      } catch (error: any) {
+        errors.push({
+          field: `fields.${field.name}`,
+          message: `Invalid field name: ${error.message}`,
+          severity: 'high'
+        });
+      }
+    });
     
     // Check duplicate
     const duplicateCheck = await this.checkDuplicate(definition);

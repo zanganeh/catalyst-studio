@@ -117,10 +117,18 @@ export class UniversalTypeContextBuilder {
   }
 
   /**
-   * Load template from file
+   * Load template from file with security validation
    */
   async loadTemplate(templatePath: string): Promise<string> {
-    const fullPath = path.join(process.cwd(), templatePath);
+    // Sanitize and validate path to prevent directory traversal
+    const sanitized = path.normalize(templatePath);
+    const basePath = path.join(process.cwd(), 'prompts/universal-types/templates');
+    const fullPath = path.join(basePath, sanitized);
+    
+    // Ensure path is within allowed directory - CRITICAL SECURITY CHECK
+    if (!fullPath.startsWith(basePath)) {
+      throw new Error('Security Error: Invalid template path - attempted directory traversal');
+    }
     
     if (!fs.existsSync(fullPath)) {
       throw new Error(`Template not found: ${templatePath}`);

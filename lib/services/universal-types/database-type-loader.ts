@@ -4,7 +4,21 @@
  */
 
 import prisma from '@/lib/db/prisma';
+import type { ContentType } from '@/lib/generated/prisma';
 import { ContentTypeFields } from '@/lib/services/content-type-service';
+import { DatabaseError, ErrorLogger } from './utils/errors';
+
+// Proper TypeScript interface to replace 'any' usage
+export interface DatabaseContentType {
+  id: string;
+  name: string;
+  websiteId: string;
+  fields: ContentTypeFields;
+  createdAt: Date;
+  updatedAt: Date;
+  category?: string;
+  purpose?: string;
+}
 
 export interface LoadedContentType {
   id: string;
@@ -64,15 +78,22 @@ export class DatabaseTypeLoader {
 
       return Array.from(this.loadedTypes.values());
     } catch (error) {
-      console.error('Error loading content types from database:', error);
-      return [];
+      ErrorLogger.log(error as Error, { 
+        context: 'loadContentTypes',
+        websiteId: contextId 
+      });
+      // Return cached types if available
+      if (this.loadedTypes.size > 0) {
+        return Array.from(this.loadedTypes.values());
+      }
+      throw new DatabaseError('Failed to load content types from database', error as Error);
     }
   }
 
   /**
    * Transform database content type to loaded format
    */
-  private transformContentType(ct: any): LoadedContentType {
+  private transformContentType(ct: ContentType): LoadedContentType {
     const fields = ct.fields as ContentTypeFields;
     
     return {
