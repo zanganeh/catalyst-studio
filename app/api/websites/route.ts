@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
     const prisma = getClient();
     
     // Prisma handles JSON fields automatically
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dataToStore: any = {
       ...validated,
       metadata: validated.metadata,

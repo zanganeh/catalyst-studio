@@ -32,10 +32,13 @@ export async function POST(req: Request) {
   }
 
   // Wrap tools to inject websiteId when needed
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tools = Object.entries(baseTools).reduce((acc, [key, tool]) => {
     // Create a wrapped version of the tool that automatically includes websiteId
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (acc as any)[key] = {
       ...tool,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       execute: async (args: any, context?: any) => {
         // If the tool has a websiteId parameter and it's not provided, inject it
         if (websiteId && tool.parameters && 'websiteId' in tool.parameters.shape && !args.websiteId) {

@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { DatabaseExtractor } from '@/lib/sync/extractors/database-extractor';
 import { OptimizelyTransformer } from '@/lib/sync/transformers/optimizely-transformer';
 import { ProviderRegistry } from '@/lib/providers/registry';
-import { OptimizelyProvider } from '@/lib/providers/optimizely';
+import { ProviderFactory } from '@/lib/providers/factory';
 import { SyncOrchestrator } from '@/lib/sync/engine/sync-orchestrator';
 import { DatabaseStorage } from '@/lib/sync/storage/database-storage';
 import { startDeploymentSchema } from '@/lib/api/validation/deployment';
@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const deploymentData = (deployment.deploymentData as any) || {};
     
     return NextResponse.json({ 
@@ -142,7 +143,9 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
       where: { id: deploymentId },
     });
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const deploymentDataObj = (deployment?.deploymentData as any) || {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const logs: any[] = deploymentDataObj.logs || [];
     logs.push({
       timestamp: new Date().toISOString(),
@@ -179,6 +182,7 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
     }
 
     // Update status to running
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const currentDeploymentData = (deployment.deploymentData as any) || {};
     await prisma.deployment.update({
       where: { id: deploymentId },
@@ -202,17 +206,21 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
     
     // Configure provider based on provider type
     const registry = ProviderRegistry.getInstance();
-    let cmsProvider = registry.getProvider('optimizely');
-    
-    if (!cmsProvider && provider.id === 'optimizely') {
-      // Register OptimizelyProvider if not already registered
-      cmsProvider = new OptimizelyProvider();
-      registry.register('optimizely', cmsProvider);
-      registry.setActiveProvider('optimizely');
-    }
+    let cmsProvider = registry.getProvider(provider.id);
     
     if (!cmsProvider) {
-      await updateProgress(15, 'Warning: Provider not configured. Running in simulation mode.', 'warning');
+      // Create provider using factory
+      try {
+        cmsProvider = ProviderFactory.createProvider(provider.id, provider.config);
+        registry.register(provider.id, cmsProvider);
+        registry.setActiveProvider(provider.id);
+      } catch (error) {
+        // Fallback to mock provider if creation fails
+        await updateProgress(15, `Warning: Provider ${provider.id} not available. Using mock provider.`, 'warning');
+        cmsProvider = ProviderFactory.createProvider('mock');
+        registry.register('mock', cmsProvider);
+        registry.setActiveProvider('mock');
+      }
     }
     
     // Create sync orchestrator
@@ -324,6 +332,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const deploymentDataObj = (deployment.deploymentData as any) || {};
     
     return NextResponse.json({ 
@@ -369,7 +378,9 @@ export async function DELETE(request: NextRequest) {
       where: { id: deploymentId },
     });
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const deploymentDataObj = (currentDeployment?.deploymentData as any) || {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cancelLogs: any[] = deploymentDataObj.logs || [];
     cancelLogs.push({
       timestamp: new Date().toISOString(),

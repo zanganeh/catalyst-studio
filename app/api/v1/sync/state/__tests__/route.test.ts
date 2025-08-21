@@ -19,7 +19,7 @@ jest.mock('@/lib/generated/prisma', () => ({
 }));
 
 describe('Sync State API', () => {
-  let prisma: any;
+  let prisma: ReturnType<typeof getPrismaClientMock>;
   
   beforeEach(() => {
     prisma = new PrismaClient();

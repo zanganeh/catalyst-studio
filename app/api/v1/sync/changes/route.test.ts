@@ -18,7 +18,7 @@ describe('/api/v1/sync/changes', () => {
     mockDeploymentService = {
       getChangeSummary: jest.fn(),
       detectChanges: jest.fn()
-    } as any;
+    } as unknown as DeploymentService;
     
     (DeploymentService as jest.MockedClass<typeof DeploymentService>).mockImplementation(() => mockDeploymentService);
   });

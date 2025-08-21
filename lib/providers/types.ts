@@ -41,6 +41,21 @@ export interface ProviderCapabilities {
  */
 export interface ICMSProvider {
   /**
+   * Unique identifier for the provider
+   */
+  readonly id: string;
+  
+  /**
+   * Human-readable name for the provider
+   */
+  readonly name: string;
+  
+  /**
+   * Provider version
+   */
+  readonly version: string;
+  
+  /**
    * Retrieves all content types from the CMS
    * @returns Promise resolving to array of universal content types
    */

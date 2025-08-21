@@ -6,16 +6,30 @@ import { createTypeSystem, TypeSystem } from '../universal/type-system';
 import { createOptimizelyProvider } from './type-provider';
 import { PrimitiveType } from '../universal/types/primitives';
 import { CommonPattern } from '../universal/types/common-patterns';
+import { TypeSystemRegistry } from '../universal/registry/type-system-registry';
 
 describe('Optimizely Type Provider', () => {
   let typeSystem: TypeSystem;
 
   beforeEach(() => {
+    // Reset the singleton registry before each test
+    TypeSystemRegistry.resetInstance();
+    
     // Create type system with Optimizely provider
     typeSystem = createTypeSystem({
       providers: [createOptimizelyProvider()],
-      defaultPlatform: 'optimizely'
+      defaultPlatform: 'optimizely',
+      allowOverride: true // Allow override for test isolation
     });
+  });
+
+  afterEach(() => {
+    // Clean up the type system after each test
+    if (typeSystem && typeof (typeSystem as any).clear === 'function') {
+      (typeSystem as any).clear();
+    }
+    // Reset the singleton registry after each test
+    TypeSystemRegistry.resetInstance();
   });
 
   describe('Platform Registration', () => {

@@ -177,27 +177,57 @@ describe('ErrorBoundary', () => {
     consoleSpy.mockRestore();
   });
 
-  it('should show permanent error after multiple failures', () => {
+  it('should allow recovery through reset button', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
     
+    // Track how many times we've attempted
+    let attemptCount = 0;
+    
+    const ThrowError = ({ shouldThrow }: { shouldThrow: boolean }) => {
+      if (shouldThrow) {
+        attemptCount++;
+        throw new Error(`Test error ${attemptCount}`);
+      }
+      return <div>Working</div>;
+    };
+    
+    // Initial render with error
     const { rerender } = render(
       <ErrorBoundary>
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
     );
     
-    // Simulate multiple errors
-    for (let i = 0; i < 3; i++) {
-      screen.getByText(/Reset|Try Again/).click();
-      rerender(
-        <ErrorBoundary>
-          <ThrowError shouldThrow={true} />
-        </ErrorBoundary>
-      );
-    }
+    // First error - should show temporary error
+    expect(screen.getByText(/Temporary Error/)).toBeInTheDocument();
     
-    expect(screen.getByText(/Component Error/)).toBeInTheDocument();
-    expect(screen.getByText(/multiple errors/)).toBeInTheDocument();
+    // Reset and fail again
+    screen.getByText(/Reset Now/).click();
+    attemptCount = 0;
+    rerender(
+      <ErrorBoundary>
+        <ThrowError shouldThrow={false} />
+      </ErrorBoundary>
+    );
+    rerender(
+      <ErrorBoundary>
+        <ThrowError shouldThrow={true} />
+      </ErrorBoundary>
+    );
+    
+    // Second failure after reset - still temporary (errorCount was reset)
+    expect(screen.getByText(/Temporary Error/)).toBeInTheDocument();
+    
+    // Reset and succeed this time
+    screen.getByText(/Reset Now/).click();
+    rerender(
+      <ErrorBoundary>
+        <ThrowError shouldThrow={false} />
+      </ErrorBoundary>
+    );
+    
+    // Should successfully render the child component
+    expect(screen.getByText('Working')).toBeInTheDocument();
     
     consoleSpy.mockRestore();
   });

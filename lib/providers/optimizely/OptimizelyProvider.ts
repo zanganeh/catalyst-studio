@@ -14,6 +14,10 @@ import {
 } from './types';
 
 export class OptimizelyProvider implements ICMSProvider {
+  readonly id = 'optimizely';
+  readonly name = 'Optimizely CMS';
+  readonly version = '1.0.0';
+  
   private client: OptimizelyClient;
   private typeMapper: TypeMapper;
   private dryRun: boolean = false;

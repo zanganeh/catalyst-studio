@@ -9,7 +9,7 @@ let originalConsoleError: typeof console.error;
 
 export function suppressConsoleError() {
   originalConsoleError = console.error;
-  console.error = (global as any).jest?.fn() || (() => {});
+  console.error = (global as Record<string, unknown>).jest?.fn as typeof console.error || (() => {});
 }
 
 export function restoreConsoleError() {

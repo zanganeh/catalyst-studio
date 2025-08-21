@@ -5,7 +5,7 @@ import { ContentTypeHasher } from '../sync/versioning/ContentTypeHasher';
 import { SyncStateManager } from '../sync/state/SyncStateManager';
 import { ChangeDetector } from '../sync/detection/ChangeDetector';
 import { ProviderRegistry } from '../providers/registry';
-import { OptimizelyProvider } from '../providers/optimizely';
+import { ProviderFactory } from '../providers/factory';
 import { ConflictDetector } from '../sync/conflict/ConflictDetector';
 import { ConflictManager } from '../sync/conflict/ConflictManager';
 import { ResolutionStrategyManager } from '../sync/conflict/ResolutionStrategy';
@@ -505,31 +505,29 @@ export class DeploymentService {
   }
   
   /**
-   * Deploy with Optimizely API client
+   * Deploy with specified provider
    */
-  async deployWithOptimizely(
+  async deployWithProvider(
     deploymentId: string,
     contentTypes: any[],
-    config: {
-      clientId?: string;
-      clientSecret?: string;
-      projectId?: string;
-    }
+    providerId: string = 'optimizely',
+    config?: Record<string, any>
   ): Promise<void> {
     // Always use provider pattern
     const registry = ProviderRegistry.getInstance();
-    let provider = registry.getProvider('optimizely');
+    let provider = registry.getProvider(providerId);
     
     if (!provider) {
-      provider = new OptimizelyProvider();
-      registry.register('optimizely', provider);
-      registry.setActiveProvider('optimizely');
+      // Create provider using factory
+      provider = ProviderFactory.createProvider(providerId, config);
+      registry.register(providerId, provider);
+      registry.setActiveProvider(providerId);
     }
     
     // Deploy each content type using provider
     for (const contentType of contentTypes) {
       try {
-        // Convert Optimizely format to Universal format for provider
+        // Convert to Universal format for provider
         const universalType = provider.mapToUniversal(contentType);
         
         // Check if exists
@@ -547,6 +545,22 @@ export class DeploymentService {
         // Continue with next type
       }
     }
+  }
+  
+  /**
+   * Legacy method - redirects to deployWithProvider
+   * @deprecated Use deployWithProvider instead
+   */
+  async deployWithOptimizely(
+    deploymentId: string,
+    contentTypes: any[],
+    config: {
+      clientId?: string;
+      clientSecret?: string;
+      projectId?: string;
+    }
+  ): Promise<void> {
+    return this.deployWithProvider(deploymentId, contentTypes, 'optimizely', config);
   }
   
   /**

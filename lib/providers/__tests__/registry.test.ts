@@ -2,7 +2,7 @@
 
 import { ProviderRegistry, providerRegistry } from '../registry';
 import { ICMSProvider, ProviderNotFoundError } from '../types';
-import { MockProvider } from '../mock/MockProvider';
+import { MockProvider } from '../mock/mock-provider';
 
 describe('ProviderRegistry', () => {
   let registry: ProviderRegistry;
