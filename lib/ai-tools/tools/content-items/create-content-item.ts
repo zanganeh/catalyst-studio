@@ -183,7 +183,7 @@ export const createContentItem = tool({
         }
       }
       
-      // Get website to check category
+      // Get website to verify it exists
       const website = await prisma.website.findUnique({
         where: { id: websiteId }
       });
@@ -192,7 +192,7 @@ export const createContentItem = tool({
         throw new Error(`Website with ID '${websiteId}' not found`);
       }
       
-      // Apply business rules validation if category is known
+      // Business rules validation - currently returns valid for all data
       if (website.category) {
         const businessValidation = await businessRules.validateForCategory(data, website.category);
         if (!businessValidation.valid && businessValidation.errors) {

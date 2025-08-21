@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { CheckCircle2, Loader2, Upload, Cloud, Layers, Rocket, Globe, Server, Zap, GitBranch, Package, Shield, Activity, ExternalLink, GitCommit, GitPullRequest, GitMerge, RefreshCw, Hexagon, Search, FileText, Link2, Hash, Users, Eye, Clock, TrendingUp } from 'lucide-react'
+import { CheckCircle2, Loader2, Upload, Cloud, Layers, Rocket, Globe, Server, Zap, GitBranch, Package, Shield, Activity, ExternalLink, GitCommit, GitPullRequest, GitMerge, RefreshCw, Search, FileText, Link2, Hash, Users, Eye, Clock, TrendingUp } from 'lucide-react'
+import { DemoLayout } from './demo-layout'
 
 export function ExportDemo() {
   const [contentTypesExported, setContentTypesExported] = useState(0)
@@ -160,26 +161,8 @@ export function ExportDemo() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      <div className="flex-1 p-4 overflow-hidden">
-        <div className="max-w-7xl mx-auto h-full flex flex-col gap-4">
-          {/* Header with Branding */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <Hexagon className="h-8 w-8 text-[#FF5500] fill-[#FF5500]/20" />
-                <div>
-                  <h1 className="text-xl font-bold text-white">Catalyst Studio</h1>
-                  <p className="text-xs text-white/60">by CatalystX</p>
-                </div>
-              </div>
-            </div>
-            <div className="text-center flex-1">
-              <h2 className="text-xl font-semibold text-white">Content Export & Deployment</h2>
-              <p className="text-white/60 text-xs">Optimizely CMS → Vercel Edge Network</p>
-            </div>
-            <div className="w-32"></div>
-          </div>
+    <DemoLayout title="Content Export & Deployment" subtitle="Optimizely CMS → Vercel Edge Network">
+      <>
 
           {/* Top Section - Service Connections */}
           <div className="grid grid-cols-3 gap-4">
@@ -504,21 +487,7 @@ export function ExportDemo() {
               </div>
             </div>
           </div>
-
-          {/* Version Badge - Bottom Right */}
-          <div className="absolute bottom-4 right-4">
-            <div className="rounded-lg bg-black/40 backdrop-blur-md border border-white/10 px-3 py-2">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-xs text-white/60">Version</span>
-                <span className="text-xs font-mono text-white">2.4.0</span>
-                <span className="text-xs text-white/40">|</span>
-                <span className="text-xs text-[#FF5500]">Enterprise</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      </>
+    </DemoLayout>
   )
 }

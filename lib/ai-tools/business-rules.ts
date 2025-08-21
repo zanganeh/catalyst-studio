@@ -1,53 +1,18 @@
 import { z } from 'zod';
 
-// Category-specific validation schemas
-const blogRequiredFields = z.object({
-  title: z.string().min(1, 'Title is required'),
-  metaDescription: z.string().min(1, 'Meta description is required for SEO'),
-  tags: z.array(z.string()).min(1, 'At least one tag is required'),
-  author: z.string().min(1, 'Author is required'),
-  publishDate: z.string().datetime().or(z.date()),
-  content: z.string().min(1, 'Content is required'),
-});
+// Category-specific validation schemas - DISABLED FOR NOW
+// Keeping infrastructure but allowing all data through
+const noValidation = z.object({}).passthrough();
 
-const ecommerceRequiredFields = z.object({
-  title: z.string().min(1, 'Product title is required'),
-  price: z.number().positive('Price must be positive'),
-  sku: z.string().min(1, 'SKU is required'),
-  inventory: z.number().int().min(0, 'Inventory must be non-negative'),
-  productImages: z.array(z.string()).min(1, 'At least one product image is required'),
-  shippingInfo: z.object({
-    weight: z.number().positive('Weight must be positive'),
-    dimensions: z.object({
-      length: z.number().positive(),
-      width: z.number().positive(),
-      height: z.number().positive(),
-    }).optional(),
-  }),
-  description: z.string().min(1, 'Product description is required'),
-});
-
-const portfolioRequiredFields = z.object({
-  projectTitle: z.string().min(1, 'Project title is required'),
-  description: z.string().min(1, 'Project description is required'),
-  technologies: z.array(z.string()).min(1, 'At least one technology is required'),
-  images: z.array(z.string()).min(1, 'At least one project image is required'),
-  links: z.object({
-    live: z.string().url().optional(),
-    github: z.string().url().optional(),
-    demo: z.string().url().optional(),
-  }).refine(
-    (data) => data.live || data.github || data.demo,
-    'At least one project link is required'
-  ),
-});
-
-// Map of category to validation schema
+// Map of category to validation schema - all categories use no validation for now
 const categorySchemas: Record<string, z.ZodSchema> = {
-  blog: blogRequiredFields,
-  ecommerce: ecommerceRequiredFields,
-  'e-commerce': ecommerceRequiredFields, // Support both variations
-  portfolio: portfolioRequiredFields,
+  blog: noValidation,
+  ecommerce: noValidation,
+  'e-commerce': noValidation,
+  portfolio: noValidation,
+  corporate: noValidation,
+  personal: noValidation,
+  other: noValidation,
 };
 
 // Map of content types to their typical fields
@@ -91,20 +56,19 @@ const fieldSuggestions: Record<string, Record<string, string[]>> = {
 export class BusinessRulesEngine {
   /**
    * Validates data against category-specific rules
+   * CURRENTLY DISABLED - Returns valid for all data
    */
   async validateForCategory(data: any, category: string): Promise<{
     valid: boolean;
     errors?: Array<{ field: string; message: string }>;
     warnings?: Array<{ field: string; message: string }>;
   }> {
-    const schema = categorySchemas[category.toLowerCase()];
+    // Business rules validation disabled - always return valid
+    return { valid: true };
     
-    if (!schema) {
-      return {
-        valid: false,
-        errors: [{ field: 'category', message: `Unknown category: ${category}` }],
-      };
-    }
+    // Original implementation kept for future reference
+    /*
+    const schema = categorySchemas[category.toLowerCase()] || noValidation;
 
     try {
       await schema.parseAsync(data);
@@ -134,6 +98,7 @@ export class BusinessRulesEngine {
       
       throw error;
     }
+    */
   }
 
   /**

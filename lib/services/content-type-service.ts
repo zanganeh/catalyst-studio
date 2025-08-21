@@ -3,6 +3,12 @@ import prisma from '@/lib/db/prisma';
 import { VersionHistoryManager } from '@/lib/sync/versioning/VersionHistoryManager';
 import { VersionTree } from '@/lib/sync/versioning/VersionTree';
 import { VersionDiff } from '@/lib/sync/versioning/VersionDiff';
+import { 
+  contentTypeValidator, 
+  validateContentTypeName,
+  validateFieldName,
+  type ContentTypeDefinition 
+} from '@/lib/services/universal-types/validation';
 
 export interface ContentTypeFields {
   name?: string;
@@ -70,6 +76,81 @@ function stringifyJsonField(field: ContentTypeFields | ContentTypeSettings | nul
   return JSON.stringify(field);
 }
 
+/**
+ * Validates content type data (name, fields, and relationships)
+ * Used by both create and update operations
+ */
+async function validateContentTypeData(
+  name: string,
+  fields: CreateContentTypeRequest['fields'] | undefined,
+  relationships: CreateContentTypeRequest['relationships'] | undefined,
+  websiteId: string | undefined,
+  existingName?: string // For update operations, to check if name is changing
+): Promise<void> {
+  // Validate content type name
+  const nameValidation = validateContentTypeName(name);
+  if (!nameValidation.valid) {
+    throw new Error(`Invalid content type name: ${nameValidation.error}`);
+  }
+
+  // Validate fields
+  if (fields && fields.length > 0) {
+    const fieldNames = new Set<string>();
+    for (const field of fields) {
+      // Validate field name format
+      const fieldNameValidation = validateFieldName(field.name);
+      if (!fieldNameValidation.valid) {
+        throw new Error(`Invalid field name "${field.name}": ${fieldNameValidation.error}`);
+      }
+
+      // Check for duplicate field names
+      if (fieldNames.has(field.name.toLowerCase())) {
+        throw new Error(`Duplicate field name: ${field.name}`);
+      }
+      fieldNames.add(field.name.toLowerCase());
+    }
+  }
+
+  // Initialize validator and perform comprehensive validation
+  if (websiteId) {
+    await contentTypeValidator.initialize(websiteId);
+    
+    // Create a definition for validation
+    const definition: ContentTypeDefinition = {
+      name,
+      category: 'page', // Default to page, could be determined from context
+      fields: fields?.map(f => ({
+        name: f.name,
+        type: f.type,
+        required: f.required,
+        validation: f.validation
+      })) || [],
+      relationships: relationships?.map(r => ({
+        name: r.fieldName || r.name,
+        type: r.type,
+        targetType: r.targetContentTypeId
+      }))
+    };
+
+    const validationResult = await contentTypeValidator.validate(definition);
+    
+    // Check for duplicates
+    // For create: always check
+    // For update: only check if name is changing
+    const isCreating = !existingName;
+    const isRenaming = existingName && name !== existingName;
+    
+    if ((isCreating || isRenaming) && validationResult.duplicateCheck.isDuplicate) {
+      throw new Error(`Content type "${name}" already exists or is too similar to "${validationResult.duplicateCheck.matchType}"`);
+    }
+
+    // Log warnings but don't block operation
+    if (validationResult.warnings.length > 0) {
+      console.warn('Content type validation warnings:', validationResult.warnings);
+    }
+  }
+}
+
 export async function getContentTypes(websiteId?: string): Promise<ContentTypeWithParsedFields[]> {
   const contentTypes = await prisma.contentType.findMany({
     where: websiteId ? { websiteId } : undefined,
@@ -101,6 +182,14 @@ export async function getContentType(id: string): Promise<ContentTypeWithParsedF
 
 export async function createContentType(data: CreateContentTypeRequest, source: 'UI' | 'AI' | 'SYNC' = 'UI'): Promise<ContentTypeWithParsedFields> {
   const { websiteId, fields, relationships, ...contentTypeData } = data;
+
+  // Use the shared validation function
+  await validateContentTypeData(
+    contentTypeData.name,
+    fields,
+    relationships,
+    websiteId
+  );
 
   // Generate a key from the name (lowercase, replace spaces with underscores)
   const key = contentTypeData.name.toLowerCase().replace(/\s+/g, '_');
@@ -160,6 +249,18 @@ export async function updateContentType(id: string, data: UpdateContentTypeReque
   const currentSettings = existing.settings || {};
 
   const { fields, relationships, ...contentTypeData } = data;
+
+  // Use the shared validation function
+  // Pass existing name to check if name is changing (for duplicate detection)
+  if (contentTypeData.name || fields || relationships) {
+    await validateContentTypeData(
+      contentTypeData.name || existing.name,
+      fields,
+      relationships,
+      existing.websiteId,
+      existing.name // Pass existing name for update operations
+    );
+  }
 
   // Fix: Properly merge fields array instead of nesting it  
   let updatedFields = {

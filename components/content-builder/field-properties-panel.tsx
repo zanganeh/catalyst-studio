@@ -10,6 +10,8 @@ import { Switch } from '@/components/ui/switch';
 import { Card } from '@/components/ui/card';
 import { X } from 'lucide-react';
 import { getFieldIcon } from '@/lib/content-types/field-utils';
+import { useContentTypeValidation } from '@/lib/hooks/use-content-type-validation';
+import { useContentTypes } from '@/lib/context/content-type-context';
 
 interface FieldPropertiesPanelProps {
   field: Field | null;
@@ -23,10 +25,29 @@ export function FieldPropertiesPanel({
   onClose,
 }: FieldPropertiesPanelProps) {
   const [localField, setLocalField] = useState<Field | null>(null);
+  const [fieldNameError, setFieldNameError] = useState<string | null>(null);
+  const { currentContentType } = useContentTypes();
+  
+  // Get existing fields for duplicate checking (exclude current field)
+  const existingFields = currentContentType?.fields.filter(f => f.id !== field?.id) || [];
+  
+  const { 
+    validateField, 
+    getFieldError, 
+    clearFieldError,
+    errors 
+  } = useContentTypeValidation({
+    existingFields
+  });
 
   useEffect(() => {
     setLocalField(field);
-  }, [field]);
+    setFieldNameError(null); // Clear local error state
+    // Clear any existing errors when switching fields
+    if (field?.id) {
+      clearFieldError(`field_${field.id}`);
+    }
+  }, [field, clearFieldError]);
 
   if (!localField) {
     return null;
@@ -41,6 +62,14 @@ export function FieldPropertiesPanel({
 
   const handleSave = () => {
     if (localField) {
+      // Validate field name before saving
+      const isValid = validateField(localField.name, `field_${localField.id}`);
+      if (!isValid) {
+        const error = getFieldError(`field_${localField.id}`);
+        setFieldNameError(error || 'Invalid field name');
+        return; // Don't save if validation fails
+      }
+
       const updates: Partial<Field> = {
         name: localField.name,
         label: localField.label,
@@ -325,13 +354,29 @@ export function FieldPropertiesPanel({
             <Input
               id="name"
               value={localField.name}
-              onChange={(e) => handleChange('name', e.target.value)}
+              onChange={(e) => {
+                handleChange('name', e.target.value);
+                setFieldNameError(null); // Clear error on change
+              }}
+              onBlur={(e) => {
+                const isValid = validateField(e.target.value, `field_${localField.id}`);
+                if (!isValid) {
+                  const error = getFieldError(`field_${localField.id}`);
+                  setFieldNameError(error || 'Invalid field name');
+                } else {
+                  setFieldNameError(null);
+                }
+              }}
               placeholder="e.g., firstName"
-              pattern="^[a-zA-Z][a-zA-Z0-9_]*$"
+              className={fieldNameError ? 'border-red-500' : ''}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Used in API responses (camelCase recommended)
-            </p>
+            {fieldNameError ? (
+              <p className="text-xs text-red-500 mt-1">{fieldNameError}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">
+                Used in API responses (camelCase recommended)
+              </p>
+            )}
           </div>
 
           <div>
@@ -400,6 +445,7 @@ export function FieldPropertiesPanel({
           <Button
             onClick={handleSave}
             className="flex-1"
+            disabled={!!fieldNameError}
           >
             Save Changes
           </Button>
