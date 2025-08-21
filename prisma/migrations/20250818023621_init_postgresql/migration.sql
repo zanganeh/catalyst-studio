@@ -1,3 +1,6 @@
+-- CreateEnum
+CREATE TYPE "ContentTypeCategory" AS ENUM ('page', 'component');
+
 -- CreateTable
 CREATE TABLE "public"."Website" (
     "id" TEXT NOT NULL,
@@ -21,7 +24,7 @@ CREATE TABLE "public"."ContentType" (
     "name" TEXT NOT NULL,
     "pluralName" TEXT NOT NULL,
     "displayField" TEXT,
-    "category" TEXT NOT NULL DEFAULT 'page',
+    "category" "ContentTypeCategory" NOT NULL DEFAULT 'page',
     "fields" JSONB NOT NULL,
     "websiteId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

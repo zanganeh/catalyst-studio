@@ -25,13 +25,18 @@ model Website {
   deployments  Deployment[]
 }
 
+enum ContentTypeCategory {
+  page
+  component
+}
+
 model ContentType {
   id               String               @id @default(cuid())
   key              String
   name             String
   pluralName       String
   displayField     String?
-  category         String               @default("page")
+  category         ContentTypeCategory  @default(page)
   fields           Json
   websiteId        String
   createdAt        DateTime             @default(now())
