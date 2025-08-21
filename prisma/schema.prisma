@@ -31,6 +31,7 @@ model ContentType {
   name             String
   pluralName       String
   displayField     String?
+  category         String               @default("page")
   fields           Json
   websiteId        String
   createdAt        DateTime             @default(now())
@@ -41,6 +42,7 @@ model ContentType {
 
   @@unique([websiteId, key])
   @@index([websiteId])
+  @@index([category])
 }
 
 

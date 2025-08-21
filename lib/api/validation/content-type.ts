@@ -58,6 +58,7 @@ export const CreateContentTypeSchema = z.object({
   pluralName: z.string().min(1, 'Plural name is required'),
   icon: z.string().min(1, 'Icon is required'),
   description: z.string().optional(),
+  category: z.enum(['page', 'component']),
   fields: z.array(ContentTypeFieldSchema),
   relationships: z.array(ContentTypeRelationshipSchema),
 });
@@ -67,6 +68,7 @@ export const UpdateContentTypeSchema = z.object({
   pluralName: z.string().min(1, 'Plural name is required').optional(),
   icon: z.string().min(1, 'Icon is required').optional(),
   description: z.string().optional(),
+  category: z.enum(['page', 'component']).optional(),
   fields: z.array(ContentTypeFieldSchema).optional(),
   relationships: z.array(ContentTypeRelationshipSchema).optional(),
   settings: z.record(z.any()).optional(),

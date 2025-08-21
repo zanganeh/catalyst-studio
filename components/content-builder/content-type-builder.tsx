@@ -74,8 +74,8 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
   const handleNameSave = () => {
     if (currentContentType && nameInput.trim()) {
       // Validate the name first
-      const validation = validateTypeName(nameInput.trim());
-      if (validation.valid) {
+      const isValid = validateTypeName(nameInput.trim());
+      if (isValid) {
         updateContentType(currentContentType.id, {
           name: nameInput.trim(),
           pluralName: `${nameInput.trim()}s`,
@@ -244,7 +244,7 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
                       setIsEditingName(false);
                     }
                   }}
-                  className={`text-2xl font-bold ${errors.typeName ? 'border-red-500' : ''}`}
+                  className={`text-2xl font-bold ${errors.find(e => e.field === 'typeName') ? 'border-red-500' : ''}`}
                   autoFocus
                 />
                 <Button size="sm" onClick={handleNameSave}>Save</Button>
@@ -259,8 +259,8 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
                   Cancel
                 </Button>
               </div>
-              {errors.typeName && (
-                <p className="text-xs text-red-500 mt-1">{errors.typeName}</p>
+              {errors.find(e => e.field === 'typeName') && (
+                <p className="text-xs text-red-500 mt-1">{errors.find(e => e.field === 'typeName')?.message}</p>
               )}
             </div>
           ) : (

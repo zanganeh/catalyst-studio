@@ -120,6 +120,9 @@ export class ContentTypeValidator {
     // Validate fields
     this.validateFields(definition.fields, errors, warnings);
     
+    // Validate category-specific requirements
+    this.validateCategoryRequirements(definition, errors, warnings);
+    
     // Validate relationships
     if (definition.relationships) {
       this.validateRelationships(definition.relationships, errors, warnings);
@@ -176,14 +179,14 @@ export class ContentTypeValidator {
     if (fieldOverlap.percentage >= 80) {
       return {
         isDuplicate: true,
-        matchType: fieldOverlap.matchType,
+        matchType: fieldOverlap.matchType || undefined,
         overlapPercentage: fieldOverlap.percentage,
         recommendation: 'use_existing'
       };
     } else if (fieldOverlap.percentage >= 50) {
       return {
         isDuplicate: false,
-        matchType: fieldOverlap.matchType,
+        matchType: fieldOverlap.matchType || undefined,
         overlapPercentage: fieldOverlap.percentage,
         recommendation: 'extend_existing'
       };
@@ -191,6 +194,7 @@ export class ContentTypeValidator {
     
     return {
       isDuplicate: false,
+      matchType: fieldOverlap.matchType || undefined,
       overlapPercentage: fieldOverlap.percentage,
       recommendation: 'create_new'
     };
@@ -281,6 +285,49 @@ export class ContentTypeValidator {
         field: 'name',
         message: 'Type name is very long, consider a shorter name'
       });
+    }
+  }
+
+  /**
+   * Validate category-specific requirements
+   */
+  private validateCategoryRequirements(definition: ContentTypeDefinition, errors: ValidationError[], warnings: ValidationWarning[]): void {
+    if (definition.category === 'page') {
+      // Pages should have slug and title for routing
+      const hasSlug = definition.fields.some(f => f.name.toLowerCase() === 'slug');
+      if (!hasSlug) {
+        warnings.push({
+          field: 'fields',
+          message: 'Page types should include a "slug" field for URL routing'
+        });
+      }
+      
+      // Pages should not have URL field since they are routable themselves
+      const hasUrl = definition.fields.some(f => f.name.toLowerCase() === 'url');
+      if (hasUrl) {
+        warnings.push({
+          field: 'fields',
+          message: 'Page types should not have URL fields - they are routable by default'
+        });
+      }
+    } else if (definition.category === 'component') {
+      // Components should be reusable and focused
+      if (definition.fields.length > 8) {
+        warnings.push({
+          field: 'fields',
+          message: 'Components should be focused - consider splitting complex components into smaller ones'
+        });
+      }
+      
+      // Components should not have SEO-specific fields
+      const seoFields = ['metaTitle', 'metaDescription', 'slug'];
+      const hasSeoFields = definition.fields.some(f => seoFields.includes(f.name.toLowerCase()));
+      if (hasSeoFields) {
+        warnings.push({
+          field: 'fields',
+          message: 'Component types should not include SEO fields - those belong to page types'
+        });
+      }
     }
   }
 

@@ -102,7 +102,7 @@ export class DatabaseTypeLoader {
       websiteId: ct.websiteId,
       fields: this.extractFields(fields),
       relationships: this.extractRelationships(fields),
-      category: this.determineCategory(ct.name, fields),
+      category: (ct.category as 'page' | 'component') || 'page',
       purpose: this.extractPurpose(ct.name, fields)
     };
   }
@@ -135,28 +135,6 @@ export class DatabaseTypeLoader {
     }));
   }
 
-  /**
-   * Determine if type is page or component
-   */
-  private determineCategory(name: string, fields: ContentTypeFields): 'page' | 'component' {
-    // Check if name indicates component
-    if (name.toLowerCase().includes('component') || 
-        name.toLowerCase().includes('block') ||
-        name.toLowerCase().includes('section')) {
-      return 'component';
-    }
-
-    // Check if name indicates page
-    if (name.toLowerCase().includes('page') ||
-        name.toLowerCase().includes('post') ||
-        name.toLowerCase().includes('article')) {
-      return 'page';
-    }
-
-    // Default based on field count (components typically have fewer fields)
-    const fieldCount = fields?.fields?.length || 0;
-    return fieldCount <= 5 ? 'component' : 'page';
-  }
 
   /**
    * Extract purpose from type name and structure

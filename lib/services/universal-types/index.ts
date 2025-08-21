@@ -7,7 +7,9 @@
 export { primitiveTypeLoader } from './primitive-type-loader';
 export { databaseTypeLoader, type LoadedContentType } from './database-type-loader';
 export { propertyLoader } from './property-loader';
-export { universalTypeContextBuilder, type UniversalTypeContext } from './universal-type-context';
+export { universalTypeContextBuilder } from './universal-type-context';
+export type { DynamicContext } from './universal-type-context';
+export type { UniversalTypeContext } from '../../prompts/types';
 
 // Examples and Templates
 export { dynamicExamplesLoader, type TypeExample } from './examples/dynamic-loader';
@@ -28,6 +30,9 @@ export {
   type ConfidenceScore,
   type ConfidenceThreshold
 } from './validation';
+
+// Import validation utilities for local use
+import { validateFieldName, checkDuplicateFieldName } from './validation';
 
 /**
  * Initialize all services for a website

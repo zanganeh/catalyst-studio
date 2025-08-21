@@ -56,6 +56,7 @@ export interface ContentTypeWithParsedFields {
   id: string;
   websiteId: string;
   name: string;
+  category: string;
   fields: ContentTypeFields;
   settings: ContentTypeSettings;
   createdAt: Date;
@@ -85,7 +86,8 @@ async function validateContentTypeData(
   fields: CreateContentTypeRequest['fields'] | undefined,
   relationships: CreateContentTypeRequest['relationships'] | undefined,
   websiteId: string | undefined,
-  existingName?: string // For update operations, to check if name is changing
+  existingName?: string, // For update operations, to check if name is changing
+  category?: 'page' | 'component' // New category parameter
 ): Promise<void> {
   // Validate content type name
   const nameValidation = validateContentTypeName(name);
@@ -118,7 +120,7 @@ async function validateContentTypeData(
     // Create a definition for validation
     const definition: ContentTypeDefinition = {
       name,
-      category: 'page', // Default to page, could be determined from context
+      category: category || 'page', // Use provided category or default to page
       fields: fields?.map(f => ({
         name: f.name,
         type: f.type,
@@ -188,7 +190,9 @@ export async function createContentType(data: CreateContentTypeRequest, source: 
     contentTypeData.name,
     fields,
     relationships,
-    websiteId
+    websiteId,
+    undefined,
+    contentTypeData.category
   );
 
   // Generate a key from the name (lowercase, replace spaces with underscores)
@@ -216,6 +220,7 @@ export async function createContentType(data: CreateContentTypeRequest, source: 
       name: contentTypeData.name,
       pluralName: contentTypeData.pluralName,
       displayField: fields && fields.length > 0 ? fields[0].name : null,
+      category: contentTypeData.category,
       fields: contentTypeFields as any,
     },
   });
@@ -252,13 +257,14 @@ export async function updateContentType(id: string, data: UpdateContentTypeReque
 
   // Use the shared validation function
   // Pass existing name to check if name is changing (for duplicate detection)
-  if (contentTypeData.name || fields || relationships) {
+  if (contentTypeData.name || fields || relationships || data.category) {
     await validateContentTypeData(
       contentTypeData.name || existing.name,
       fields,
       relationships,
       existing.websiteId,
-      existing.name // Pass existing name for update operations
+      existing.name, // Pass existing name for update operations
+      data.category
     );
   }
 
@@ -286,6 +292,7 @@ export async function updateContentType(id: string, data: UpdateContentTypeReque
     data: {
       ...(contentTypeData.name && { name: contentTypeData.name }),
       ...(contentTypeData.pluralName && { pluralName: contentTypeData.pluralName }),
+      ...(data.category && { category: data.category }),
       fields: updatedFields as any,
     },
   });

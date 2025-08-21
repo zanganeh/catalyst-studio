@@ -87,6 +87,7 @@ export interface UniversalTypeContext {
 export interface ContentType {
   id: string;
   name: string;
+  category: 'page' | 'component';
   fields: ContentField[];
   purpose: string;
 }

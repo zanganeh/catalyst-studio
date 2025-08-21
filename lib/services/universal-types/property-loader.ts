@@ -65,11 +65,11 @@ export class PropertyLoader {
         const usage = propertyUsage.get(key) || {
           type: field.type,
           count: 0,
-          inTypes: []
+          inTypes: [] as string[]
         };
         
         usage.count++;
-        usage.inTypes.push(contentType.name);
+        usage.inTypes.push(contentType.name as string);
         propertyUsage.set(key, usage);
       }
     }
