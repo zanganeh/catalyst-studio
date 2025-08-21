@@ -11,6 +11,7 @@ import { SortableFieldList } from './sortable-field-list';
 import { FieldPropertiesPanel } from './field-properties-panel';
 import Link from 'next/link';
 import { useContentTypeValidation } from '@/lib/hooks/use-content-type-validation';
+import { CategorySelectorModal } from './category-selector-modal';
 
 interface ContentTypeBuilderProps {
   contentTypeId?: string;
@@ -35,6 +36,7 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
   const [isInitialized, setIsInitialized] = useState(false);
   const [isFieldModalOpen, setIsFieldModalOpen] = useState(false);
   const [isPropertiesPanelOpen, setIsPropertiesPanelOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   
   const { validateTypeName, errors } = useContentTypeValidation({
     validateOnChange: false
@@ -156,9 +158,7 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4 text-white">No Content Type Selected</h2>
           <Button className="catalyst-button-primary" onClick={() => {
-            const newContentType = createContentType('NewContentType');
-            setCurrentContentType(newContentType);
-            setNameInput(newContentType.name);
+            setIsCategoryModalOpen(true);
           }}>
             Create New Content Type
           </Button>
@@ -179,9 +179,7 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
           <Button 
             size="sm" 
             onClick={() => {
-              const newContentType = createContentType(`ContentType_${contentTypes.length + 1}`);
-              setCurrentContentType(newContentType);
-              setNameInput(newContentType.name);
+              setIsCategoryModalOpen(true);
             }}
             className="gap-2"
           >
@@ -266,6 +264,13 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
           ) : (
             <div className="flex items-center gap-2 flex-1">
               <h1 className="text-2xl font-bold text-white">{currentContentType.name}</h1>
+              <span className={`px-2 py-1 text-xs rounded-full ${
+                currentContentType.category === 'page' 
+                  ? 'bg-blue-500/20 text-blue-400' 
+                  : 'bg-purple-500/20 text-purple-400'
+              }`}>
+                {currentContentType.category === 'page' ? '📄 Page' : '🧩 Component'}
+              </span>
               <Button
                 size="icon"
                 variant="ghost"
@@ -352,6 +357,18 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
           onClose={() => setIsPropertiesPanelOpen(false)}
         />
       )}
+      
+      {/* Category Selector Modal */}
+      <CategorySelectorModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        onSelect={(category) => {
+          const newName = `${category === 'page' ? 'Page' : 'Component'}_${contentTypes.length + 1}`;
+          const newContentType = createContentType(newName, category);
+          setNameInput(newContentType.name);
+          setIsEditingName(true);
+        }}
+      />
     </div>
   );
 }
