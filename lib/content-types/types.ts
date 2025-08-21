@@ -99,6 +99,7 @@ export interface ContentType {
   pluralName: string; // e.g., "BlogPosts"
   icon: string; // Emoji icon
   description?: string;
+  category: 'page' | 'component'; // Distinguishes routable pages from reusable components
   fields: Field[];
   relationships: Relationship[];
   createdAt: Date;
@@ -253,12 +254,13 @@ export function createField(type: FieldType, order: number): Field {
 }
 
 // Helper function to create a new content type
-export function createContentType(name: string): ContentType {
+export function createContentType(name: string, category: 'page' | 'component' = 'page'): ContentType {
   return {
     id: generateId(),
     name,
     pluralName: `${name}s`,
-    icon: '📋',
+    icon: category === 'page' ? '📄' : '🧩',
+    category,
     fields: [],
     relationships: [],
     createdAt: new Date(),

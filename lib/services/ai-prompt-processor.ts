@@ -1,7 +1,7 @@
 interface ProcessedPrompt {
   websiteName: string;
   description: string;
-  category: string;
+  category: 'page' | 'component';
   suggestedFeatures: string[];
   technicalRequirements: string[];
   targetAudience: string;
@@ -116,43 +116,35 @@ export class AIPromptProcessor {
     return cleanedName || 'My New Website';
   }
   
-  private detectCategory(prompt: string): string {
-    // Check more specific patterns first
-    const categories = {
-      crm: /crm|customer relationship|sales pipeline|lead management|contact management|deal tracking/i,
-      ecommerce: /online store|e-?commerce|shopping cart|product catalog|checkout|payment processing/i,
-      education: /course|learn|teach|student|education|training|tutorial|lesson|quiz|academy/i,
-      social: /social network|community|forum|discussion|chat|messaging platform/i,
-      portfolio: /portfolio|showcase|exhibition|resume|my work|projects showcase/i,
-      saas: /saas|software as a service|subscription|dashboard|analytics platform|metrics/i,
-      blog: /blog|article|post|content management|writing platform|journal|news/i,
-      business: /business|company|corporate|agency|consulting|service provider/i,
-      dev: /developer|code|programming|development tools|api|documentation/i
-    };
+  private detectCategory(prompt: string): 'page' | 'component' {
+    // Check for component-specific patterns first
+    const componentPatterns = [
+      /component|widget|block|section|element/i,
+      /reusable|modular|embed/i,
+      /header|footer|navigation|sidebar|banner|card/i,
+      /cta|call.to.action|button group|form element/i,
+      /hero section|content area|image gallery|testimonial/i
+    ];
     
-    // Try exact matches first
-    for (const [category, pattern] of Object.entries(categories)) {
-      if (pattern.test(prompt)) return category;
+    for (const pattern of componentPatterns) {
+      if (pattern.test(prompt)) return 'component';
     }
     
-    // Fallback to broader patterns
-    const broadCategories = {
-      crm: /customer|sales|lead|contact|deal|pipeline/i,
-      ecommerce: /store|shop|product|cart|payment|catalog/i,
-      education: /learn|teach|student|training/i,
-      social: /social|community|network/i,
-      portfolio: /portfolio|showcase|work|gallery|resume/i,
-      saas: /platform|subscription|dashboard|analytics|metrics|users|billing/i,
-      blog: /blog|article|post|content|writing|journal|news/i,
-      business: /business|company|corporate|agency|consulting|service/i,
-      dev: /developer|code|programming|tools|api|documentation/i
-    };
+    // Check for page-specific patterns
+    const pagePatterns = [
+      /page|route|url|path/i,
+      /website|site|landing|home|about|contact/i,
+      /blog post|article|product page|profile/i,
+      /full page|complete page|standalone/i,
+      /seo|meta|slug|routable/i
+    ];
     
-    for (const [category, pattern] of Object.entries(broadCategories)) {
-      if (pattern.test(prompt)) return category;
+    for (const pattern of pagePatterns) {
+      if (pattern.test(prompt)) return 'page';
     }
     
-    return 'general';
+    // Default to page for most content types
+    return 'page';
   }
   
   private extractFeatures(prompt: string): string[] {
@@ -260,7 +252,7 @@ export class AIPromptProcessor {
     if (prompt.suggestedFeatures.includes('database')) {
       stack.push('Prisma', 'PostgreSQL');
     }
-    if (prompt.category === 'ecommerce') {
+    if (prompt.suggestedFeatures.includes('ecommerce')) {
       stack.push('Commerce.js');
     }
     if (prompt.technicalRequirements.includes('real-time')) {
@@ -270,68 +262,29 @@ export class AIPromptProcessor {
     return [...new Set(stack)]; // Remove duplicates
   }
   
-  private suggestTheme(category: string): { primary: string; secondary: string; style: string; darkMode: boolean } {
-    const themes: Record<string, { primary: string; secondary: string; style: string; darkMode: boolean }> = {
-      crm: { 
-        primary: '#3B82F6', // blue
-        secondary: '#1E40AF',
-        style: 'professional',
-        darkMode: true
-      },
-      ecommerce: { 
-        primary: '#10B981', // green
-        secondary: '#059669',
-        style: 'modern',
-        darkMode: true
-      },
-      education: { 
-        primary: '#8B5CF6', // purple
-        secondary: '#7C3AED',
-        style: 'friendly',
-        darkMode: true
-      },
-      portfolio: { 
-        primary: '#000000', // black
-        secondary: '#374151',
-        style: 'minimal',
-        darkMode: true
-      },
-      saas: { 
-        primary: '#6366F1', // indigo
-        secondary: '#4F46E5',
-        style: 'tech',
-        darkMode: true
-      },
-      blog: {
-        primary: '#F59E0B', // amber
-        secondary: '#D97706',
-        style: 'content-focused',
-        darkMode: true
-      },
-      social: {
-        primary: '#EC4899', // pink
-        secondary: '#DB2777',
-        style: 'vibrant',
-        darkMode: true
-      }
+  private suggestTheme(category: 'page' | 'component'): { primary: string; secondary: string; style: string; darkMode: boolean } {
+    // Theme should be consistent for the entire website, not based on content type
+    return { 
+      primary: '#3B82F6', // blue
+      secondary: '#1E40AF',
+      style: 'professional',
+      darkMode: true
     };
-    
-    return themes[category] || themes.saas;
   }
   
   private generateTagline(prompt: ProcessedPrompt): string {
-    const taglines: Record<string, string> = {
-      crm: 'Manage relationships, grow your business',
-      ecommerce: 'Your products, beautifully presented',
-      education: 'Learn, teach, and grow together',
-      portfolio: 'Showcase your best work',
-      saas: 'Software that scales with you',
-      blog: 'Share your stories with the world',
-      social: 'Connect and collaborate',
-      general: 'Build something amazing'
-    };
+    // Generate tagline based on features and audience, not content type category
+    if (prompt.suggestedFeatures.includes('ecommerce')) {
+      return 'Build your online store';
+    }
+    if (prompt.suggestedFeatures.includes('blog')) {
+      return 'Share your stories with the world';
+    }
+    if (prompt.targetAudience.includes('business')) {
+      return 'Grow your business online';
+    }
     
-    return taglines[prompt.category] || taglines.general;
+    return 'Build something amazing';
   }
   
   private extractTopics(prompt: string): string[] {
@@ -345,35 +298,18 @@ export class AIPromptProcessor {
     return [...new Set(words)].slice(0, 10);
   }
   
-  private detectTone(category: string): string {
-    const tones: Record<string, string> = {
-      crm: 'professional',
-      ecommerce: 'persuasive',
-      education: 'informative',
-      portfolio: 'creative',
-      saas: 'technical',
-      blog: 'conversational',
-      social: 'friendly',
-      business: 'formal'
-    };
-    
-    return tones[category] || 'neutral';
+  private detectTone(category: 'page' | 'component'): string {
+    // Tone should be based on website purpose, not content type
+    // For now, return a professional tone suitable for most websites
+    return 'professional';
   }
 
-  private getCategoryIcon(category: string): string {
-    const icons: Record<string, string> = {
-      crm: '👥',
-      ecommerce: '🛒',
-      education: '🎓',
-      portfolio: '🎨',
-      saas: '☁️',
-      blog: '📝',
-      social: '💬',
-      business: '💼',
-      dev: '💻',
-      general: '🌐'
+  private getCategoryIcon(category: 'page' | 'component'): string {
+    const icons: Record<'page' | 'component', string> = {
+      page: '📄',
+      component: '🧩'
     };
     
-    return icons[category] || '🌐';
+    return icons[category];
   }
 }

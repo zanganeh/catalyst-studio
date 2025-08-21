@@ -1,3 +1,6 @@
+-- CreateEnum
+CREATE TYPE "ContentTypeCategory" AS ENUM ('page', 'component');
+
 -- CreateTable
 CREATE TABLE "public"."Website" (
     "id" TEXT NOT NULL,
@@ -21,6 +24,7 @@ CREATE TABLE "public"."ContentType" (
     "name" TEXT NOT NULL,
     "pluralName" TEXT NOT NULL,
     "displayField" TEXT,
+    "category" "ContentTypeCategory" NOT NULL DEFAULT 'page',
     "fields" JSONB NOT NULL,
     "websiteId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -141,6 +145,9 @@ CREATE TABLE "public"."ConflictLog" (
 
 -- CreateIndex
 CREATE INDEX "ContentType_websiteId_idx" ON "public"."ContentType"("websiteId");
+
+-- CreateIndex
+CREATE INDEX "ContentType_category_idx" ON "public"."ContentType"("category");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ContentType_websiteId_key_key" ON "public"."ContentType"("websiteId", "key");

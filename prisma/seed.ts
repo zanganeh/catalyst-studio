@@ -101,6 +101,7 @@ async function main() {
       name: 'Blog Post',
       pluralName: 'Blog Posts',
       displayField: 'title',
+      category: 'page',
       fields: JSON.stringify([
         { name: 'title', type: 'text', required: true, maxLength: 200 },
         { name: 'slug', type: 'text', required: true, unique: true },
@@ -123,6 +124,7 @@ async function main() {
       name: 'Author',
       pluralName: 'Authors',
       displayField: 'name',
+      category: 'component',
       fields: JSON.stringify([
         { name: 'name', type: 'text', required: true },
         { name: 'bio', type: 'textarea', required: true },
@@ -145,6 +147,7 @@ async function main() {
       name: 'Product',
       pluralName: 'Products',
       displayField: 'name',
+      category: 'page',
       fields: JSON.stringify([
         { name: 'name', type: 'text', required: true },
         { name: 'slug', type: 'text', required: true, unique: true },
@@ -169,6 +172,7 @@ async function main() {
       name: 'Project',
       pluralName: 'Projects',
       displayField: 'title',
+      category: 'page',
       fields: JSON.stringify([
         { name: 'title', type: 'text', required: true },
         { name: 'client', type: 'text', required: false },

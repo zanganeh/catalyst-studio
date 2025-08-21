@@ -25,7 +25,7 @@ interface ContentTypeContextValue {
   contentTypes: ContentType[];
   currentContentType: ContentType | null;
   setCurrentContentType: (contentType: ContentType | null) => void;
-  createContentType: (name: string) => ContentType;
+  createContentType: (name: string, category?: 'page' | 'component') => ContentType;
   updateContentType: (id: string, updates: Partial<ContentType>) => void;
   deleteContentType: (id: string) => void;
   safeDeleteContentType: (id: string, onConfirm?: () => void) => Promise<boolean>;
@@ -51,6 +51,7 @@ interface ApiContentType {
   id: string;
   websiteId: string;
   name: string;
+  category?: string;
   fields: any;
   settings: any;
   createdAt: string;
@@ -68,6 +69,7 @@ function transformApiContentType(apiContentType: ApiContentType): ContentType {
     pluralName: settings.pluralName || apiContentType.fields?.pluralName || `${apiContentType.name}s`,
     icon: settings.icon || apiContentType.fields?.icon || '📋',
     description: settings.description || apiContentType.fields?.description,
+    category: (apiContentType.category as 'page' | 'component') || 'page',
     fields: fields,
     relationships: relationships,
     createdAt: new Date(apiContentType.createdAt),
@@ -84,6 +86,7 @@ function transformToApiFormat(contentType: Partial<ContentType>, websiteId: stri
     pluralName: contentType.pluralName,
     icon: contentType.icon,
     description: contentType.description,
+    category: contentType.category || 'page',
     fields: contentType.fields || [],
     relationships: contentType.relationships || [],
   };
@@ -125,8 +128,8 @@ export function ContentTypeProvider({ children }: { children: React.ReactNode })
     return Array.from(mergedMap.values());
   }, [apiContentTypes, optimisticContentTypes]);
   
-  const createContentTypeHandler = useCallback((name: string): ContentType => {
-    const newContentType = createContentTypeHelper(name);
+  const createContentTypeHandler = useCallback((name: string, category: 'page' | 'component' = 'page'): ContentType => {
+    const newContentType = createContentTypeHelper(name, category);
     
     setOptimisticContentTypes(prev => [...prev, newContentType]);
     setCurrentContentType(newContentType);

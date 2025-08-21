@@ -10,10 +10,13 @@ export type {
   ValidationWarning,
   ValidationSuggestion,
   DuplicateCheckResult,
-  ContentTypeDefinition,
+  ContentTypeDefinition
+} from './validation/validator';
+
+export type {
   ConfidenceScore,
   ConfidenceThreshold
-} from './validation/validator';
+} from './validation/confidence-scorer';
 
 /**
  * Utility function for UI components to check for duplicate fields

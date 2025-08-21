@@ -32,8 +32,7 @@ export const createContentType = tool({
   parameters: z.object({
     websiteId: z.string().describe('The website ID'),
     name: z.string().describe('The content type name'),
-    category: z.enum(['blog', 'e-commerce', 'portfolio', 'general']).optional()
-      .describe('Category for automatic field inference'),
+    category: z.enum(['page', 'component']).describe('Content type category - page for routable content, component for reusable blocks'),
     fields: z.array(fieldSchema).optional()
       .describe('Custom fields (category-specific fields will be added automatically)'),
     settings: z.record(z.any()).optional()
@@ -45,101 +44,41 @@ export const createContentType = tool({
     try {
       let inferredFields = [...fields];
       
-      // Apply category-specific field inference
-      if (category) {
-        const requiredFields = businessRules.getRequiredFields(category, name);
-        const suggestedFields = businessRules.suggestFields(category, name);
+      // Apply category-specific default fields
+      if (category === 'page' && inferredFields.length === 0) {
+        // Add default page fields if no fields provided
+        const pageFields = [
+          { name: 'title', type: 'text' as FieldType, required: true, label: 'Title', order: 1 },
+          { name: 'slug', type: 'text' as FieldType, required: true, label: 'URL Slug', order: 2 },
+          { name: 'content', type: 'richtext' as FieldType, required: true, label: 'Content', order: 3 }
+        ];
         
-        // Add category-specific fields based on category
-        if (category === 'blog') {
-          // Add SEO fields for blog
-          const seoFields = [
-            { name: 'title', type: 'text' as FieldType, required: true, label: 'Title', order: 1 },
-            { name: 'slug', type: 'text' as FieldType, required: true, label: 'URL Slug', order: 2 },
-            { name: 'content', type: 'richtext' as FieldType, required: true, label: 'Content', order: 3 },
-            { name: 'excerpt', type: 'textarea' as FieldType, required: false, label: 'Excerpt', order: 4 },
-            { name: 'metaTitle', type: 'text' as FieldType, required: false, label: 'SEO Title', order: 5 },
-            { name: 'metaDescription', type: 'textarea' as FieldType, required: false, label: 'SEO Description', order: 6 },
-            { name: 'author', type: 'text' as FieldType, required: true, label: 'Author', order: 7 },
-            { name: 'publishDate', type: 'date' as FieldType, required: true, label: 'Publish Date', order: 8 },
-            { name: 'featuredImage', type: 'image' as FieldType, required: false, label: 'Featured Image', order: 9 },
-            { name: 'tags', type: 'tags' as FieldType, required: false, label: 'Tags', order: 10 }
-          ];
-          
-          // Merge with existing fields, avoiding duplicates
-          seoFields.forEach(seoField => {
-            if (!inferredFields.find(f => f.name === seoField.name)) {
-              inferredFields.push(seoField);
-            }
-          });
-        } else if (category === 'e-commerce') {
-          // Add product fields for e-commerce
-          const productFields = [
-            { name: 'name', type: 'text' as FieldType, required: true, label: 'Product Name', order: 1 },
-            { name: 'description', type: 'richtext' as FieldType, required: true, label: 'Description', order: 2 },
-            { name: 'price', type: 'number' as FieldType, required: true, label: 'Price', order: 3 },
-            { name: 'sku', type: 'text' as FieldType, required: true, label: 'SKU', order: 4 },
-            { name: 'stock', type: 'number' as FieldType, required: true, label: 'Stock Quantity', order: 5 },
-            { name: 'availability', type: 'select' as FieldType, required: true, label: 'Availability', order: 6 },
-            { name: 'images', type: 'gallery' as FieldType, required: false, label: 'Product Images', order: 7 },
-            { name: 'category', type: 'select' as FieldType, required: true, label: 'Category', order: 8 },
-            { name: 'weight', type: 'number' as FieldType, required: false, label: 'Weight', order: 9 },
-            { name: 'dimensions', type: 'json' as FieldType, required: false, label: 'Dimensions', order: 10 }
-          ];
-          
-          productFields.forEach(productField => {
-            if (!inferredFields.find(f => f.name === productField.name)) {
-              inferredFields.push(productField);
-            }
-          });
-        } else if (category === 'portfolio') {
-          // Add portfolio fields
-          const portfolioFields = [
-            { name: 'title', type: 'text' as FieldType, required: true, label: 'Project Title', order: 1 },
-            { name: 'description', type: 'richtext' as FieldType, required: true, label: 'Description', order: 2 },
-            { name: 'client', type: 'text' as FieldType, required: false, label: 'Client', order: 3 },
-            { name: 'date', type: 'date' as FieldType, required: true, label: 'Project Date', order: 4 },
-            { name: 'category', type: 'select' as FieldType, required: true, label: 'Category', order: 5 },
-            { name: 'skills', type: 'tags' as FieldType, required: false, label: 'Skills Used', order: 6 },
-            { name: 'images', type: 'gallery' as FieldType, required: true, label: 'Project Images', order: 7 },
-            { name: 'showcase', type: 'image' as FieldType, required: false, label: 'Showcase Image', order: 8 },
-            { name: 'url', type: 'url' as FieldType, required: false, label: 'Project URL', order: 9 },
-            { name: 'testimonial', type: 'textarea' as FieldType, required: false, label: 'Client Testimonial', order: 10 }
-          ];
-          
-          portfolioFields.forEach(portfolioField => {
-            if (!inferredFields.find(f => f.name === portfolioField.name)) {
-              inferredFields.push(portfolioField);
-            }
-          });
-        }
+        inferredFields = pageFields;
+      } else if (category === 'component' && inferredFields.length === 0) {
+        // Add default component fields if no fields provided
+        const componentFields = [
+          { name: 'title', type: 'text' as FieldType, required: true, label: 'Title', order: 1 },
+          { name: 'content', type: 'richtext' as FieldType, required: false, label: 'Content', order: 2 }
+        ];
         
-        // Create definition for confidence scoring
-        const typeDefinition: ContentTypeDefinition = {
-          name,
-          category: category === 'blog' || category === 'portfolio' ? 'page' : 'component',
-          fields: inferredFields.map(f => ({
-            name: f.name,
-            type: f.type,
-            required: f.required || false,
-            validation: f.validation
-          }))
-        };
-        
-        // Calculate confidence score for AI-generated type
-        const confidenceScore = confidenceScorer.calculateScore(typeDefinition);
-        console.log(`AI-generated type confidence: ${confidenceScore.total}% (${confidenceScore.threshold})`);
-        
-        // Also validate with business rules for category-specific logic
-        const businessValidation = await businessRules.validateForCategory(
-          { fields: inferredFields },
-          category
-        );
-        
-        if (!businessValidation.valid && businessValidation.errors) {
-          console.warn('Business rule validation warnings:', businessValidation.errors);
-        }
+        inferredFields = componentFields;
       }
+      
+      // Create definition for confidence scoring
+      const typeDefinition: ContentTypeDefinition = {
+        name,
+        category,
+        fields: inferredFields.map(f => ({
+          name: f.name,
+          type: f.type,
+          required: f.required || false,
+          validation: f.validation
+        }))
+      };
+      
+      // Calculate confidence score for AI-generated type
+      const confidenceScore = confidenceScorer.calculateScore(typeDefinition);
+      console.log(`AI-generated type confidence: ${confidenceScore.total}% (${confidenceScore.threshold})`);
       
       // Prepare fields with proper IDs and type validation
       const preparedFields = inferredFields.map((field: any, index) => ({
@@ -156,6 +95,7 @@ export const createContentType = tool({
         pluralName: (settings.pluralName as string) || `${name}s`,
         icon: (settings.icon as string) || '📋',
         description: (settings.description as string) || '',
+        category,
         fields: preparedFields,
         relationships: []
       }, 'AI');

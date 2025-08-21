@@ -30,8 +30,8 @@ export const updateContentType = tool({
   parameters: z.object({
     id: z.string().describe('The content type ID to update'),
     name: z.string().optional().describe('New name for the content type'),
-    category: z.enum(['blog', 'e-commerce', 'portfolio', 'general']).optional()
-      .describe('Update category for field validation'),
+    category: z.enum(['page', 'component']).optional()
+      .describe('Update category - page for routable content, component for reusable blocks'),
     fields: z.array(fieldSchema).optional()
       .describe('Updated fields array (replaces existing fields)'),
     addFields: z.array(fieldSchema).optional()
@@ -95,45 +95,10 @@ export const updateContentType = tool({
         }
       }
       
-      // Apply category-specific validation if category is provided
-      if (category) {
-        // Add category-specific fields if missing
-        if (category === 'blog') {
-          const requiredBlogFields = [
-            { name: 'metaTitle', type: 'text', required: false, label: 'SEO Title' },
-            { name: 'metaDescription', type: 'textarea', required: false, label: 'SEO Description' },
-            { name: 'slug', type: 'text', required: true, label: 'URL Slug' }
-          ];
-          
-          requiredBlogFields.forEach(reqField => {
-            if (!updatedFields.find((f: any) => f.name === reqField.name)) {
-              updatedFields.push(reqField);
-            }
-          });
-        } else if (category === 'e-commerce') {
-          const requiredProductFields = ['name', 'price', 'sku'];
-          requiredProductFields.forEach(fieldName => {
-            if (!updatedFields.find((f: any) => f.name === fieldName)) {
-              console.warn(`Missing required field for e-commerce: ${fieldName}`);
-            }
-          });
-        }
-        
-        // Validate fields against business rules
-        const validationResult = await businessRules.validateForCategory(
-          { fields: updatedFields },
-          category
-        );
-        
-        if (!validationResult.valid && validationResult.errors) {
-          console.warn('Business rule validation warnings:', validationResult.errors);
-        }
-      }
-      
       // Calculate confidence score for AI-modified type
       const typeDefinition: ContentTypeDefinition = {
         name: name || existing.name,
-        category: category === 'blog' || category === 'portfolio' ? 'page' : 'component',
+        category: category || (existing.category as 'page' | 'component') || 'page',
         fields: updatedFields.map((f: any) => ({
           name: f.name,
           type: f.type,
@@ -160,12 +125,13 @@ export const updateContentType = tool({
       // Prepare update data
       const updateData: any = {
         ...(name && { name }),
+        ...(category && { category }),
         fields: preparedFields,
         relationships: existing.fields?.relationships || []
       };
       
       // Merge settings
-      if (settings || category) {
+      if (settings) {
         const currentSettings = typeof existing.settings === 'object' 
           ? existing.settings 
           : {};
@@ -174,19 +140,10 @@ export const updateContentType = tool({
         updateData.icon = settings?.icon || currentSettings.icon;
         updateData.description = settings?.description || currentSettings.description;
         
-        // Store category in settings
-        if (category) {
-          updateData.settings = {
-            ...currentSettings,
-            ...settings,
-            category
-          };
-        } else if (settings) {
-          updateData.settings = {
-            ...currentSettings,
-            ...settings
-          };
-        }
+        updateData.settings = {
+          ...currentSettings,
+          ...settings
+        };
       }
       
       // Update content type using the service (with AI source)

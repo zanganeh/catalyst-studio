@@ -12,6 +12,7 @@ The Universal Type Generation system provides a hybrid static/dynamic approach f
 - **Confidence Scoring**: Evaluates generated types with 0-100% confidence
 - **Platform Compatibility**: Maps universal types to platform-specific implementations
 - **Session Awareness**: Tracks types created within the same session
+- **Category Classification**: Distinguishes between 'page' (routable content) and 'component' (reusable blocks)
 
 ### Commands
 
@@ -88,6 +89,40 @@ const newType = {
 #### Validation System
 - `validator.ts`: Validates type definitions
 - `confidence-scorer.ts`: Calculates confidence scores
+
+### Content Type Categories
+
+**CRITICAL**: Every content type MUST have a category field set to either 'page' or 'component'.
+
+#### Category: 'page'
+- **Purpose**: Content that is directly routable and has its own URL
+- **Examples**: BlogPost, ProductPage, LandingPage, ArticlePage
+- **Required Fields**: Should include `title` and `slug` for routing
+- **Validation**: 
+  - Should NOT have URL fields (pages are routable themselves)
+  - Can include SEO fields (metaTitle, metaDescription)
+  - Can have multiple complex fields
+
+#### Category: 'component' 
+- **Purpose**: Reusable content blocks that can be embedded in pages
+- **Examples**: HeroSection, CTAComponent, TestimonialCard, ContentArea
+- **Characteristics**: 
+  - Focused and reusable
+  - Should be limited in complexity (max 8 fields recommended)
+  - Should NOT include SEO fields
+  - Should NOT include routing fields (slug, URL)
+
+#### AI Integration Requirements
+When generating content types via AI:
+```typescript
+// ALWAYS specify category when creating types
+await createContentType({
+  name: 'BlogPost',
+  category: 'page', // REQUIRED
+  fields: [...],
+  // ...
+});
+```
 
 ### Troubleshooting
 

@@ -106,7 +106,7 @@ export class SanitizationError extends UniversalTypeError {
 export class ErrorLogger {
   static log(error: Error, context?: Record<string, any>): void {
     // In production, this would integrate with a logging service
-    const errorInfo = {
+    const errorInfo: Record<string, any> = {
       name: error.name,
       message: error.message,
       stack: error.stack,
