@@ -263,31 +263,28 @@ export class AIPromptProcessor {
   }
   
   private suggestTheme(category: 'page' | 'component'): { primary: string; secondary: string; style: string; darkMode: boolean } {
-    const themes: Record<'page' | 'component', { primary: string; secondary: string; style: string; darkMode: boolean }> = {
-      page: { 
-        primary: '#3B82F6', // blue
-        secondary: '#1E40AF',
-        style: 'professional',
-        darkMode: true
-      },
-      component: { 
-        primary: '#6366F1', // indigo
-        secondary: '#4F46E5',
-        style: 'modular',
-        darkMode: true
-      }
+    // Theme should be consistent for the entire website, not based on content type
+    return { 
+      primary: '#3B82F6', // blue
+      secondary: '#1E40AF',
+      style: 'professional',
+      darkMode: true
     };
-    
-    return themes[category];
   }
   
   private generateTagline(prompt: ProcessedPrompt): string {
-    const taglines: Record<'page' | 'component', string> = {
-      page: 'Build engaging page content',
-      component: 'Create reusable components'
-    };
+    // Generate tagline based on features and audience, not content type category
+    if (prompt.suggestedFeatures.includes('ecommerce')) {
+      return 'Build your online store';
+    }
+    if (prompt.suggestedFeatures.includes('blog')) {
+      return 'Share your stories with the world';
+    }
+    if (prompt.targetAudience.includes('business')) {
+      return 'Grow your business online';
+    }
     
-    return taglines[prompt.category];
+    return 'Build something amazing';
   }
   
   private extractTopics(prompt: string): string[] {
@@ -302,12 +299,9 @@ export class AIPromptProcessor {
   }
   
   private detectTone(category: 'page' | 'component'): string {
-    const tones: Record<'page' | 'component', string> = {
-      page: 'informative',
-      component: 'functional'
-    };
-    
-    return tones[category];
+    // Tone should be based on website purpose, not content type
+    // For now, return a professional tone suitable for most websites
+    return 'professional';
   }
 
   private getCategoryIcon(category: 'page' | 'component'): string {
