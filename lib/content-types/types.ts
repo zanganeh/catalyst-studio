@@ -99,6 +99,7 @@ export interface ContentType {
   pluralName: string; // e.g., "BlogPosts"
   icon: string; // Emoji icon
   description?: string;
+  category: 'page' | 'component'; // Distinguishes routable pages from reusable components
   fields: Field[];
   relationships: Relationship[];
   createdAt: Date;
