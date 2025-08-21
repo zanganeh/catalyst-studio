@@ -61,6 +61,7 @@ export async function PUT(
     }
     
     // Build update object, excluding undefined fields
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const dataToUpdate: any = {};
     
     // Only include fields that are explicitly provided

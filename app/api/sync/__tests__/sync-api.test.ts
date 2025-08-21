@@ -87,7 +87,7 @@ describe('Version History API', () => {
       const data = await response.json();
       
       expect(response.status).toBe(200);
-      expect(data.items.every((item: any) => item.contentTypeId === 'ct-456')).toBeTruthy();
+      expect(data.items.every((item: Record<string, unknown>) => item.contentTypeId === 'ct-456')).toBeTruthy();
     });
   });
 

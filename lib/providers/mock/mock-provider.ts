@@ -61,7 +61,7 @@ export class MockProvider implements ICMSProvider {
     const blogPost: UniversalContentType = {
       version: '1.0.0',
       id: 'blog-post',
-      name: 'BlogPost',
+      name: 'Blog Post',
       type: 'page',
       isRoutable: true,
       fields: [
@@ -111,7 +111,7 @@ export class MockProvider implements ICMSProvider {
     const heroSection: UniversalContentType = {
       version: '1.0.0',
       id: 'hero-section',
-      name: 'HeroSection',
+      name: 'Hero Section',
       type: 'component',
       isRoutable: false,
       fields: [

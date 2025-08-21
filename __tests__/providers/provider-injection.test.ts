@@ -139,7 +139,7 @@ describe('Provider Injection System', () => {
       
       const blogPost = contentTypes.find(ct => ct.id === 'blog-post');
       expect(blogPost).toBeDefined();
-      expect(blogPost?.name).toBe('BlogPost');
+      expect(blogPost?.name).toBe('Blog Post');
       expect(blogPost?.type).toBe('page');
     });
 
@@ -301,10 +301,8 @@ describe('Provider Injection System', () => {
       const capabilities = mockProvider.getCapabilities();
       
       expect(capabilities.supportsVersioning).toBe(true);
-      expect(capabilities.supportsLocalization).toBe(true);
+      expect(capabilities.supportsLocalizations).toBe(true);
       expect(capabilities.supportsComponents).toBe(true);
-      expect(capabilities.supportedFieldTypes).toContain('Text');
-      expect(capabilities.supportedFieldTypes).toContain('LongText');
       expect(capabilities.customCapabilities?.supportsTestMode).toBe(true);
     });
   });

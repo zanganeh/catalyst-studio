@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build query filters
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {};
     if (typeKey) where.typeKey = typeKey;
     if (status) {
@@ -216,6 +217,7 @@ export async function POST(request: NextRequest) {
       const resolutionResult = strategyManager.resolveConflict(
         {
           type: conflict.conflictType,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           details: conflict.conflictDetails as any,
           localVersion: { hash: conflict.localHash },
           remoteVersion: { hash: conflict.remoteHash },

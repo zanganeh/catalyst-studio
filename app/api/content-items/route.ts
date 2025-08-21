@@ -58,7 +58,9 @@ export async function GET(request: NextRequest) {
       websiteId: item.websiteId,
       title: item.title,
       slug: item.slug,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       content: (item.content as Record<string, any>) || {}, // Cast to proper type
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       metadata: item.metadata as Record<string, any> | undefined,
       status: item.status as ContentStatus, // Cast status to ContentStatus type
       publishedAt: item.publishedAt,

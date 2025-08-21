@@ -4,13 +4,16 @@ export interface SyncConflict {
   id: string;
   contentTypeId: string;
   baseVersion: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sourceChanges: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   targetChanges: any;
   conflictType: 'field_type_mismatch' | 'field_deletion' | 'schema_incompatible' | 'validation_failure';
   severity: 'high' | 'medium' | 'low';
   resolutionStrategy?: 'manual' | 'auto-merge' | 'prefer-source' | 'prefer-target';
   resolvedAt?: string;
   resolvedBy?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   resolution?: any;
 }
 

@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     const period = searchParams.get('period') || '7d';
     const contentTypeId = searchParams.get('contentTypeId');
     
-    let analytics = { ...mockAnalytics };
+    const analytics = { ...mockAnalytics };
     
     if (contentTypeId) {
       const contentTypeData = analytics.mostSyncedContentTypes.find(

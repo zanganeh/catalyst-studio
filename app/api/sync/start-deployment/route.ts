@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const deploymentData = (deployment.deploymentData as any) || {};
     
     return NextResponse.json({ 
@@ -142,7 +143,9 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
       where: { id: deploymentId },
     });
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const deploymentDataObj = (deployment?.deploymentData as any) || {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const logs: any[] = deploymentDataObj.logs || [];
     logs.push({
       timestamp: new Date().toISOString(),
@@ -179,6 +182,7 @@ async function processDeployment(deploymentId: string, provider: CMSProviderInfo
     }
 
     // Update status to running
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const currentDeploymentData = (deployment.deploymentData as any) || {};
     await prisma.deployment.update({
       where: { id: deploymentId },
@@ -328,6 +332,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const deploymentDataObj = (deployment.deploymentData as any) || {};
     
     return NextResponse.json({ 
@@ -373,7 +378,9 @@ export async function DELETE(request: NextRequest) {
       where: { id: deploymentId },
     });
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const deploymentDataObj = (currentDeployment?.deploymentData as any) || {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cancelLogs: any[] = deploymentDataObj.logs || [];
     cancelLogs.push({
       timestamp: new Date().toISOString(),

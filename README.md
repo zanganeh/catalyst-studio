@@ -23,12 +23,38 @@ For Epic 7's Universal CMS Content Type Architecture setup:
 4. **Environment Configuration**: See [.env.template](./.env.template) for Epic 7 variables
 5. **Mock Data**: Test without API credentials using `/mock-data/optimizely/`
 
-Quick start with mock data:
+#### Provider Configuration
+
+The application now uses a provider-based architecture for CMS integration:
+
+**Environment Variables:**
 ```bash
 # .env.local
-PROVIDER_TYPE=mock
-USE_MOCK_PROVIDER=true
+CMS_PROVIDER=optimizely  # Options: optimizely, mock
+USE_MOCK_PROVIDER=false   # Set to true for testing without real CMS
+
+# For Optimizely provider
+OPTIMIZELY_APP_KEY=your_app_key
+OPTIMIZELY_SECRET=your_secret
 ```
+
+**Available Providers:**
+- `optimizely`: Production Optimizely CMS integration
+- `mock`: Mock provider for testing and development (no credentials required)
+
+**Provider Selection:**
+The provider is selected based on the following priority:
+1. `CMS_PROVIDER` environment variable
+2. Fallback to `mock` if no provider is specified or on error
+
+**Using Mock Provider:**
+```bash
+# Quick start with mock data (no credentials needed)
+CMS_PROVIDER=mock npm run dev
+```
+
+**Switching Providers:**
+Providers can be switched at runtime by updating the environment variable and restarting the application. The provider abstraction ensures all functionality works identically regardless of the selected provider.
 
 ## Getting Started
 

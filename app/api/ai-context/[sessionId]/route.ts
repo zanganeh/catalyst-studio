@@ -100,6 +100,7 @@ export async function PUT(
       data: updateData
     });
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const contextData = updated.context as any || {};
     const transformedContext = {
       id: updated.id,
