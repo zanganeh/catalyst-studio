@@ -145,10 +145,35 @@ export class UniversalTypeContextBuilder {
   }
 
   /**
-   * Refresh context with new type
+   * Refresh context with new type (real-time update)
+   * Auto-refreshes context after each new type generation
+   * Tracks newly created types in current session
+   * Appends new types to existing context without full reload
    */
-  async refreshWithNewType(websiteId: string, typeName: string): Promise<DynamicContext> {
+  async refreshWithNewType(websiteId: string, typeName: string, typeDefinition?: any): Promise<DynamicContext> {
+    // Track newly created type in session
     this.addSessionType(typeName);
+    
+    // If we have the type definition, add it to cached context immediately
+    if (this.cachedContext && typeDefinition) {
+      // Add to existing types array without full reload
+      const existingTypeIndex = this.cachedContext.types.findIndex(t => t.name === typeName);
+      if (existingTypeIndex === -1) {
+        this.cachedContext.types.push({
+          name: typeDefinition.name || typeName,
+          fields: typeDefinition.fields || []
+        });
+        
+        // Update formatted strings
+        this.cachedContext.existingContentTypes = this.formatContentTypesForPrompt(this.cachedContext.types);
+        
+        // If it's a component, add to components list
+        if (typeDefinition.category === 'component') {
+          this.cachedContext.components.push(typeName);
+          this.cachedContext.reusableComponents = this.cachedContext.components.join(', ');
+        }
+      }
+    }
     
     // Only refresh if context is stale (older than 1 minute)
     const now = new Date();
@@ -162,6 +187,18 @@ export class UniversalTypeContextBuilder {
 
     // Full refresh needed
     return this.buildContext(websiteId);
+  }
+
+  /**
+   * Format content types for prompt injection
+   */
+  private formatContentTypesForPrompt(types: DynamicContext['types']): string {
+    return types.map(type => {
+      const fields = type.fields
+        .map(f => `${f.name}: ${f.type}${f.required ? '*' : ''}`)
+        .join(', ');
+      return `${type.name} (${fields})`;
+    }).join('; ');
   }
 
   /**
