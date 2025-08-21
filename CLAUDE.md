@@ -40,6 +40,25 @@ npm run list:types
 ```
 Shows all available primitive types and existing content types.
 
+#### Select Provider
+```bash
+# Via code
+typeSystem.selectProvider('optimizely');
+typeSystem.selectProvider('mock'); // For testing
+
+# Get available providers
+typeSystem.getAvailableProviders(); // ['optimizely', 'mock', 'contentful', 'strapi']
+```
+
+#### Transform Content Types
+```bash
+# Transform to universal format
+const universal = await provider.transformToUniversal(optimizelyType);
+
+# Transform from universal format
+const platformType = await provider.transformFromUniversal(universalType);
+```
+
 ### Usage Examples
 
 #### Basic Type Generation
@@ -148,6 +167,34 @@ npm run list:types
 - Ensure all fields use valid primitive types
 - Add validation rules to required fields
 - Follow naming conventions (PascalCase for types, camelCase for fields)
+- Verify category is 'page' or 'component'
+- Check for required fields (title/slug for pages)
+
+#### Issue: Transformation Failures
+```typescript
+// Check provider capabilities
+const caps = provider.getCapabilities();
+console.log('Supported types:', caps.supportedFieldTypes);
+
+// Use fallback for unsupported types
+if (!caps.supportedFieldTypes.includes('JSON')) {
+  // Use Text field with serialization
+  field.type = 'Text';
+  field.metadata.serialized = true;
+}
+```
+
+#### Issue: Provider Not Found
+```typescript
+// List available providers
+const providers = typeSystem.getAvailableProviders();
+console.log('Available:', providers);
+
+// Use mock provider as fallback
+if (!providers.includes(requestedProvider)) {
+  typeSystem.selectProvider('mock');
+}
+```
 
 ### Type Reuse Patterns
 
@@ -192,6 +239,144 @@ Action: REUSE ContentArea in new type
 - Media → media
 - JSON → json
 
+### Universal Type Generation Patterns
+
+#### Pattern: Check Before Create
+```typescript
+// AI should ALWAYS check for existing types first
+const existing = await typeLoader.findSimilar('BlogPost');
+if (existing.confidence > 80) {
+  return { action: 'reuse', type: existing.type };
+}
+// Only create if no suitable match found
+```
+
+#### Pattern: Category-Based Generation
+```typescript
+// Pages MUST have routing fields
+if (category === 'page') {
+  fields.push(
+    { name: 'title', type: 'Text', required: true },
+    { name: 'slug', type: 'Text', required: true }
+  );
+}
+// Components MUST be simple
+if (category === 'component' && fields.length > 8) {
+  throw new Error('Components should have 8 or fewer fields');
+}
+```
+
+#### Pattern: Confidence-Based Application
+```typescript
+const validation = await validator.validate(type);
+if (validation.confidence > 70) {
+  // Automatic application
+  await provider.createContentType(type);
+} else if (validation.confidence > 50) {
+  // Manual review required
+  await requestReview(type, validation);
+} else {
+  // Rejection - regenerate
+  await regenerateWithFeedback(type, validation);
+}
+```
+
+### Transformation Validation Rules
+
+#### Rule: Platform Capability Check
+```typescript
+// Before transformation, check platform capabilities
+const capabilities = provider.getCapabilities();
+if (!capabilities.supportsContentTypes) {
+  throw new Error('Provider does not support content types');
+}
+
+// Check field type support
+for (const field of type.fields) {
+  if (!capabilities.supportedFieldTypes.includes(field.type)) {
+    // Use fallback strategy
+    field.type = getFallbackType(field.type, capabilities);
+  }
+}
+```
+
+#### Rule: Preserve Metadata During Transformation
+```typescript
+// Always preserve original metadata
+const transformed = {
+  ...platformType,
+  metadata: {
+    ...platformType.metadata,
+    originalType: universalType,
+    transformedAt: new Date(),
+    confidence: calculatedConfidence
+  }
+};
+```
+
+#### Rule: Validate After Transformation
+```typescript
+// Always validate transformed types
+const transformed = await provider.transformFromUniversal(universal);
+const validation = await provider.validateContentType(transformed);
+
+if (!validation.valid) {
+  console.error('Transformation produced invalid type:', validation.errors);
+  // Apply recovery strategy
+}
+```
+
+### AI Content Type Generation Guidelines
+
+#### MANDATORY Requirements
+1. **Category Field**: EVERY type MUST have `category: 'page' | 'component'`
+2. **Naming Convention**: Types use PascalCase, fields use camelCase
+3. **Validation First**: ALWAYS validate before applying
+4. **Check Existing**: ALWAYS check for existing types before creating
+5. **Confidence Scoring**: ALWAYS calculate and report confidence
+
+#### Generation Process
+```typescript
+// 1. Analyze request
+const intent = analyzeUserRequest(request);
+
+// 2. Check existing types
+const existing = await findExistingTypes(intent);
+if (existing.match > 80) {
+  return suggestReuse(existing);
+}
+
+// 3. Generate new type
+const newType = generateType(intent);
+
+// 4. Validate
+const validation = await validate(newType);
+
+// 5. Apply confidence threshold
+if (validation.confidence < 70) {
+  return requestManualReview(newType, validation);
+}
+
+// 6. Create type
+return await createContentType(newType);
+```
+
+#### Category-Specific Rules
+
+**Pages (`category: 'page'`)**
+- MUST have `title` field (Text, required)
+- MUST have `slug` field (Text, required)
+- SHOULD have SEO fields (metaTitle, metaDescription)
+- CAN have unlimited fields
+- SHOULD NOT have URL fields (pages ARE the URL)
+
+**Components (`category: 'component'`)**
+- MUST be focused (single purpose)
+- SHOULD have ≤8 fields
+- MUST NOT have SEO fields
+- MUST NOT have routing fields (slug)
+- SHOULD be reusable across pages
+
 ### Best Practices
 
 1. **Always Check Existing Types First**
@@ -219,6 +404,18 @@ Action: REUSE ContentArea in new type
    - Types: PascalCase (BlogPost, ProductPage)
    - Fields: camelCase (pageTitle, publishDate)
    - Components: Suffix with 'Component'
+
+6. **Handle Transformations Carefully**
+   - Always preserve metadata
+   - Use appropriate fallback strategies
+   - Validate after transformation
+   - Log confidence scores
+
+7. **Provider Selection Strategy**
+   - Use mock provider for testing
+   - Select provider based on project configuration
+   - Check provider capabilities before operations
+   - Handle provider-specific limitations
 
 ### Integration Points
 
