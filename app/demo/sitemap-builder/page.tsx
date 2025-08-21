@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { DemoLayout } from '@/components/studio/deployment/demo-layout'
 import { 
   Loader2, Sparkles, Globe, FileText, Link2, Hash, Users, Eye, Clock, 
   TrendingUp, ZoomIn, ZoomOut, Maximize2, Download, Upload, Layers,
@@ -13,7 +14,7 @@ import {
   Settings, Palette, Tag, AlertCircle, Check, X, Move, Copy,
   ExternalLink, Search, Bot, Zap, Grid, Home, Info, Mail, 
   ShoppingCart, BookOpen, Briefcase, Image, Video, MessageSquare,
-  Hexagon, CheckCircle2, Activity, Shield, Cloud, Rocket, Folder,
+  CheckCircle2, Activity, Shield, Cloud, Rocket, Folder,
   FileCode, Layout, Database, Package, Terminal, Code, Cpu, MoreVertical
 } from 'lucide-react'
 
@@ -495,21 +496,11 @@ export default function SitemapBuilderDemo() {
   }, [showContextMenu])
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-      <div className="flex-1 p-4 overflow-hidden">
-        <div className="max-w-full h-full flex flex-col gap-4">
-          {/* Header */}
-          <div className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md rounded-lg shadow-xl border border-white/10 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Hexagon className="h-8 w-8 text-[#FF5500] fill-[#FF5500]/20" />
-                  <div>
-                    <h1 className="text-xl font-bold text-white">Sitemap Builder</h1>
-                    <p className="text-xs text-gray-400">Visual website structure generator</p>
-                  </div>
-                </div>
-              </div>
+    <DemoLayout title="Sitemap Builder" subtitle="Visual website structure generator">
+      <>
+        {/* Top Controls Bar */}
+        <div className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md rounded-lg shadow-xl border border-white/10 p-4">
+          <div className="flex items-center justify-between">
               
               {/* Input Controls */}
               <div className="flex items-center gap-4">
@@ -612,22 +603,22 @@ export default function SitemapBuilderDemo() {
                   Export
                 </button>
               </div>
-            </div>
-            
-            {/* Progress Bar */}
-            {isAnalyzing && (
-              <div className="mt-4">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-gray-400">{status}</span>
-                  <span className="text-xs text-gray-400">{progress}%</span>
-                </div>
-                <Progress value={progress} className="h-1 bg-white/10" />
-              </div>
-            )}
           </div>
+          
+          {/* Progress Bar */}
+          {isAnalyzing && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs text-gray-400">{status}</span>
+                <span className="text-xs text-gray-400">{progress}%</span>
+              </div>
+              <Progress value={progress} className="h-1 bg-white/10" />
+            </div>
+          )}
+        </div>
 
-          {/* Canvas Area */}
-          <div className="flex-1 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md rounded-lg shadow-xl border border-white/10 overflow-hidden relative">
+        {/* Canvas Area */}
+        <div className="flex-1 bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md rounded-lg shadow-xl border border-white/10 overflow-hidden relative">
             <div
               ref={canvasRef}
               className="w-full h-full overflow-hidden relative canvas-viewport"
@@ -678,9 +669,8 @@ export default function SitemapBuilderDemo() {
                 )}
               </div>
             </div>
-          </div>
         </div>
-      </div>
-    </div>
+      </>
+    </DemoLayout>
   )
 }

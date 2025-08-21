@@ -2,6 +2,10 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { getContentType, updateContentType as updateContentTypeService } from '@/lib/services/content-type-service';
 import { businessRules } from '@/lib/ai-tools/business-rules';
+import { 
+  confidenceScorer,
+  type ContentTypeDefinition 
+} from '@/lib/services/universal-types/validation';
 
 const fieldSchema = z.object({
   id: z.string().optional(),
@@ -124,6 +128,26 @@ export const updateContentType = tool({
         if (!validationResult.valid && validationResult.errors) {
           console.warn('Business rule validation warnings:', validationResult.errors);
         }
+      }
+      
+      // Calculate confidence score for AI-modified type
+      const typeDefinition: ContentTypeDefinition = {
+        name: name || existing.name,
+        category: category === 'blog' || category === 'portfolio' ? 'page' : 'component',
+        fields: updatedFields.map((f: any) => ({
+          name: f.name,
+          type: f.type,
+          required: f.required || false,
+          validation: f.validation
+        }))
+      };
+      
+      const confidenceScore = confidenceScorer.calculateScore(typeDefinition);
+      console.log(`AI-modified type confidence: ${confidenceScore.total}% (${confidenceScore.threshold})`);
+      
+      // Log if manual review is recommended
+      if (confidenceScore.threshold === 'review' || confidenceScore.threshold === 'manual') {
+        console.warn(`Manual review recommended for updated type: ${confidenceScore.recommendation}`);
       }
       
       // Prepare fields with proper IDs and order

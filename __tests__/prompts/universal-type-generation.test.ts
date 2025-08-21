@@ -2,13 +2,13 @@
  * Integration tests for Universal Type Generation System
  */
 
-import { primitiveTypeLoader } from '@/lib/prompts/loaders/primitive-type-loader';
-import { databaseTypeLoader } from '@/lib/prompts/loaders/database-type-loader';
-import { propertyLoader } from '@/lib/prompts/loaders/property-loader';
-import { contentTypeValidator } from '@/prompts/universal-types/validation/validator';
-import { confidenceScorer } from '@/prompts/universal-types/validation/confidence-scorer';
-import { universalTypeContextBuilder } from '@/lib/prompts/context/universal-type-context';
-import { dynamicExamplesLoader } from '@/prompts/universal-types/examples/dynamic-loader';
+import { primitiveTypeLoader } from '@/lib/services/universal-types/primitive-type-loader';
+import { databaseTypeLoader } from '@/lib/services/universal-types/database-type-loader';
+import { propertyLoader } from '@/lib/services/universal-types/property-loader';
+import { contentTypeValidator } from '@/lib/services/universal-types/validation/validator';
+import { confidenceScorer } from '@/lib/services/universal-types/validation/confidence-scorer';
+import { universalTypeContextBuilder } from '@/lib/services/universal-types/universal-type-context';
+import { dynamicExamplesLoader } from '@/lib/services/universal-types/examples/dynamic-loader';
 
 // Mock Prisma
 jest.mock('@/lib/db/prisma', () => ({

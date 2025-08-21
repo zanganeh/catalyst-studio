@@ -2,6 +2,10 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { createContentType as createContentTypeService } from '@/lib/services/content-type-service';
 import { businessRules } from '@/lib/ai-tools/business-rules';
+import { 
+  confidenceScorer,
+  type ContentTypeDefinition 
+} from '@/lib/services/universal-types/validation';
 
 type FieldType = 'text' | 'textarea' | 'richtext' | 'number' | 'boolean' | 'date' | 'image' | 'richText' | 'reference' | 'select' | 'gallery' | 'tags' | 'json' | 'url';
 
@@ -110,14 +114,30 @@ export const createContentType = tool({
           });
         }
         
-        // Validate fields against business rules
-        const validationResult = await businessRules.validateForCategory(
+        // Create definition for confidence scoring
+        const typeDefinition: ContentTypeDefinition = {
+          name,
+          category: category === 'blog' || category === 'portfolio' ? 'page' : 'component',
+          fields: inferredFields.map(f => ({
+            name: f.name,
+            type: f.type,
+            required: f.required || false,
+            validation: f.validation
+          }))
+        };
+        
+        // Calculate confidence score for AI-generated type
+        const confidenceScore = confidenceScorer.calculateScore(typeDefinition);
+        console.log(`AI-generated type confidence: ${confidenceScore.total}% (${confidenceScore.threshold})`);
+        
+        // Also validate with business rules for category-specific logic
+        const businessValidation = await businessRules.validateForCategory(
           { fields: inferredFields },
           category
         );
         
-        if (!validationResult.valid && validationResult.errors) {
-          console.warn('Business rule validation warnings:', validationResult.errors);
+        if (!businessValidation.valid && businessValidation.errors) {
+          console.warn('Business rule validation warnings:', businessValidation.errors);
         }
       }
       

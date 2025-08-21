@@ -187,7 +187,7 @@ export const updateContentItem = tool({
         }
       }
       
-      // Apply business rules validation if category is known and data is being updated
+      // Business rules validation - currently returns valid for all data
       if (data && existingItem.website.category) {
         const businessValidation = await businessRules.validateForCategory(mergedData, existingItem.website.category);
         if (!businessValidation.valid && businessValidation.errors) {

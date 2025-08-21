@@ -10,6 +10,7 @@ import { FieldTypeModal } from './field-type-modal-simple';
 import { SortableFieldList } from './sortable-field-list';
 import { FieldPropertiesPanel } from './field-properties-panel';
 import Link from 'next/link';
+import { useContentTypeValidation } from '@/lib/hooks/use-content-type-validation';
 
 interface ContentTypeBuilderProps {
   contentTypeId?: string;
@@ -34,6 +35,10 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
   const [isInitialized, setIsInitialized] = useState(false);
   const [isFieldModalOpen, setIsFieldModalOpen] = useState(false);
   const [isPropertiesPanelOpen, setIsPropertiesPanelOpen] = useState(false);
+  
+  const { validateTypeName, errors } = useContentTypeValidation({
+    validateOnChange: false
+  });
 
   // Initialize with content type if ID provided
   useEffect(() => {
@@ -68,11 +73,16 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
 
   const handleNameSave = () => {
     if (currentContentType && nameInput.trim()) {
-      updateContentType(currentContentType.id, {
-        name: nameInput.trim(),
-        pluralName: `${nameInput.trim()}s`,
-      });
-      setIsEditingName(false);
+      // Validate the name first
+      const validation = validateTypeName(nameInput.trim());
+      if (validation.valid) {
+        updateContentType(currentContentType.id, {
+          name: nameInput.trim(),
+          pluralName: `${nameInput.trim()}s`,
+        });
+        setIsEditingName(false);
+      }
+      // If not valid, the error will be shown via the errors state
     }
   };
 
@@ -221,31 +231,37 @@ export default function ContentTypeBuilder({ contentTypeId }: ContentTypeBuilder
           <div className="flex items-center gap-4">
             <span className="text-3xl">{currentContentType.icon}</span>
             {isEditingName ? (
-            <div className="flex items-center gap-2 flex-1">
-              <Input
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleNameSave();
-                  if (e.key === 'Escape') {
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <Input
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  onBlur={() => validateTypeName(nameInput)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleNameSave();
+                    if (e.key === 'Escape') {
+                      setNameInput(currentContentType.name);
+                      setIsEditingName(false);
+                    }
+                  }}
+                  className={`text-2xl font-bold ${errors.typeName ? 'border-red-500' : ''}`}
+                  autoFocus
+                />
+                <Button size="sm" onClick={handleNameSave}>Save</Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
                     setNameInput(currentContentType.name);
                     setIsEditingName(false);
-                  }
-                }}
-                className="text-2xl font-bold"
-                autoFocus
-              />
-              <Button size="sm" onClick={handleNameSave}>Save</Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  setNameInput(currentContentType.name);
-                  setIsEditingName(false);
-                }}
-              >
-                Cancel
-              </Button>
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+              {errors.typeName && (
+                <p className="text-xs text-red-500 mt-1">{errors.typeName}</p>
+              )}
             </div>
           ) : (
             <div className="flex items-center gap-2 flex-1">
