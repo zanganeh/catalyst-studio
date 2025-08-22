@@ -9,20 +9,21 @@ datasource db {
 }
 
 model Website {
-  id           String        @id @default(cuid())
-  name         String
-  description  String?
-  category     String
-  metadata     Json?
-  icon         String?
-  settings     Json?
-  isActive     Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  aiContexts   AIContext[]
-  contentTypes ContentType[]
-  contentItems ContentItem[]
-  deployments  Deployment[]
+  id             String          @id @default(cuid())
+  name           String
+  description    String?
+  category       String
+  metadata       Json?
+  icon           String?
+  settings       Json?
+  isActive       Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  aiContexts     AIContext[]
+  contentTypes   ContentType[]
+  contentItems   ContentItem[]
+  deployments    Deployment[]
+  siteStructures SiteStructure[]
 }
 
 enum ContentTypeCategory {
@@ -53,19 +54,20 @@ model ContentType {
 
 
 model ContentItem {
-  id            String      @id @default(cuid())
-  contentTypeId String
-  contentType   ContentType @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
-  websiteId     String
-  website       Website     @relation(fields: [websiteId], references: [id], onDelete: Cascade)
-  title         String
-  slug          String
-  status        String      @default("draft")
-  content       Json
-  metadata      Json?
-  publishedAt   DateTime?
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id             String           @id @default(cuid())
+  contentTypeId  String
+  contentType    ContentType      @relation(fields: [contentTypeId], references: [id], onDelete: Cascade)
+  websiteId      String
+  website        Website          @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  title          String
+  slug           String
+  status         String           @default("draft")
+  content        Json
+  metadata       Json?
+  publishedAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  siteStructures SiteStructure[]
 
   @@unique([websiteId, slug])
   @@index([websiteId])
@@ -176,4 +178,31 @@ model AIContext {
 
   @@unique([websiteId, sessionId])
   @@index([websiteId])
+}
+
+model SiteStructure {
+  id            String   @id @default(cuid())
+  websiteId     String
+  contentItemId String?
+  parentId      String?
+  slug          String   @db.VarChar(255)
+  fullPath      String   @db.Text
+  pathDepth     Int      @default(0)
+  position      Int      @default(0)
+  weight        Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  website      Website      @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+  contentItem  ContentItem? @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  parent       SiteStructure?  @relation("SiteStructureHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children     SiteStructure[] @relation("SiteStructureHierarchy")
+
+  @@unique([parentId, slug])
+  @@index([fullPath])
+  @@index([parentId])
+  @@index([websiteId])
+  @@index([pathDepth])
+  @@index([contentItemId])
 }
