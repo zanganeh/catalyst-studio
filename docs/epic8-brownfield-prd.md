@@ -12,6 +12,8 @@
 
 This PRD outlines the development of an AI-powered site structure generator for Catalyst Studio, addressing the critical gap in hierarchical page relationship management and URL routing. The solution will enable automated generation of site structures from natural language requirements, with proper storage mechanisms and a Miro-like visual interface for intuitive management.
 
+**🔴 CRITICAL ARCHITECTURAL UPDATE (2025-08-22)**: This PRD has been updated to implement the **Hybrid Orchestration Pattern**, ensuring that every SiteStructure node MUST have an associated ContentItem. Pages are now created atomically through a unified API, preventing orphaned nodes and maintaining data consistency.
+
 ### Key Business Value
 - **Automated site structure generation** from requirements, reducing manual setup time by 90%
 - **Standardized hierarchical storage** enabling consistent URL routing across all CMS platforms
@@ -421,29 +423,45 @@ function generateSlug(title: string, siblings: string[]): string {
 
 ---
 
-## 8. Implementation Plan
+## 8. Implementation Plan (Revised for Hybrid Orchestration)
 
-### Phase 1: Foundation (Week 1)
-- [ ] Story 8.1: Create database migration for site_structure table
-- [ ] Story 8.2: Implement slug generation and validation utilities
-- [ ] Research using Zen tools for optimal tree patterns
-- [ ] WebSearch for CMS best practices
+### Phase 1: Foundation (Week 1) ✅
+- [x] Story 8.1: Database migration for site_structure table
+- [x] Story 8.2: Slug generation and validation utilities
+- [x] Architectural decision: Hybrid Orchestration Pattern
+- [x] Update architecture documents
 
-### Phase 2: Core Functionality (Week 2)
-- [ ] Story 8.3: Design and test AI prompts
-- [ ] Story 8.4: Implement CRUD operations
-- [ ] Story 8.5: Build path management functions
-- [ ] Integration testing with PostgreSQL
+### Phase 2: Core API Development (Week 2) 🚧
+- [ ] **Story 8.3: Page Orchestration API**
+  - [ ] Implement PageOrchestrator service
+  - [ ] Create /api/pages endpoints
+  - [ ] Transaction management
+  - [ ] Atomic page operations
+- [ ] **Story 8.4: Site Structure Service Layer**
+  - [ ] Tree traversal operations
+  - [ ] Path recalculation logic
+  - [ ] Validation and constraints
 
-### Phase 3: UI Development (Week 3)
-- [ ] Story 8.6: Setup React Flow canvas
-- [ ] Story 8.7: Implement drag-drop interactions
-- [ ] Visual polish and animations
-- [ ] Keyboard shortcut implementation
+### Phase 3: AI Integration (Week 3)
+- [ ] **Story 8.5: AI Site Generation Engine**
+  - [ ] Prompt engineering for structure generation
+  - [ ] Integration with PageOrchestrator
+  - [ ] Batch page creation pipeline
+  - [ ] Generation validation
+- [ ] **Story 8.8: URL Resolution & Routing**
+  - [ ] Implement path-to-page resolution
+  - [ ] Middleware for URL handling
+  - [ ] 404 and redirect management
 
-### Phase 4: Integration & Optimization (Week 4)
-- [ ] Story 8.8: Connect to content management system
+### Phase 4: Visual Interface (Week 4)
+- [ ] Story 8.6: React Flow canvas setup
+- [ ] Story 8.7: Visual editor integration
+- [ ] Drag-drop with live page updates
+- [ ] Real-time synchronization
+
+### Phase 5: Optimization & Polish (Week 5)
 - [ ] Story 8.9: Performance optimization
+- [ ] Caching strategy implementation
 - [ ] End-to-end testing
 - [ ] Documentation and deployment
 
@@ -638,6 +656,7 @@ describe('Site Structure Generator', () => {
 | 1.0 | 2025-08-21 | John (PM) | Initial PRD based on Epic 8 requirements |
 | 1.1 | 2025-08-21 | John (PM) | Updated with 7 CMS expert feedback and schema improvements |
 | 1.2 | 2025-08-21 | John (PM) | Removed locale field per MVP scope refinement |
+| 2.0 | 2025-08-22 | John (PM) | **Major revision**: Implemented Hybrid Orchestration Pattern, updated Stories 8.3 & 8.5, revised API architecture for atomic page operations |
 
 ---
 
