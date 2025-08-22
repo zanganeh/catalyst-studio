@@ -1,12 +1,15 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { CheckCircle2, Loader2, Upload, Cloud, Layers, Rocket, Globe, Server, Zap, GitBranch, Package, Shield, Activity, ExternalLink, GitCommit, GitPullRequest, GitMerge, RefreshCw, Search, FileText, Link2, Hash, Users, Eye, Clock, TrendingUp } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { CheckCircle2, Loader2, Upload, Cloud, Layers, Rocket, Globe, Server, Zap, GitBranch, Package, Shield, Activity, ExternalLink, GitCommit, GitPullRequest, GitMerge, RefreshCw, Search, FileText, Link2, Hash, Users, Eye, Clock, TrendingUp, RotateCcw } from 'lucide-react'
 import { DemoLayout } from './demo-layout'
 
 export function ExportDemo() {
+  const searchParams = useSearchParams()
   const [contentTypesExported, setContentTypesExported] = useState(0)
   const [contentExported, setContentExported] = useState(0)
   const [buildProgress, setBuildProgress] = useState(0)
@@ -21,6 +24,8 @@ export function ExportDemo() {
   const [previewUrl, setPreviewUrl] = useState('')
   const [gitBranch, setGitBranch] = useState('main')
   const [commitHash, setCommitHash] = useState('')
+  const [importedUrl, setImportedUrl] = useState<string>('')
+  const [hasStarted, setHasStarted] = useState(false)
 
   const targetContentTypes = 29
   const targetContent = 890
@@ -44,7 +49,25 @@ export function ExportDemo() {
     'Vercel: Live on 300+ edge locations'
   ]
 
+  // Check if coming from style guide
   useEffect(() => {
+    const fromStyleGuide = searchParams.get('from') === 'style-guide'
+    if (fromStyleGuide) {
+      const url = sessionStorage.getItem('importedUrl')
+      const hasSitemap = sessionStorage.getItem('sitemapGenerated')
+      const hasWireframes = sessionStorage.getItem('wireframesApproved')
+      const hasStyleGuide = sessionStorage.getItem('styleGuideApproved')
+      if (url && hasSitemap && hasWireframes && hasStyleGuide) {
+        setImportedUrl(url)
+        // Auto-start export
+        setHasStarted(true)
+      }
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    if (!hasStarted) return
+
     // Connection phase
     setTimeout(() => {
       setOptimizelyConnected(true)
@@ -128,7 +151,13 @@ export function ExportDemo() {
     return () => {
       clearInterval(progressInterval)
     }
-  }, [])
+  }, [hasStarted])
+
+  const handleRestart = () => {
+    // Clear session storage and go back to import
+    sessionStorage.clear()
+    window.location.href = '/demo/import'
+  }
 
   const getStatusMessage = () => {
     switch (status) {
@@ -161,8 +190,18 @@ export function ExportDemo() {
   }
 
   return (
-    <DemoLayout title="Content Export & Deployment" subtitle="Optimizely CMS → Vercel Edge Network">
+    <DemoLayout title="Content Export & Deployment" subtitle="Step 5: Deploy to Production">
       <>
+
+          {/* Import Status Badge */}
+          {importedUrl && (
+            <div className="mb-4">
+              <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                <Globe className="h-3 w-3 mr-1" />
+                Exporting content from: {importedUrl}
+              </Badge>
+            </div>
+          )}
 
           {/* Top Section - Service Connections */}
           <div className="grid grid-cols-3 gap-4">
@@ -348,16 +387,28 @@ export function ExportDemo() {
                 {status === 'complete' && deploymentUrl && (
                   <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-green-400" />
-                        <div>
-                          <p className="text-sm font-medium text-green-300">Deployment Live!</p>
-                          <p className="text-xs text-green-400/80">Your site is now available globally</p>
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-400" />
+                          <div>
+                            <p className="text-sm font-medium text-green-300">Workflow Complete!</p>
+                            <p className="text-xs text-green-400/80">Successfully imported, mapped, and deployed</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <a href={deploymentUrl} className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 px-3 py-1.5 bg-blue-500/10 rounded border border-blue-500/20">
+                            Visit Live Site <ExternalLink className="h-3 w-3" />
+                          </a>
+                          <Button
+                            onClick={handleRestart}
+                            className="text-xs bg-gray-500/10 hover:bg-gray-500/20 text-gray-300 border border-gray-500/20"
+                            size="sm"
+                          >
+                            <RotateCcw className="h-3 w-3 mr-1" />
+                            Start New Import
+                          </Button>
                         </div>
                       </div>
-                      <a href={deploymentUrl} className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300">
-                        Visit Site <ExternalLink className="h-3 w-3" />
-                      </a>
                     </div>
                   </div>
                 )}

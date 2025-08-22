@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -15,7 +16,8 @@ import {
   ExternalLink, Search, Bot, Zap, Grid, Home, Info, Mail, 
   ShoppingCart, BookOpen, Briefcase, Image, Video, MessageSquare,
   CheckCircle2, Activity, Shield, Cloud, Rocket, Folder,
-  FileCode, Layout, Database, Package, Terminal, Code, Cpu, MoreVertical
+  FileCode, Layout, Database, Package, Terminal, Code, Cpu, MoreVertical,
+  ArrowRight
 } from 'lucide-react'
 
 interface SiteSection {
@@ -38,10 +40,10 @@ interface SiteNode {
 }
 
 export default function SitemapBuilderDemo() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const canvasRef = useRef<HTMLDivElement>(null)
-  const [inputMode, setInputMode] = useState<'url' | 'prompt'>('url')
-  const [urlInput, setUrlInput] = useState('https://example.com')
-  const [promptInput, setPromptInput] = useState('')
+  const [importedUrl, setImportedUrl] = useState<string>('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [progress, setProgress] = useState(0)
   const [status, setStatus] = useState('')
@@ -55,6 +57,7 @@ export default function SitemapBuilderDemo() {
   const [showContextMenu, setShowContextMenu] = useState(false)
   const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 })
   const [contextMenuNode, setContextMenuNode] = useState<string | null>(null)
+  const [hasGenerated, setHasGenerated] = useState(false)
 
   // Sample sitemap structure with vertical tree hierarchy
   const generateSampleSitemap = (): SiteNode[] => {
@@ -185,18 +188,31 @@ export default function SitemapBuilderDemo() {
     return result
   }
 
-  const analyzeUrl = useCallback(async () => {
-    console.log('analyzeUrl called')
+  // Check if coming from import and load data
+  useEffect(() => {
+    const isImported = searchParams.get('imported') === 'true'
+    if (isImported) {
+      const url = sessionStorage.getItem('importedUrl')
+      if (url) {
+        setImportedUrl(url)
+        // Auto-generate sitemap when coming from import
+        generateImportedSitemap()
+      }
+    }
+  }, [searchParams])
+
+  const generateImportedSitemap = useCallback(async () => {
     setIsAnalyzing(true)
     setProgress(0)
-    setStatus('Connecting to website...')
+    setStatus('Processing imported data...')
+    setHasGenerated(true)
     
     const steps = [
-      { progress: 20, status: 'Analyzing page structure...', delay: 800 },
-      { progress: 40, status: 'Detecting navigation patterns...', delay: 1200 },
-      { progress: 60, status: 'Extracting content hierarchy...', delay: 1000 },
-      { progress: 80, status: 'Building sitemap structure...', delay: 1500 },
-      { progress: 100, status: 'Finalizing visualization...', delay: 800 }
+      { progress: 20, status: 'Analyzing imported structure...', delay: 800 },
+      { progress: 40, status: 'Mapping page hierarchy...', delay: 1200 },
+      { progress: 60, status: 'Identifying content relationships...', delay: 1000 },
+      { progress: 80, status: 'Building visual structure...', delay: 1500 },
+      { progress: 100, status: 'Finalizing sitemap...', delay: 800 }
     ]
 
     for (const step of steps) {
@@ -207,49 +223,17 @@ export default function SitemapBuilderDemo() {
 
     setSitemap(generateSampleSitemap())
     setIsAnalyzing(false)
-    setStatus('Sitemap generated successfully!')
+    setStatus('Sitemap generated from imported data!')
     // Auto-center the view with better zoom
     setZoom(0.4)
     setPan({ x: -600, y: 20 })
     setTimeout(() => setStatus(''), 3000)
   }, [])
 
-  const generateFromPrompt = useCallback(async () => {
-    setIsAnalyzing(true)
-    setProgress(0)
-    setStatus('Analyzing your requirements...')
-    
-    const steps = [
-      { progress: 25, status: 'Understanding business goals...', delay: 1000 },
-      { progress: 50, status: 'Generating page structure...', delay: 1200 },
-      { progress: 75, status: 'Adding content sections...', delay: 1000 },
-      { progress: 100, status: 'Optimizing layout...', delay: 800 }
-    ]
-
-    for (const step of steps) {
-      await new Promise(resolve => setTimeout(resolve, step.delay))
-      setProgress(step.progress)
-      setStatus(step.status)
-    }
-
-    setSitemap(generateSampleSitemap())
-    setIsAnalyzing(false)
-    setStatus('AI sitemap generated successfully!')
-    // Auto-center the view with better zoom
-    setZoom(0.4)
-    setPan({ x: -600, y: 20 })
-    setTimeout(() => setStatus(''), 3000)
-  }, [])
-
-  const handleGenerate = () => {
-    console.log('Generate clicked', { inputMode, urlInput, promptInput })
-    if (inputMode === 'url' && urlInput) {
-      console.log('Analyzing URL...')
-      analyzeUrl()
-    } else if (inputMode === 'prompt' && promptInput) {
-      console.log('Generating from prompt...')
-      generateFromPrompt()
-    }
+  const handleContinueToWireframe = () => {
+    // Store sitemap data and navigate to wireframe
+    sessionStorage.setItem('sitemapGenerated', 'true')
+    router.push('/demo/wireframe?from=sitemap')
   }
 
   const handleCanvasMouseDown = (e: React.MouseEvent) => {
@@ -496,78 +480,20 @@ export default function SitemapBuilderDemo() {
   }, [showContextMenu])
 
   return (
-    <DemoLayout title="Sitemap Builder" subtitle="Visual website structure generator">
+    <DemoLayout title="Sitemap Builder" subtitle="Step 2: Visualize Site Structure">
       <>
         {/* Top Controls Bar */}
         <div className="bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md rounded-lg shadow-xl border border-white/10 p-4">
           <div className="flex items-center justify-between">
               
-              {/* Input Controls */}
+              {/* Import Status and Controls */}
               <div className="flex items-center gap-4">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setInputMode('url')}
-                    className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                      inputMode === 'url' 
-                        ? 'bg-[#FF5500]/20 text-[#FF5500] border border-[#FF5500]/30' 
-                        : 'text-gray-400 hover:bg-white/5 border border-transparent'
-                    }`}
-                  >
-                    <Globe className="h-4 w-4 inline mr-2" />
-                    Analyze URL
-                  </button>
-                  <button
-                    onClick={() => setInputMode('prompt')}
-                    className={`px-4 py-2 rounded-lg text-sm transition-all ${
-                      inputMode === 'prompt' 
-                        ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' 
-                        : 'text-gray-400 hover:bg-white/5 border border-transparent'
-                    }`}
-                  >
-                    <Sparkles className="h-4 w-4 inline mr-2" />
-                    AI Generate
-                  </button>
-                </div>
-                
-                {inputMode === 'url' ? (
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Enter website URL"
-                      value={urlInput}
-                      onChange={(e) => setUrlInput(e.target.value)}
-                      className="w-64 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
-                    />
-                    <button
-                      onClick={handleGenerate}
-                      disabled={isAnalyzing || !urlInput}
-                      className="px-4 py-2 rounded-md bg-gradient-to-r from-[#FF5500] to-[#FF6600] hover:from-[#FF6600] hover:to-[#FF7700] text-white border-0 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                    >
-                      {isAnalyzing ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        'Analyze'
-                      )}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Describe your website..."
-                      value={promptInput}
-                      onChange={(e) => setPromptInput(e.target.value)}
-                      className="w-64 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
-                    />
-                    <button
-                      onClick={handleGenerate}
-                      disabled={isAnalyzing || !promptInput}
-                      className="px-4 py-2 rounded-md bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white border-0 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                    >
-                      {isAnalyzing ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        'Generate'
-                      )}
-                    </button>
+                {importedUrl && (
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Imported from: {importedUrl}
+                    </Badge>
                   </div>
                 )}
                 
@@ -600,8 +526,19 @@ export default function SitemapBuilderDemo() {
                   className="px-3 py-1.5 text-sm border border-white/10 text-gray-300 hover:bg-white/10 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
                   <Download className="h-4 w-4 mr-2" />
-                  Export
+                  Export JSON
                 </button>
+
+                {/* Continue Button */}
+                {hasGenerated && sitemap.length > 0 && (
+                  <Button
+                    onClick={handleContinueToWireframe}
+                    className="bg-gradient-to-r from-[#FF5500] to-[#FF6600] hover:from-[#FF6600] hover:to-[#FF7700] text-white border-0"
+                  >
+                    Generate Wireframes
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                )}
               </div>
           </div>
           

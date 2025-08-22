@@ -1,16 +1,22 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
-import { CheckCircle2, Loader2, Bot, Database, FileText, Sparkles, Globe, Server, Brain, Zap, AlertCircle, TrendingUp, Clock, Shield, Search, BarChart3 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { CheckCircle2, Loader2, Bot, Database, FileText, Sparkles, Globe, Server, Brain, Zap, AlertCircle, TrendingUp, Clock, Shield, Search, BarChart3, ArrowRight } from 'lucide-react'
 import { DemoLayout } from './demo-layout'
 
 export function ImportDemo() {
+  const router = useRouter()
+  const [urlInput, setUrlInput] = useState('https://example.com')
+  const [hasStarted, setHasStarted] = useState(false)
   const [contentCount, setContentCount] = useState(0)
   const [contentTypeCount, setContentTypeCount] = useState(0)
   const [progress, setProgress] = useState(0)
-  const [status, setStatus] = useState<'connecting' | 'analyzing' | 'importing' | 'processing' | 'complete'>('connecting')
+  const [status, setStatus] = useState<'waiting' | 'connecting' | 'analyzing' | 'importing' | 'processing' | 'complete'>('waiting')
   const [aiProcessing, setAiProcessing] = useState(false)
   const [throughput, setThroughput] = useState(0)
   const [confidence, setConfidence] = useState(95)
@@ -48,7 +54,23 @@ export function ImportDemo() {
     '/projects/healthcare/specialty-clinic', '/portfolio/education/elementary-school'
   ]
 
+  const handleStartImport = () => {
+    if (urlInput) {
+      setHasStarted(true)
+      setStatus('connecting')
+      // Store URL in sessionStorage for other demos
+      sessionStorage.setItem('importedUrl', urlInput)
+    }
+  }
+
+  const handleContinueToSitemap = () => {
+    // Navigate to sitemap with the imported data
+    router.push('/demo/sitemap-builder?imported=true')
+  }
+
   useEffect(() => {
+    if (!hasStarted) return
+
     // Progress bar (drives everything else)
     const progressInterval = setInterval(() => {
       setProgress(prev => {
@@ -116,25 +138,25 @@ export function ImportDemo() {
         
         return newProgress
       })
-    }, 300)
+    }, 50) // Reduced from 300ms to 100ms for faster progress
 
-    // Connection phase (2 seconds)
+    // Connection phase (1 second)
     const connectionTimer = setTimeout(() => {
       setStatus('analyzing')
-    }, 2000)
+    }, 1000)
 
-    // Start AI analysis (4 seconds)
+    // Start AI analysis (2 seconds)
     const analysisTimer = setTimeout(() => {
       setAiProcessing(true)
       setStatus('importing')
-    }, 4000)
+    }, 2000)
 
     // Status updates
     const processingTimer = setTimeout(() => {
       if (status !== 'complete') {
         setStatus('processing')
       }
-    }, 15000)
+    }, 5000)
 
     return () => {
       clearTimeout(connectionTimer)
@@ -142,10 +164,12 @@ export function ImportDemo() {
       clearTimeout(processingTimer)
       clearInterval(progressInterval)
     }
-  }, [])
+  }, [hasStarted])
 
   const getStatusMessage = () => {
     switch (status) {
+      case 'waiting':
+        return 'Enter URL to begin import'
       case 'connecting':
         return 'Connecting to Sitecore instance...'
       case 'analyzing':
@@ -173,10 +197,37 @@ export function ImportDemo() {
   }
 
   return (
-    <DemoLayout title="AI Content Import" subtitle="Automated Migration & Analysis">
+    <DemoLayout title="AI Content Import" subtitle="Step 1: Import Content">
       <>
+          {/* URL Input Section - Always visible at top */}
+          {!hasStarted && (
+            <div className="rounded-lg bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md border border-white/10 p-4">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <label className="text-sm text-white/80 mb-2 block">Enter Website URL to Import</label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="https://example.com"
+                      value={urlInput}
+                      onChange={(e) => setUrlInput(e.target.value)}
+                      className="flex-1 bg-white/5 border-white/10 text-white placeholder:text-gray-500"
+                    />
+                    <Button
+                      onClick={handleStartImport}
+                      disabled={!urlInput}
+                      className="bg-gradient-to-r from-[#FF5500] to-[#FF6600] hover:from-[#FF6600] hover:to-[#FF7700] text-white border-0"
+                    >
+                      <Globe className="h-4 w-4 mr-2" />
+                      Start Import
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Top Section - Website Info & Metrics */}
+          {hasStarted && (
           <div className="grid grid-cols-2 gap-4">
             {/* Website Info Card */}
             <div className="rounded-lg bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md border border-white/10 p-4">
@@ -185,15 +236,15 @@ export function ImportDemo() {
                   <Globe className="h-4 w-4 text-[#FF5500]" />
                   <h2 className="text-sm font-semibold text-white">Website Configuration</h2>
                 </div>
-                <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">
+                <Badge className={hasStarted ? "bg-green-500/20 text-green-400 border-green-500/30 text-xs" : "bg-gray-500/20 text-gray-400 border-gray-500/30 text-xs"}>
                   <Server className="h-3 w-3 mr-1" />
-                  Connected
+                  {hasStarted ? 'Connected' : 'Ready'}
                 </Badge>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-white/60">Website Name</label>
-                  <p className="text-sm font-semibold text-white">TSM Builder</p>
+                  <label className="text-xs text-white/60">Website URL</label>
+                  <p className="text-sm font-semibold text-white truncate">{urlInput}</p>
                 </div>
                 <div>
                   <label className="text-xs text-white/60">CMS Technology</label>
@@ -235,8 +286,10 @@ export function ImportDemo() {
               </div>
             </div>
           </div>
+          )}
 
           {/* Main Content Area */}
+          {hasStarted && (
           <div className="flex-1 grid grid-cols-3 gap-4">
             {/* Left Column - Import Progress */}
             <div className="col-span-2 rounded-lg bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md border border-white/10 p-4">
@@ -349,15 +402,24 @@ export function ImportDemo() {
                   </div>
                 </div>
 
-                {/* Completion Message */}
+                {/* Completion Message with Continue Button */}
                 {status === 'complete' && (
                   <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-400" />
-                      <div>
-                        <p className="text-sm font-medium text-green-300">Import Successful!</p>
-                        <p className="text-xs text-green-400/80">All content imported with AI analysis.</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-green-400" />
+                        <div>
+                          <p className="text-sm font-medium text-green-300">Import Successful!</p>
+                          <p className="text-xs text-green-400/80">All content imported with AI analysis.</p>
+                        </div>
                       </div>
+                      <Button
+                        onClick={handleContinueToSitemap}
+                        className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border-0"
+                      >
+                        Build Sitemap
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -446,6 +508,7 @@ export function ImportDemo() {
               </div>
             </div>
           </div>
+          )}
       </>
     </DemoLayout>
   )
