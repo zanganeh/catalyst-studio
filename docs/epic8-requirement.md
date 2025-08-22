@@ -1,0 +1,10 @@
+Epic 8 Requirements (RAW):
+Content item in all platforms are in two categoyies: page and component. We have exactly same structure. The page is routable so you build site structure using pages. We have one root page which is usually home page and then child page, descesters and so on! This structure is called IA or site map or site strucute. Then each page can have their own content and/or use component (re-usable compents) as property or in the content area. This is quite standrd structure. In our CMS structuer internally we don't have site strructure. The strucuter in different cms stored different. Some CMS store relationship separately from pages itself. Some stores the strucuter as part of page itself (parent, childs, ...). remember it is alwaus like tree and inside page we have properties that can reference other components! Now we need to implement this gap so:
+- when AI generates webiste, 
+    - first it should build the sitempa based on requirement
+    - second build content type that require based on the site map (e.g. pages, components, ...)
+    - third based on sitemap it should create pages and relationship btween them
+- I don't think AI itself capable of running the whole process. It can tell sitemap, content type require but our code somehow should control after that and as k AI for each node in sitemap what are the page contnets are. Or similar appraoch. Needs some invetigation. Rememebr alwasy we have limited context windows and as context window grow it degare
+- other thing to consider is we are in mvp and we don't need to worry about authenticaiton, authentocazation and rate limit. We don;t need ot think of performance that much and focus on delivering core of the business instead of non-fucntinal requirement. Basic stuff is good to have but focus is in core value delivering
+- need to have deep resarch using zen for consulation and webseach as much as possible on each step to make sure we use best in breath system possible that fits our need, not over complciating and always stay close to boundiers of requirements.
+- make sure on each story we use gitflow and on branch name include sotry number and name
