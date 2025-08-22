@@ -4,7 +4,6 @@ import { UpdatePageDto, DeleteOptions } from '@/lib/types/page-orchestrator.type
 
 export async function GET(
   request: NextRequest,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   { params }: { params: { id: string } }
 ) {
   try {
@@ -14,21 +13,16 @@ export async function GET(
     //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     // }
 
-    const websiteId = request.headers.get('x-website-id');
-    if (!websiteId) {
+    const result = await pageOrchestrator.getPage(params.id);
+
+    if (!result) {
       return NextResponse.json(
-        { error: 'Website ID is required in x-website-id header' },
-        { status: 400 }
+        { error: 'Page not found' },
+        { status: 404 }
       );
     }
 
-    // Get page by structure ID
-    // This can be enhanced to fetch the page data
-    // For now using resolveUrl internally would need adjustment
-    return NextResponse.json(
-      { error: 'Get page by ID not yet implemented' },
-      { status: 501 }
-    );
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error getting page:', error);
     return NextResponse.json(

@@ -1,23 +1,11 @@
 import { NextRequest } from 'next/server';
-import { POST as createPage } from '../route';
-import { PATCH as updatePage, DELETE as deletePage } from '../[id]/route';
+import { POST as createPage, GET as listPages } from '../route';
+import { PATCH as updatePage, DELETE as deletePage, GET as getPage } from '../[id]/route';
 import { POST as movePage } from '../[id]/move/route';
 import { GET as resolveUrl } from '../resolve/route';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-
-// Mock next-auth
-jest.mock('next-auth', () => ({
-  getServerSession: jest.fn()
-}));
-
-// Mock auth options
-jest.mock('@/lib/auth', () => ({
-  authOptions: {}
-}));
 
 describe('Pages API Integration Tests', () => {
-  const mockSession = { user: { id: 'user-123', email: 'test@example.com' } };
   let websiteId: string;
   let contentTypeId: string;
 

@@ -55,5 +55,6 @@ export interface IPageOrchestrator {
   updatePage(id: string, dto: UpdatePageDto): Promise<PageResult>;
   deletePage(id: string, options?: DeleteOptions): Promise<void>;
   movePage(id: string, dto: MovePageDto): Promise<PageResult>;
+  getPage(id: string): Promise<PageResult | null>;
   resolveUrl(path: string, websiteId: string): Promise<PageResult | null>;
 }

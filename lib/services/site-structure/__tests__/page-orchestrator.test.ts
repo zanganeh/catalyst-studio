@@ -60,7 +60,8 @@ describe('PageOrchestrator', () => {
     mockPrisma = {
       $transaction: jest.fn((callback) => callback(mockTx)),
       siteStructure: {
-        findFirst: jest.fn()
+        findFirst: jest.fn(),
+        findUnique: jest.fn()
       }
     };
 
@@ -320,7 +321,7 @@ describe('PageOrchestrator', () => {
 
       // Assert
       expect(mockTx.siteStructure.findMany).toHaveBeenCalledWith({
-        where: { materializedPath: { contains: pageId } }
+        where: { fullPath: { startsWith: '/old-slug/' } }
       });
       expect(mockTx.siteStructure.update).toHaveBeenCalledWith({
         where: { id: mockDescendant.id },
@@ -408,7 +409,7 @@ describe('PageOrchestrator', () => {
         where: { parentId: pageId },
         data: { 
           parentId: 'grandparent-123',
-          depth: 2
+          pathDepth: 2
         }
       });
     });
@@ -452,13 +453,15 @@ describe('PageOrchestrator', () => {
       };
 
       mockTx.siteStructure.findUnique
-        .mockResolvedValueOnce(mockStructure)
-        .mockResolvedValueOnce(mockNewParent);
+        .mockResolvedValueOnce(mockStructure)  // First call for finding the page
+        .mockResolvedValueOnce(mockStructure)  // Second call for circular check (node)
+        .mockResolvedValueOnce(mockNewParent)  // Third call for finding new parent
+        .mockResolvedValueOnce(mockStructure); // Fourth call in updateDescendantDepths
       mockTx.siteStructure.findFirst.mockResolvedValue(null);
       mockTx.siteStructure.update.mockResolvedValue({
         ...mockStructure,
         parentId: 'parent-123',
-        depth: 1,
+        pathDepth: 1,
         fullPath: '/parent/page'
       });
       mockTx.siteStructure.findMany.mockResolvedValue([]);
@@ -471,8 +474,7 @@ describe('PageOrchestrator', () => {
         where: { id: pageId },
         data: expect.objectContaining({
           parentId: 'parent-123',
-          depth: 1,
-          materializedPath: 'parent-123',
+          pathDepth: 1,
           fullPath: '/parent/page'
         })
       });
@@ -484,16 +486,18 @@ describe('PageOrchestrator', () => {
       const mockStructure = {
         id: pageId,
         slug: 'page',
+        fullPath: '/page',
         contentItem: { id: 'content-123' }
       };
       const mockDescendant = {
         id: 'descendant-123',
-        materializedPath: `${pageId}.child-123`
+        fullPath: '/page/child/descendant'
       };
 
       mockTx.siteStructure.findUnique
-        .mockResolvedValueOnce(mockStructure)
-        .mockResolvedValueOnce(mockDescendant);
+        .mockResolvedValueOnce(mockStructure)  // First call for finding the page
+        .mockResolvedValueOnce(mockDescendant) // Second call for finding new parent
+        .mockResolvedValueOnce(mockStructure);  // Third call for circular check
 
       // Act & Assert
       await expect(orchestrator.movePage(pageId, { newParentId: 'descendant-123' }))
@@ -506,17 +510,19 @@ describe('PageOrchestrator', () => {
       const mockStructure = {
         id: pageId,
         slug: 'page',
-        depth: 1,
+        pathDepth: 1,
         fullPath: '/old/page',
         contentItem: { id: 'content-123' }
       };
       const mockDescendant = {
         id: 'child-123',
         pathDepth: 2,
-        materializedPath: pageId
+        fullPath: '/old/page/child'
       };
 
-      mockTx.siteStructure.findUnique.mockResolvedValue(mockStructure);
+      mockTx.siteStructure.findUnique
+        .mockResolvedValueOnce(mockStructure)  // First call for finding the page
+        .mockResolvedValueOnce(mockStructure); // Second call in updateDescendantDepths
       mockTx.siteStructure.findFirst.mockResolvedValue(null);
       mockTx.siteStructure.update.mockResolvedValue({});
       mockTx.siteStructure.findMany.mockResolvedValue([mockDescendant]);
@@ -527,7 +533,7 @@ describe('PageOrchestrator', () => {
       // Assert
       expect(mockTx.siteStructure.update).toHaveBeenCalledWith({
         where: { id: 'child-123' },
-        data: { depth: 1 } // depth decreased by 1
+        data: { pathDepth: 1 } // depth decreased by 1
       });
     });
   });
@@ -548,19 +554,11 @@ describe('PageOrchestrator', () => {
 
       mockPrisma.siteStructure.findFirst.mockResolvedValue(mockStructure);
       
-      // Mock for breadcrumbs
-      const mockTxForBreadcrumbs = {
-        siteStructure: {
-          findUnique: jest.fn().mockResolvedValue({
-            ...mockStructure,
-            materializedPath: 'root.about'
-          }),
-          findMany: jest.fn().mockResolvedValue([])
-        }
-      };
-      
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      mockPrisma.$transaction.mockImplementation((fn: any) => fn(mockTxForBreadcrumbs));
+      // Mock for breadcrumbs - getBreadcrumbs uses the PrismaClient directly
+      mockPrisma.siteStructure.findUnique = jest.fn().mockResolvedValue({
+        ...mockStructure,
+        parentId: null
+      });
 
       // Act
       const result = await orchestrator.resolveUrl('/about/team', websiteId);

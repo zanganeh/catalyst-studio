@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { pageOrchestrator } from '@/lib/services/site-structure/page-orchestrator';
 import { CreatePageDto } from '@/lib/types/page-orchestrator.types';
+import { 
+  DuplicateSlugError, 
+  InvalidSlugError,
+  OrphanedNodeError 
+} from '@/lib/services/site-structure/errors';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,16 +40,16 @@ export async function POST(request: NextRequest) {
     console.error('Error creating page:', error);
 
     // Handle specific error types
+    if (error instanceof DuplicateSlugError) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
+
+    if (error instanceof InvalidSlugError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
-    if (errorMessage.includes('Duplicate') || errorMessage.includes('already exists')) {
-      return NextResponse.json({ error: errorMessage }, { status: 409 });
-    }
-
-    if (errorMessage.includes('Invalid slug')) {
-      return NextResponse.json({ error: errorMessage }, { status: 400 });
-    }
-
     if (errorMessage.includes('not found')) {
       return NextResponse.json({ error: errorMessage }, { status: 404 });
     }
@@ -72,14 +77,27 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // This endpoint can be extended to list pages with pagination
-    // For now, return method not implemented
-    return NextResponse.json(
-      { error: 'List pages not yet implemented' },
-      { status: 501 }
-    );
+    const url = new URL(request.url);
+    const parentId = url.searchParams.get('parentId');
+    const limit = parseInt(url.searchParams.get('limit') || '50');
+    const offset = parseInt(url.searchParams.get('offset') || '0');
+    const includeContent = url.searchParams.get('includeContent') !== 'false';
+
+    const result = await pageOrchestrator.listPages(websiteId, {
+      parentId: parentId === 'null' ? null : parentId,
+      limit: Math.min(limit, 100), // Cap at 100 items
+      offset,
+      includeContent
+    });
+
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error listing pages:', error);
+    
+    if (error instanceof OrphanedNodeError) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to list pages' },
       { status: 500 }

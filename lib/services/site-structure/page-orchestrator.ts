@@ -375,6 +375,74 @@ export class PageOrchestrator implements IPageOrchestrator {
     });
   }
 
+  async getPage(id: string): Promise<PageResult | null> {
+    const structure = await this.prisma.siteStructure.findUnique({
+      where: { id },
+      include: { contentItem: true }
+    });
+
+    if (!structure || !structure.contentItem) {
+      return null;
+    }
+
+    const breadcrumbs = await this.getBreadcrumbs(this.prisma, structure.id);
+
+    return {
+      contentItem: structure.contentItem,
+      siteStructure: structure,
+      fullPath: structure.fullPath,
+      breadcrumbs
+    };
+  }
+
+  async listPages(
+    websiteId: string,
+    options?: { 
+      parentId?: string | null; 
+      limit?: number; 
+      offset?: number;
+      includeContent?: boolean;
+    }
+  ): Promise<{ pages: PageResult[]; total: number }> {
+    const where = {
+      websiteId,
+      ...(options?.parentId !== undefined && { parentId: options.parentId })
+    };
+
+    const [structures, total] = await Promise.all([
+      this.prisma.siteStructure.findMany({
+        where,
+        include: { contentItem: options?.includeContent !== false },
+        take: options?.limit,
+        skip: options?.offset,
+        orderBy: [
+          { position: 'asc' },
+          { createdAt: 'asc' }
+        ]
+      }),
+      this.prisma.siteStructure.count({ where })
+    ]);
+
+    const pages = await Promise.all(
+      structures.map(async (structure) => {
+        if (!structure.contentItem) {
+          throw new OrphanedNodeError(`Site structure ${structure.id} has no content item`);
+        }
+        
+        const breadcrumbs = await this.getBreadcrumbs(this.prisma, structure.id);
+        
+        return {
+          contentItem: structure.contentItem,
+          siteStructure: structure,
+          fullPath: structure.fullPath,
+          breadcrumbs
+        };
+      })
+    );
+
+    return { pages, total };
+  }
+
   async resolveUrl(path: string, websiteId: string): Promise<PageResult | null> {
     // Normalize path
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
@@ -402,7 +470,7 @@ export class PageOrchestrator implements IPageOrchestrator {
   }
 
   private async getBreadcrumbs(
-    tx: Prisma.TransactionClient,
+    tx: Prisma.TransactionClient | PrismaClient,
     structureId: string
   ): Promise<Array<{ id: string; title: string; slug: string }>> {
     const structure = await tx.siteStructure.findUnique({
@@ -456,19 +524,14 @@ export class PageOrchestrator implements IPageOrchestrator {
     oldPath: string,
     newPath: string
   ): Promise<void> {
-    // Find all descendants by checking if their fullPath starts with the parent's fullPath
-    const parentStructure = await tx.siteStructure.findUnique({
-      where: { id: parentId }
-    });
-    
-    if (!parentStructure) return;
-    
+    // Find all descendants by checking if their fullPath starts with the old path
     const descendants = await tx.siteStructure.findMany({
       where: {
-        fullPath: { startsWith: parentStructure.fullPath + '/' }
+        fullPath: { startsWith: oldPath + '/' }
       }
     });
 
+    // Update each descendant's fullPath by replacing the old path prefix with the new one
     for (const descendant of descendants) {
       const updatedFullPath = descendant.fullPath.replace(oldPath, newPath);
       await tx.siteStructure.update({
@@ -486,19 +549,21 @@ export class PageOrchestrator implements IPageOrchestrator {
   ): Promise<void> {
     const depthDiff = newDepth - oldDepth;
     
-    // Find all descendants by checking if their fullPath starts with the parent's fullPath
+    // Get the parent structure to find its fullPath
     const parentStructure = await tx.siteStructure.findUnique({
       where: { id: parentId }
     });
     
     if (!parentStructure) return;
     
+    // Find all descendants by checking if their fullPath starts with the parent's fullPath
     const descendants = await tx.siteStructure.findMany({
       where: {
         fullPath: { startsWith: parentStructure.fullPath + '/' }
       }
     });
 
+    // Update each descendant's depth
     for (const descendant of descendants) {
       await tx.siteStructure.update({
         where: { id: descendant.id },
