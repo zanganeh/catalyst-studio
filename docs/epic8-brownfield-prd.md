@@ -12,6 +12,8 @@
 
 This PRD outlines the development of an AI-powered site structure generator for Catalyst Studio, addressing the critical gap in hierarchical page relationship management and URL routing. The solution will enable automated generation of site structures from natural language requirements, with proper storage mechanisms and a Miro-like visual interface for intuitive management.
 
+**🔴 CRITICAL ARCHITECTURAL UPDATE (2025-08-22)**: This PRD has been updated to implement the **Hybrid Orchestration Pattern**, ensuring that every SiteStructure node MUST have an associated ContentItem. Pages are now created atomically through a unified API, preventing orphaned nodes and maintaining data consistency.
+
 ### Key Business Value
 - **Automated site structure generation** from requirements, reducing manual setup time by 90%
 - **Standardized hierarchical storage** enabling consistent URL routing across all CMS platforms
@@ -173,59 +175,157 @@ CREATE TABLE site_structure (
 
 ## 5. User Stories & Workflows
 
-### User Story Map
+### User Story Map (Revised for Hybrid Orchestration)
 
 ```
 Epic 8: Site Structure Generator
-├── Story 8.1: Database Schema Implementation
-├── Story 8.2: Slug Management System
-├── Story 8.3: AI Prompt Engineering
-├── Story 8.4: Storage Layer CRUD Operations
-├── Story 8.5: Path Management Utilities
+├── Story 8.1: Database Schema Implementation ✅
+├── Story 8.2: Slug Management System ✅
+├── Story 8.3: Page Orchestration API (was: AI Prompt Engineering)
+├── Story 8.4: Site Structure Service Layer (was: Storage Layer CRUD)
+├── Story 8.5: AI Site Generation Engine (was: Path Management)
 ├── Story 8.6: React Flow Canvas Setup
-├── Story 8.7: Node Interaction Implementation
-├── Story 8.8: Integration with Content System
-└── Story 8.9: Performance Optimization
+├── Story 8.7: Visual Editor Integration
+├── Story 8.8: URL Resolution & Routing
+└── Story 8.9: Performance & Optimization
 ```
 
-### Primary User Workflow
+### Primary User Workflow (Updated for Atomic Page Creation)
 
 ```mermaid
 graph LR
     A[Enter Requirements] --> B[AI Generates Structure]
     B --> C[Review Visual Tree]
     C --> D{Approve?}
-    D -->|Yes| E[Save Structure]
+    D -->|Yes| E[Create Pages Atomically]
     D -->|No| F[Edit on Canvas]
     F --> G[Drag/Drop Nodes]
-    G --> H[Update Slugs]
+    G --> H[Update Pages]
     H --> E
-    E --> I[Generate Content]
+    E --> I[Pages Created with Content + Structure]
 ```
 
-### API Workflow Example
+### Story 8.3: Page Orchestration API (Critical Update)
+
+**Priority**: P0 (Critical)
+**Previous Title**: AI Prompt Engineering
+**New Focus**: Implement orchestrated page creation ensuring atomic operations
+
+#### Problem Statement
+The original design had separate APIs for ContentItem and SiteStructure creation, which could lead to:
+- Orphaned SiteStructure nodes without content
+- Inconsistent slug management across two entities
+- Complex transaction management for clients
+- Potential for partial failures leaving system in inconsistent state
+
+#### Solution: Hybrid Orchestration Pattern
+Implement a unified Page API that orchestrates both ContentItem and SiteStructure creation atomically.
+
+#### Acceptance Criteria
+1. **Primary API Implementation**
+   - [ ] Create `/api/pages` endpoint for orchestrated operations
+   - [ ] Implement atomic page creation (ContentItem + SiteStructure)
+   - [ ] Ensure transaction rollback on any failure
+   - [ ] Single slug source of truth in ContentItem
+
+2. **Page Orchestrator Service**
+   - [ ] Implement `PageOrchestrator` class with transaction management
+   - [ ] Create `CreatePageDto` combining content and structure fields
+   - [ ] Handle slug generation and uniqueness validation
+   - [ ] Calculate and maintain materialized paths
+
+3. **API Operations**
+   - [ ] POST `/api/pages` - Create page atomically
+   - [ ] PATCH `/api/pages/:id` - Update page (sync slug if changed)
+   - [ ] DELETE `/api/pages/:id` - Delete page with cascade options
+   - [ ] POST `/api/pages/:id/move` - Move page in hierarchy
+   - [ ] GET `/api/pages/resolve?path=` - Resolve URL to page
+
+4. **Secondary APIs (Advanced Use)**
+   - [ ] Keep `/api/site-structure` for structure-only operations
+   - [ ] Keep `/api/content-items` for bulk content updates
+   - [ ] Document when to use each API level
+
+#### Technical Implementation
+```typescript
+interface CreatePageDto {
+  // Content fields
+  title: string;
+  contentTypeId: string;
+  content: Record<string, any>;
+  
+  // Structure fields
+  parentId?: string;
+  slug?: string;  // Auto-generated if not provided
+  position?: number;
+  
+  // Publishing
+  status?: 'draft' | 'published';
+}
+```
+
+### API Workflow Example (Hybrid Orchestration)
 
 ```javascript
-// 1. Generate site structure from requirements
-const siteStructure = await generateSiteStructure({
+// 1. AI generates site structure plan
+const structurePlan = await generateSiteStructure({
   websiteId: 'website-123',
   requirements: 'E-commerce site with products, categories, about page',
   maxDepth: 4
 });
 
-// 2. Store generated structure
-const stored = await storeSiteStructure(siteStructure);
+// 2. Create pages atomically (content + structure together)
+const pages = await createPagesFromPlan(structurePlan, async (node) => {
+  return await fetch('/api/pages', {
+    method: 'POST',
+    body: JSON.stringify({
+      title: node.title,
+      contentTypeId: node.suggestedContentType,
+      content: node.initialContent,
+      parentId: node.parentId,
+      slug: node.slug,  // Optional, auto-generated if not provided
+      position: node.position
+    })
+  });
+});
 
-// 3. Resolve URL to content
-const page = await resolveUrl('/products/electronics/phones');
+// 3. Resolve URL to page (includes both content and structure)
+const page = await fetch('/api/pages/resolve?path=/products/electronics/phones');
 
-// 4. Update node position
-await updateNodePosition({
-  nodeId: 'node-456',
-  newParentId: 'node-789',
-  position: 2
+// 4. Move page in hierarchy (updates both content and structure)
+await fetch('/api/pages/page-123/move', {
+  method: 'POST',
+  body: JSON.stringify({
+    newParentId: 'page-789',
+    position: 2
+  })
 });
 ```
+
+### Story 8.5: AI Site Generation Engine (Updated)
+
+**Priority**: P0 (Critical)
+**Previous Title**: Path Management Utilities
+**New Focus**: AI-powered site structure generation with atomic page creation
+
+#### Acceptance Criteria
+1. **AI Generation Service**
+   - [ ] Generate hierarchical site structure from requirements
+   - [ ] Suggest appropriate content types for each page
+   - [ ] Create SEO-friendly slugs
+   - [ ] Validate structure before creation
+
+2. **Page Creation Pipeline**
+   - [ ] Process AI-generated structure
+   - [ ] Create pages atomically using Page Orchestrator
+   - [ ] Handle batch creation in transactions
+   - [ ] Report generation statistics
+
+3. **Integration Points**
+   - [ ] POST `/api/pages/generate` - AI generation endpoint
+   - [ ] Use PageOrchestrator for all page creation
+   - [ ] Maintain referential integrity throughout
+   - [ ] Support rollback on partial failures
 
 ---
 
@@ -323,29 +423,45 @@ function generateSlug(title: string, siblings: string[]): string {
 
 ---
 
-## 8. Implementation Plan
+## 8. Implementation Plan (Revised for Hybrid Orchestration)
 
-### Phase 1: Foundation (Week 1)
-- [ ] Story 8.1: Create database migration for site_structure table
-- [ ] Story 8.2: Implement slug generation and validation utilities
-- [ ] Research using Zen tools for optimal tree patterns
-- [ ] WebSearch for CMS best practices
+### Phase 1: Foundation (Week 1) ✅
+- [x] Story 8.1: Database migration for site_structure table
+- [x] Story 8.2: Slug generation and validation utilities
+- [x] Architectural decision: Hybrid Orchestration Pattern
+- [x] Update architecture documents
 
-### Phase 2: Core Functionality (Week 2)
-- [ ] Story 8.3: Design and test AI prompts
-- [ ] Story 8.4: Implement CRUD operations
-- [ ] Story 8.5: Build path management functions
-- [ ] Integration testing with PostgreSQL
+### Phase 2: Core API Development (Week 2) 🚧
+- [ ] **Story 8.3: Page Orchestration API**
+  - [ ] Implement PageOrchestrator service
+  - [ ] Create /api/pages endpoints
+  - [ ] Transaction management
+  - [ ] Atomic page operations
+- [ ] **Story 8.4: Site Structure Service Layer**
+  - [ ] Tree traversal operations
+  - [ ] Path recalculation logic
+  - [ ] Validation and constraints
 
-### Phase 3: UI Development (Week 3)
-- [ ] Story 8.6: Setup React Flow canvas
-- [ ] Story 8.7: Implement drag-drop interactions
-- [ ] Visual polish and animations
-- [ ] Keyboard shortcut implementation
+### Phase 3: AI Integration (Week 3)
+- [ ] **Story 8.5: AI Site Generation Engine**
+  - [ ] Prompt engineering for structure generation
+  - [ ] Integration with PageOrchestrator
+  - [ ] Batch page creation pipeline
+  - [ ] Generation validation
+- [ ] **Story 8.8: URL Resolution & Routing**
+  - [ ] Implement path-to-page resolution
+  - [ ] Middleware for URL handling
+  - [ ] 404 and redirect management
 
-### Phase 4: Integration & Optimization (Week 4)
-- [ ] Story 8.8: Connect to content management system
+### Phase 4: Visual Interface (Week 4)
+- [ ] Story 8.6: React Flow canvas setup
+- [ ] Story 8.7: Visual editor integration
+- [ ] Drag-drop with live page updates
+- [ ] Real-time synchronization
+
+### Phase 5: Optimization & Polish (Week 5)
 - [ ] Story 8.9: Performance optimization
+- [ ] Caching strategy implementation
 - [ ] End-to-end testing
 - [ ] Documentation and deployment
 
@@ -540,6 +656,7 @@ describe('Site Structure Generator', () => {
 | 1.0 | 2025-08-21 | John (PM) | Initial PRD based on Epic 8 requirements |
 | 1.1 | 2025-08-21 | John (PM) | Updated with 7 CMS expert feedback and schema improvements |
 | 1.2 | 2025-08-21 | John (PM) | Removed locale field per MVP scope refinement |
+| 2.0 | 2025-08-22 | John (PM) | **Major revision**: Implemented Hybrid Orchestration Pattern, updated Stories 8.3 & 8.5, revised API architecture for atomic page operations |
 
 ---
 
