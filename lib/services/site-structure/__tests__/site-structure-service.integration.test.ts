@@ -19,9 +19,12 @@ describe('SiteStructureService Integration Tests', () => {
     });
     testWebsiteId = website.id;
 
+    const timestamp = Date.now();
     const contentType = await prisma.contentType.create({
       data: {
-        name: `TestPage_${Date.now()}`,
+        name: `TestPage_${timestamp}`,
+        key: `test_page_${timestamp}`,
+        pluralName: `TestPages_${timestamp}`,
         websiteId: testWebsiteId,
         fields: {},
         category: 'page'
@@ -60,7 +63,7 @@ describe('SiteStructureService Integration Tests', () => {
       const root = await service.create({
         websiteId: testWebsiteId,
         slug: 'home',
-        title: 'Home'
+        title: 'Home'  // Note: title is required by interface but not stored in DB
       });
 
       // Create child nodes

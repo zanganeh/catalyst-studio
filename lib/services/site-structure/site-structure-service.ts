@@ -65,11 +65,21 @@ export class SiteStructureService implements ISiteStructureService {
   }
   
   // Tree operations
+  /**
+   * Get complete tree structure for a website
+   * Time Complexity: O(n) where n is the number of nodes
+   * Space Complexity: O(n) for storing the tree structure
+   */
   async getTree(websiteId: string): Promise<TreeNode> {
     const nodes = await this.repository.findByWebsiteId(websiteId);
     return this.buildTreeFromNodes(nodes);
   }
   
+  /**
+   * Get all ancestor nodes from a node up to the root
+   * Time Complexity: O(d) where d is the depth of the node
+   * Space Complexity: O(d) for storing ancestors
+   */
   async getAncestors(nodeId: string): Promise<SiteStructure[]> {
     const ancestors: SiteStructure[] = [];
     let currentNode = await this.repository.findById(nodeId);
@@ -88,6 +98,11 @@ export class SiteStructureService implements ISiteStructureService {
     return ancestors.reverse();
   }
   
+  /**
+   * Get all descendant nodes recursively
+   * Time Complexity: O(s) where s is the size of the subtree
+   * Space Complexity: O(s) for storing descendants
+   */
   async getDescendants(nodeId: string): Promise<SiteStructure[]> {
     const node = await this.repository.findById(nodeId);
     if (!node) {
@@ -165,8 +180,7 @@ export class SiteStructureService implements ISiteStructureService {
           fullPath,
           pathDepth,
           position,
-          weight: input.weight || 0,
-          title: input.title
+          weight: input.weight || 0
         }
       });
       
@@ -180,6 +194,9 @@ export class SiteStructureService implements ISiteStructureService {
       if (!node) {
         throw new NodeNotFoundError(id);
       }
+      
+      // Filter out title field as it's not in the database
+      const { title, ...dbUpdates } = updates;
       
       // If slug changed, recalculate paths
       if (updates.slug && updates.slug !== node.slug) {
@@ -195,7 +212,7 @@ export class SiteStructureService implements ISiteStructureService {
         return await tx.siteStructure.update({
           where: { id },
           data: {
-            ...updates,
+            ...dbUpdates,
             fullPath: newPath,
             pathDepth: this.pathManager.getDepth(newPath)
           }
@@ -204,7 +221,7 @@ export class SiteStructureService implements ISiteStructureService {
       
       return await tx.siteStructure.update({
         where: { id },
-        data: updates
+        data: dbUpdates
       });
     });
   }
@@ -232,6 +249,11 @@ export class SiteStructureService implements ISiteStructureService {
   }
   
   // Move operations
+  /**
+   * Move a node to a new parent, updating all descendant paths
+   * Time Complexity: O(d) where d is the number of descendants
+   * Space Complexity: O(d) for path updates
+   */
   async moveNode(nodeId: string, newParentId: string | null): Promise<SiteStructure> {
     // Validate move
     if (!(await this.validateMove(nodeId, newParentId))) {
@@ -294,6 +316,11 @@ export class SiteStructureService implements ISiteStructureService {
     return !(await this.wouldCreateCycle(nodeId, targetParentId));
   }
   
+  /**
+   * Check if moving a node would create a circular reference
+   * Time Complexity: O(s) where s is the size of the subtree
+   * Space Complexity: O(s) for descendant storage
+   */
   async wouldCreateCycle(nodeId: string, targetParentId: string | null): Promise<boolean> {
     if (!targetParentId) {
       return false;
@@ -388,6 +415,11 @@ export class SiteStructureService implements ISiteStructureService {
   }
   
   // Bulk operations
+  /**
+   * Create multiple nodes in a single transaction
+   * Time Complexity: O(n) where n is the number of nodes
+   * Space Complexity: O(n) for storing created nodes
+   */
   async bulkCreate(nodes: CreateNodeInput[]): Promise<SiteStructure[]> {
     return await this.db.$transaction(async (tx) => {
       const created: SiteStructure[] = [];
