@@ -4,8 +4,8 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import type { PrismaClient } from '@/lib/generated/prisma';
-import { generateSlug, createSlugWithSuffix, validateSlug } from './slug-manager';
+import { generateSlug, createSlugWithSuffix, validateSlug, getSlugValidationDetails } from './slug-manager';
+import { SlugGenerationError, InvalidSlugError } from './errors';
 
 export interface SlugValidationOptions {
   websiteId: string;
@@ -67,11 +67,12 @@ export async function ensureUniqueSlug(
 
   // Validate the base slug format
   if (!validateSlug(baseSlug)) {
-    throw new Error(`Invalid base slug format: ${baseSlug}`);
+    const validation = getSlugValidationDetails(baseSlug);
+    throw new InvalidSlugError(baseSlug, validation.errors);
   }
 
   // Use a transaction for atomic slug conflict resolution
-  return await prisma.$transaction(async (tx: PrismaClient) => {
+  return await prisma.$transaction(async (tx) => {
     let slugToTry = baseSlug;
     let suffix = 0;
 
@@ -108,7 +109,7 @@ export async function ensureUniqueSlug(
       slugToTry = createSlugWithSuffix(baseSlug, suffix);
     }
 
-    throw new Error(`Unable to generate unique slug after ${maxAttempts} attempts`);
+    throw new SlugGenerationError(baseSlug, maxAttempts);
   });
 }
 
@@ -126,7 +127,7 @@ export async function generateUniqueSlug(
   const baseSlug = generateSlug(title);
 
   if (!baseSlug) {
-    throw new Error('Unable to generate slug from title');
+    throw new InvalidSlugError(title, ['Unable to generate slug from title - title may be empty or contain only special characters']);
   }
 
   // Ensure uniqueness
@@ -209,7 +210,6 @@ export async function validateAndSuggestSlug(
   const originalSlug = generateSlug(title);
   
   // Get validation details
-  const { getSlugValidationDetails } = await import('./slug-manager');
   const validation = getSlugValidationDetails(originalSlug);
 
   if (!validation.valid) {

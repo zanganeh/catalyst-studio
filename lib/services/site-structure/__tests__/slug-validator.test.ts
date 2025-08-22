@@ -222,7 +222,7 @@ describe('slug-validator', () => {
           websiteId: 'web-123',
           parentId: null
         })
-      ).rejects.toThrow('Invalid base slug format: Invalid Slug!');
+      ).rejects.toThrow("Invalid slug: 'Invalid Slug!' contains uppercase letters");
     });
 
     it('should exclude current record when updating', async () => {
@@ -272,7 +272,7 @@ describe('slug-validator', () => {
           websiteId: 'web-123',
           parentId: null
         })
-      ).rejects.toThrow('Unable to generate slug from title');
+      ).rejects.toThrow('Unable to generate slug from title - title may be empty or contain only special characters');
     });
 
     it('should append suffix for conflicting generated slugs', async () => {
