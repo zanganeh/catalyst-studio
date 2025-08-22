@@ -191,6 +191,45 @@ interface ISiteStructureRepository {
 
 ## 3. Database Architecture
 
+### 3.0 Critical Design Decision: ContentItem-SiteStructure Relationship
+
+```typescript
+// ARCHITECTURAL CONSTRAINT: Every SiteStructure node MUST have a ContentItem
+// RATIONALE: A navigation node without content has no practical meaning in a CMS
+
+interface ArchitecturalPrinciples {
+  // 1. ATOMIC OPERATIONS: Page creation/deletion must be atomic
+  //    Either both ContentItem and SiteStructure are created, or neither
+  
+  // 2. SINGLE SOURCE OF TRUTH: ContentItem owns the slug
+  //    SiteStructure mirrors it for path construction
+  
+  // 3. REFERENTIAL INTEGRITY: Enforced at application level
+  //    Database allows NULL contentItemId for migration flexibility
+  //    Application ensures it's never NULL in practice
+  
+  // 4. API LAYERING: Three levels of abstraction
+  //    - Pages API: High-level orchestration (recommended)
+  //    - Site Structure API: Structure-only operations (advanced)
+  //    - Content Items API: Content-only operations (direct)
+}
+
+// Database relationship
+interface SiteStructure {
+  contentItemId?: string;  // Database: nullable for flexibility
+                           // Application: ALWAYS populated
+}
+
+// Enforcement strategy
+class PageValidation {
+  async validateStructureNode(node: SiteStructure) {
+    if (!node.contentItemId) {
+      throw new Error('Orphaned structure node - contentItemId required');
+    }
+  }
+}
+```
+
 ### 3.1 Schema Design
 
 ```sql
@@ -268,62 +307,114 @@ EXECUTE FUNCTION update_descendant_paths();
 
 ## 4. API Architecture
 
-### 4.1 RESTful API Design
+### 4.1 RESTful API Design - Orchestrated & Granular
 
 ```typescript
-// API Routes Structure
+// PRIMARY API: Page Management (Orchestrated)
+/api/pages/
+  GET    /                   // List pages with structure
+  POST   /                   // Create page (content + structure)
+  GET    /:id                // Get page with content
+  PATCH  /:id                // Update page
+  DELETE /:id                // Delete page
+  POST   /:id/move           // Move page in hierarchy
+  POST   /:id/duplicate      // Duplicate page with content
+  GET    /resolve?path=      // Resolve URL to page
+  POST   /generate           // AI generation of pages
+
+// SECONDARY API: Site Structure (Granular - Advanced Use)
 /api/site-structure/
-  GET    /                   // Get full tree for website
-  POST   /generate           // AI generation endpoint
+  GET    /                   // Get structure tree (no content)
   GET    /:id                // Get single node
-  POST   /                   // Create node
-  PATCH  /:id                // Update node
-  DELETE /:id                // Delete node
-  POST   /:id/move           // Move node
-  GET    /resolve?path=      // Resolve URL to node
+  PATCH  /:id                // Update node metadata only
+  POST   /:id/move           // Move node only
   GET    /breadcrumb/:id     // Get breadcrumb trail
-  POST   /bulk              // Bulk operations
-  GET    /export/:websiteId  // Export as JSON/XML
-  POST   /import             // Import structure
+  POST   /bulk/reorganize    // Bulk structure operations
+  POST   /validate           // Validate structure integrity
+  POST   /rebuild-paths      // Maintenance: rebuild all paths
+
+// TERTIARY API: Content Items (Direct Access)
+/api/content-items/
+  GET    /                   // Get content items
+  GET    /:id                // Get single item
+  PATCH  /:id                // Update content only
+  POST   /bulk              // Bulk content operations
 ```
 
-### 4.2 API Layer Implementation
+### 4.2 API Layer Implementation - Page-Centric
 
 ```typescript
-// /app/api/site-structure/generate/route.ts
+// PRIMARY: /app/api/pages/route.ts
+export async function POST(request: Request) {
+  const data = await request.json();
+  
+  try {
+    // Use orchestrator for atomic page creation
+    const result = await pageOrchestrator.createPage({
+      title: data.title,
+      contentTypeId: data.contentTypeId,
+      content: data.content,
+      parentId: data.parentId,
+      position: data.position,
+      slug: data.slug, // Optional, auto-generated if not provided
+      status: data.status || 'draft'
+    });
+    
+    return NextResponse.json({
+      success: true,
+      page: {
+        id: result.contentItem.id,
+        url: result.url,
+        content: result.contentItem,
+        structure: result.siteNode
+      }
+    });
+  } catch (error) {
+    if (error instanceof SlugConflictError) {
+      return NextResponse.json({ 
+        error: 'Slug already exists at this level' 
+      }, { status: 409 });
+    }
+    throw error;
+  }
+}
+
+// AI Generation: /app/api/pages/generate/route.ts
 export async function POST(request: Request) {
   const { websiteId, requirements, options } = await request.json();
   
-  // 1. Validate input
-  const validated = await validateGenerationRequest({ websiteId, requirements });
-  
-  // 2. Generate via AI
+  // 1. Generate structure via AI
   const structure = await siteStructureGenerator.generate({
     requirements: validated.requirements,
     websiteId: validated.websiteId,
-    maxDepth: options?.maxDepth || 5,
-    includeContent: options?.includeContent || false
+    maxDepth: options?.maxDepth || 5
   });
   
-  // 3. Validate generated structure
-  const validationResult = await structureValidator.validate(structure);
-  if (!validationResult.isValid) {
-    return NextResponse.json({ 
-      error: 'Invalid structure generated', 
-      issues: validationResult.issues 
-    }, { status: 400 });
-  }
+  // 2. Create pages atomically (content + structure)
+  const pages = await prisma.$transaction(async (tx) => {
+    const created = [];
+    
+    for (const node of flattenTree(structure)) {
+      const page = await pageOrchestrator.createPage({
+        title: node.title,
+        contentTypeId: node.suggestedContentType,
+        content: await generateInitialContent(node),
+        parentId: node.parentId,
+        position: node.position
+      });
+      created.push(page);
+    }
+    
+    return created;
+  });
   
-  // 4. Store in database
-  const saved = await siteStructureService.createTree(structure);
-  
-  // 5. Return enriched response
+  // 3. Return created pages with structure
   return NextResponse.json({
     success: true,
-    structure: saved,
+    pages: pages,
     statistics: {
-      totalNodes: countNodes(saved),
-      maxDepth: getMaxDepth(saved),
+      totalPages: pages.length,
+      maxDepth: getMaxDepth(structure),
       generationTime: Date.now() - startTime
     }
   });
@@ -627,62 +718,146 @@ export const canvasConfig = {
 
 ## 7. Integration Architecture
 
-### 7.1 Content System Integration
+### 7.1 Content System Integration - Hybrid Orchestration Pattern
 
 ```typescript
-// Integration with existing content_items
-interface ContentIntegration {
-  // Link site structure to content
-  linkContent(nodeId: string, contentItemId: string): Promise<void>;
-  
-  // Auto-create content for pages
-  createContentForNode(node: SiteStructure): Promise<ContentItem>;
-  
-  // Sync content type with page type
-  syncContentType(node: SiteStructure): Promise<void>;
-  
-  // Bulk content generation
-  generateContentForTree(rootId: string): Promise<ContentItem[]>;
+// CRITICAL ARCHITECTURAL DECISION: Hybrid Orchestration Pattern
+// Problem: SiteStructure without ContentItem has no meaning
+// Solution: Atomic page creation with orchestrated API
+
+// Primary API: Page Orchestrator (Recommended approach)
+interface IPageOrchestrator {
+  // Creates both ContentItem AND SiteStructure atomically
+  createPage(data: CreatePageDto): Promise<PageResult>;
+  updatePage(id: string, data: UpdatePageDto): Promise<PageResult>;
+  deletePage(id: string, options?: DeleteOptions): Promise<void>;
+  movePage(id: string, newParentId: string): Promise<PageResult>;
 }
 
-// Implementation
-export class ContentIntegrationService implements ContentIntegration {
-  async linkContent(nodeId: string, contentItemId: string) {
-    // Update site_structure.content_item_id
-    await this.db.siteStructure.update({
-      where: { id: nodeId },
-      data: { contentItemId }
-    });
-    
-    // Set content category
-    await this.db.contentItems.update({
-      where: { id: contentItemId },
-      data: { category: 'page' }
+// Page creation DTO combining both concerns
+interface CreatePageDto {
+  // Content fields
+  title: string;
+  contentTypeId: string;
+  content: Record<string, any>;
+  metadata?: Record<string, any>;
+  
+  // Structure fields
+  parentId?: string;  // null for root pages
+  position?: number;
+  slug?: string;  // Auto-generated from title if not provided
+  
+  // Publishing
+  status?: 'draft' | 'published';
+}
+
+// Implementation with transaction safety
+export class PageOrchestrator implements IPageOrchestrator {
+  async createPage(data: CreatePageDto): Promise<PageResult> {
+    // Use database transaction for atomicity
+    return await prisma.$transaction(async (tx) => {
+      // 1. Generate slug if not provided
+      const slug = data.slug || await this.generateUniqueSlug(
+        data.title, 
+        data.parentId
+      );
+      
+      // 2. Build full path based on parent
+      const parentPath = data.parentId 
+        ? await this.getParentPath(tx, data.parentId)
+        : '';
+      const fullPath = `${parentPath}/${slug}`;
+      
+      // 3. Create ContentItem (source of truth for content)
+      const contentItem = await tx.contentItem.create({
+        data: {
+          websiteId: this.websiteId,
+          contentTypeId: data.contentTypeId,
+          title: data.title,
+          slug: slug,  // Single source of truth for slug
+          content: data.content,
+          metadata: data.metadata,
+          status: data.status || 'draft'
+        }
+      });
+      
+      // 4. Create SiteStructure (hierarchy and navigation)
+      const siteNode = await tx.siteStructure.create({
+        data: {
+          websiteId: this.websiteId,
+          contentItemId: contentItem.id,  // Required link
+          parentId: data.parentId,
+          slug: contentItem.slug,  // Mirror the slug
+          fullPath: fullPath,
+          pathDepth: this.calculateDepth(fullPath),
+          position: data.position || 0
+        }
+      });
+      
+      // 5. Return combined result
+      return {
+        contentItem,
+        siteNode,
+        url: fullPath
+      };
     });
   }
   
-  async createContentForNode(node: SiteStructure) {
-    // Determine content type based on node
-    const contentType = this.mapNodeTypeToContentType(node);
-    
-    // Create content item
-    const content = await this.contentService.create({
-      websiteId: node.websiteId,
-      contentTypeId: contentType.id,
-      name: node.title,
-      slug: node.slug,
-      category: 'page',
-      metadata: {
-        siteStructureId: node.id,
-        path: node.fullPath
+  async updatePage(id: string, data: UpdatePageDto): Promise<PageResult> {
+    return await prisma.$transaction(async (tx) => {
+      // If slug changes, update both ContentItem and SiteStructure
+      if (data.slug) {
+        // Update ContentItem (source of truth)
+        await tx.contentItem.update({
+          where: { id },
+          data: { slug: data.slug }
+        });
+        
+        // Update SiteStructure and recalculate paths
+        const node = await tx.siteStructure.findFirst({
+          where: { contentItemId: id }
+        });
+        
+        if (node) {
+          await this.updateNodePaths(tx, node.id, data.slug);
+        }
       }
+      
+      // Update other fields as needed
+      // ...
     });
-    
-    // Link bidirectionally
-    await this.linkContent(node.id, content.id);
-    
-    return content;
   }
+  
+  async deletePage(id: string, options?: DeleteOptions): Promise<void> {
+    return await prisma.$transaction(async (tx) => {
+      // Find the site node
+      const node = await tx.siteStructure.findFirst({
+        where: { contentItemId: id }
+      });
+      
+      if (options?.cascade && node) {
+        // Delete all descendants
+        await this.deleteDescendants(tx, node.id);
+      }
+      
+      // Delete both ContentItem and SiteStructure
+      await tx.siteStructure.delete({ where: { id: node.id } });
+      await tx.contentItem.delete({ where: { id } });
+    });
+  }
+}
+
+// Secondary APIs: Granular Control (Advanced use cases)
+interface IAdvancedOperations {
+  // Direct structure manipulation (rare cases)
+  reorganizeStructure(moves: StructureMove[]): Promise<void>;
+  
+  // Bulk content operations without structure changes
+  bulkUpdateContent(updates: ContentUpdate[]): Promise<void>;
+  
+  // Structure-only operations (maintenance/recovery)
+  rebuildPaths(websiteId: string): Promise<void>;
+  validateStructure(websiteId: string): Promise<ValidationResult>;
 }
 ```
 
@@ -1396,6 +1571,9 @@ interface FutureMicroservices {
 | React Flow for UI | Closest to Miro experience, proven library | D3.js custom, Cytoscape.js, vis.js | 2025-08-21 |
 | No authentication for MVP | Faster time to market, focus on core value | JWT auth, OAuth, Session-based | 2025-08-21 |
 | Materialized path as TEXT | Support enterprise-scale deep hierarchies | VARCHAR(2000), Separate path table | 2025-08-21 |
+| **Hybrid Orchestration Pattern** | **Atomic page operations, prevent orphaned nodes** | **Separate APIs, Loosely coupled, Structure-first** | **2025-08-22** |
+| **Pages API as primary** | **Simplifies AI integration, ensures consistency** | **Direct structure manipulation, Content-first approach** | **2025-08-22** |
+| **ContentItem owns slug** | **Single source of truth, prevents slug conflicts** | **SiteStructure owns slug, Duplicate slug storage** | **2025-08-22** |
 
 ---
 
