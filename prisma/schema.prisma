@@ -205,4 +205,5 @@ model SiteStructure {
   @@index([websiteId])
   @@index([pathDepth])
   @@index([contentItemId])
+  @@index([websiteId, fullPath]) // Composite index for faster URL resolution per website
 }

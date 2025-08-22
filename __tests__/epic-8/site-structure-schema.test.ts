@@ -349,14 +349,14 @@ describe('SiteStructure Schema Tests', () => {
     test('URL resolution by fullPath should be < 10ms', async () => {
       const testPath = '/level-1/level-2/level-3'
       
-      const startTime = Date.now()
+      const startTime = performance.now()
       const result = await prisma.siteStructure.findFirst({
         where: {
           websiteId: performanceWebsiteId,
           fullPath: testPath
         }
       })
-      const endTime = Date.now()
+      const endTime = performance.now()
       
       const duration = endTime - startTime
       
@@ -367,13 +367,13 @@ describe('SiteStructure Schema Tests', () => {
     test('Children query by parentId should be < 5ms', async () => {
       const parentId = testStructures[0].id
       
-      const startTime = Date.now()
+      const startTime = performance.now()
       const children = await prisma.siteStructure.findMany({
         where: {
           parentId: parentId
         }
       })
-      const endTime = Date.now()
+      const endTime = performance.now()
       
       const duration = endTime - startTime
       
@@ -382,7 +382,7 @@ describe('SiteStructure Schema Tests', () => {
     })
 
     test('Tree traversal (4 levels) should be < 20ms', async () => {
-      const startTime = Date.now()
+      const startTime = performance.now()
       
       // Traverse the tree using recursive queries
       const traverse = async (parentId: string | null, depth: number = 0): Promise<any[]> => {
@@ -405,7 +405,7 @@ describe('SiteStructure Schema Tests', () => {
       }
       
       const tree = await traverse(null)
-      const endTime = Date.now()
+      const endTime = performance.now()
       
       const duration = endTime - startTime
       
