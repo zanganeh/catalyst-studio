@@ -1,9 +1,10 @@
 # Product Requirements Document (PRD)
 ## AI-Powered Site Structure Generator for Catalyst Studio
 
-### Document Version: 1.0
-### Date: 2025-08-21
+### Document Version: 2.1
+### Date: 2025-08-22
 ### Product Manager: John
+### System Architect: Winston (Contributing)
 ### Epic: Epic 8 - AI-Powered Site Structure Generation
 
 ---
@@ -13,6 +14,8 @@
 This PRD outlines the development of an AI-powered site structure generator for Catalyst Studio, addressing the critical gap in hierarchical page relationship management and URL routing. The solution will enable automated generation of site structures from natural language requirements, with proper storage mechanisms and a Miro-like visual interface for intuitive management.
 
 **🔴 CRITICAL ARCHITECTURAL UPDATE (2025-08-22)**: This PRD has been updated to implement the **Hybrid Orchestration Pattern**, ensuring that every SiteStructure node MUST have an associated ContentItem. Pages are now created atomically through a unified API, preventing orphaned nodes and maintaining data consistency.
+
+**🔴 CRITICAL FINDING (2025-08-22)**: PR #47 analysis revealed that AI tools are bypassing PageOrchestrator, creating orphaned ContentItems without SiteStructure. Story 8.5 has been updated to prioritize the UnifiedPageService implementation to resolve this P0 issue.
 
 ### Key Business Value
 - **Automated site structure generation** from requirements, reducing manual setup time by 90%
@@ -302,28 +305,50 @@ await fetch('/api/pages/page-123/move', {
 });
 ```
 
-### Story 8.5: AI Site Generation Engine (Updated)
+### Story 8.5: Unified Page Management & AI Integration (Critical Update)
 
-**Priority**: P0 (Critical)
-**Previous Title**: Path Management Utilities
-**New Focus**: AI-powered site structure generation with atomic page creation
+**Priority**: P0 (Critical - Blocking Issue Found)
+**Previous Title**: AI Site Generation Engine
+**New Focus**: Implement UnifiedPageService to fix orphaned content issue
+
+#### Problem Statement (New Finding)
+Analysis of PR #47 revealed critical architectural violation:
+- **UI System**: ✅ Correctly uses PageOrchestrator
+- **AI Tools**: ❌ Creates ContentItems directly, bypassing SiteStructure
+- **Sync System**: ⚠️ Unknown - requires investigation
+- **Impact**: Orphaned content exists without navigation structure
+
+#### Solution: UnifiedPageService Implementation
 
 #### Acceptance Criteria
-1. **AI Generation Service**
-   - [ ] Generate hierarchical site structure from requirements
-   - [ ] Suggest appropriate content types for each page
-   - [ ] Create SEO-friendly slugs
-   - [ ] Validate structure before creation
+1. **UnifiedPageService Implementation**
+   - [ ] Create centralized service wrapping PageOrchestrator
+   - [ ] Implement StandardResponse format for all operations
+   - [ ] Add intelligent error handling with recovery suggestions
+   - [ ] Enforce atomic ContentItem + SiteStructure creation
+   - [ ] Add audit logging for all page operations
 
-2. **Page Creation Pipeline**
-   - [ ] Process AI-generated structure
-   - [ ] Create pages atomically using Page Orchestrator
-   - [ ] Handle batch creation in transactions
-   - [ ] Report generation statistics
+2. **AI Tool Migration**
+   - [ ] Replace `create-content-item` tool with `create-page` tool
+   - [ ] Integrate with UnifiedPageService
+   - [ ] Implement automatic error recovery for slug conflicts
+   - [ ] Ensure all AI-created content has site structure
 
-3. **Integration Points**
-   - [ ] POST `/api/pages/generate` - AI generation endpoint
-   - [ ] Use PageOrchestrator for all page creation
+3. **Cross-System Validation**
+   - [ ] Verify UI continues using UnifiedPageService
+   - [ ] Update Sync system to use UnifiedPageService
+   - [ ] Add deprecation warnings for direct ContentItem creation
+   - [ ] Create migration to repair existing orphaned content
+
+4. **StandardResponse Format**
+   - [ ] Implement consistent error codes (ErrorCode enum)
+   - [ ] Add RecoverySuggestion interface for AI compatibility
+   - [ ] Include metadata with source tracking (ui|ai|sync)
+   - [ ] Provide alternative values for recoverable errors
+
+5. **Integration Points**
+   - [ ] POST `/api/pages/generate` - AI generation via UnifiedPageService
+   - [ ] All systems use UnifiedPageService.createPage()
    - [ ] Maintain referential integrity throughout
    - [ ] Support rollback on partial failures
 
