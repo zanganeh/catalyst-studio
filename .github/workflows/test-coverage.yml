@@ -14,7 +14,20 @@ jobs:
       matrix:
         node-version: [18.x, 20.x]
     
-    # No services needed for SQLite
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: catalyst_studio_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
 
     steps:
     - name: Checkout code
@@ -35,13 +48,13 @@ jobs:
     - name: Setup test database
       run: npm run test:db:setup
       env:
-        DATABASE_URL: file:./test.db
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/catalyst_studio_test
 
     - name: Run tests with coverage
       run: npm run test:coverage:ci
       env:
         NODE_ENV: test
-        DATABASE_URL: file:./test.db
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/catalyst_studio_test
 
     - name: Run coverage analysis
       run: npm run test:coverage:analyze
@@ -80,6 +93,21 @@ jobs:
     runs-on: ubuntu-latest
     needs: coverage
     
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: catalyst_studio_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -99,13 +127,13 @@ jobs:
     - name: Setup test database
       run: npm run test:db:setup
       env:
-        DATABASE_URL: file:./test.db
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/catalyst_studio_test
 
     - name: Run performance tests
       run: npm run test:performance
       env:
         NODE_ENV: test
-        DATABASE_URL: file:./test.db
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/catalyst_studio_test
 
     - name: Benchmark test execution time
       run: |

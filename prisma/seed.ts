@@ -2,10 +2,187 @@ import { PrismaClient } from '../lib/generated/prisma'
 
 const prisma = new PrismaClient()
 
+async function seedSiteStructure(websiteId: string) {
+  console.log('🏗️ Creating site structure hierarchy...')
+  
+  // Root level pages
+  const home = await prisma.siteStructure.create({
+    data: {
+      websiteId,
+      slug: 'home',
+      fullPath: '/',
+      pathDepth: 0,
+      position: 0,
+      weight: 0
+    }
+  })
+
+  const about = await prisma.siteStructure.create({
+    data: {
+      websiteId,
+      slug: 'about',
+      fullPath: '/about',
+      pathDepth: 1,
+      position: 1,
+      weight: 10
+    }
+  })
+
+  const blog = await prisma.siteStructure.create({
+    data: {
+      websiteId,
+      slug: 'blog',
+      fullPath: '/blog',
+      pathDepth: 1,
+      position: 2,
+      weight: 20
+    }
+  })
+
+  const products = await prisma.siteStructure.create({
+    data: {
+      websiteId,
+      slug: 'products',
+      fullPath: '/products',
+      pathDepth: 1,
+      position: 3,
+      weight: 30
+    }
+  })
+
+  // Second level - About sub-pages
+  const team = await prisma.siteStructure.create({
+    data: {
+      websiteId,
+      parentId: about.id,
+      slug: 'team',
+      fullPath: '/about/team',
+      pathDepth: 2,
+      position: 0,
+      weight: 0
+    }
+  })
+
+  const mission = await prisma.siteStructure.create({
+    data: {
+      websiteId,
+      parentId: about.id,
+      slug: 'mission',
+      fullPath: '/about/mission',
+      pathDepth: 2,
+      position: 1,
+      weight: 10
+    }
+  })
+
+  // Second level - Blog categories
+  const techBlog = await prisma.siteStructure.create({
+    data: {
+      websiteId,
+      parentId: blog.id,
+      slug: 'technology',
+      fullPath: '/blog/technology',
+      pathDepth: 2,
+      position: 0,
+      weight: 0
+    }
+  })
+
+  const designBlog = await prisma.siteStructure.create({
+    data: {
+      websiteId,
+      parentId: blog.id,
+      slug: 'design',
+      fullPath: '/blog/design',
+      pathDepth: 2,
+      position: 1,
+      weight: 10
+    }
+  })
+
+  // Third level - Technology sub-categories
+  const javascript = await prisma.siteStructure.create({
+    data: {
+      websiteId,
+      parentId: techBlog.id,
+      slug: 'javascript',
+      fullPath: '/blog/technology/javascript',
+      pathDepth: 3,
+      position: 0,
+      weight: 0
+    }
+  })
+
+  const python = await prisma.siteStructure.create({
+    data: {
+      websiteId,
+      parentId: techBlog.id,
+      slug: 'python',
+      fullPath: '/blog/technology/python',
+      pathDepth: 3,
+      position: 1,
+      weight: 10
+    }
+  })
+
+  // Fourth level - Specific articles
+  const reactArticle = await prisma.siteStructure.create({
+    data: {
+      websiteId,
+      parentId: javascript.id,
+      slug: 'react-best-practices',
+      fullPath: '/blog/technology/javascript/react-best-practices',
+      pathDepth: 4,
+      position: 0,
+      weight: 0
+    }
+  })
+
+  const nextjsArticle = await prisma.siteStructure.create({
+    data: {
+      websiteId,
+      parentId: javascript.id,
+      slug: 'nextjs-14-features',
+      fullPath: '/blog/technology/javascript/nextjs-14-features',
+      pathDepth: 4,
+      position: 1,
+      weight: 10
+    }
+  })
+
+  // Product categories
+  const electronics = await prisma.siteStructure.create({
+    data: {
+      websiteId,
+      parentId: products.id,
+      slug: 'electronics',
+      fullPath: '/products/electronics',
+      pathDepth: 2,
+      position: 0,
+      weight: 0
+    }
+  })
+
+  const books = await prisma.siteStructure.create({
+    data: {
+      websiteId,
+      parentId: products.id,
+      slug: 'books',
+      fullPath: '/products/books',
+      pathDepth: 2,
+      position: 1,
+      weight: 10
+    }
+  })
+
+  console.log('✅ Created hierarchical site structure (4 levels deep)')
+}
+
 async function main() {
   console.log('🌱 Starting database seeding...')
   
   // Clean existing data
+  await prisma.siteStructure.deleteMany()
   await prisma.aIContext.deleteMany()
   await prisma.contentItem.deleteMany()
   await prisma.contentType.deleteMany()
@@ -517,12 +694,53 @@ async function main() {
   
   console.log('✅ Created 2 authors')
   
+  // Seed site structure for tech blog
+  await seedSiteStructure(techBlog.id)
+  
+  // Link some content items to site structure nodes
+  const techBlogPosts = await prisma.contentItem.findMany({
+    where: { websiteId: techBlog.id }
+  })
+  
+  if (techBlogPosts.length > 0) {
+    // Link first blog post to the react article node
+    const reactNode = await prisma.siteStructure.findFirst({
+      where: {
+        websiteId: techBlog.id,
+        slug: 'react-best-practices'
+      }
+    })
+    
+    if (reactNode && techBlogPosts[0]) {
+      await prisma.siteStructure.update({
+        where: { id: reactNode.id },
+        data: { contentItemId: techBlogPosts[0].id }
+      })
+    }
+    
+    // Link second blog post to nextjs node
+    const nextjsNode = await prisma.siteStructure.findFirst({
+      where: {
+        websiteId: techBlog.id,
+        slug: 'nextjs-14-features'
+      }
+    })
+    
+    if (nextjsNode && techBlogPosts[1]) {
+      await prisma.siteStructure.update({
+        where: { id: nextjsNode.id },
+        data: { contentItemId: techBlogPosts[1].id }
+      })
+    }
+  }
+  
   console.log('\n🎉 Database seeding completed successfully!')
   console.log('📊 Summary:')
   console.log('  - 3 Websites')
   console.log('  - 4 Content Types')
   console.log('  - 9 Content Items')
   console.log('  - 3 AI Contexts')
+  console.log('  - 14 Site Structure nodes (4 levels deep)')
 }
 
 main()
