@@ -18,7 +18,7 @@ export {
 } from './site-structure-repository';
 
 // Re-export existing utilities
-export { SlugManager } from './slug-manager';
+export * from './slug-manager';
 export { PageOrchestrator } from './page-orchestrator';
 
 // Re-export errors

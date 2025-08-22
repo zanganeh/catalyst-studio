@@ -172,3 +172,33 @@ export class CircularReferenceError extends Error {
     Object.setPrototypeOf(this, CircularReferenceError.prototype);
   }
 }
+
+/**
+ * Error thrown when a node is not found
+ */
+export class NodeNotFoundError extends Error {
+  public readonly nodeId: string;
+  public readonly statusCode: number;
+
+  constructor(nodeId: string) {
+    super(`Node with ID "${nodeId}" not found`);
+    this.name = 'NodeNotFoundError';
+    this.nodeId = nodeId;
+    this.statusCode = 404; // HTTP Not Found
+    Object.setPrototypeOf(this, NodeNotFoundError.prototype);
+  }
+}
+
+/**
+ * Error thrown when an invalid operation is attempted
+ */
+export class InvalidOperationError extends Error {
+  public readonly statusCode: number;
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'InvalidOperationError';
+    this.statusCode = 400; // HTTP Bad Request
+    Object.setPrototypeOf(this, InvalidOperationError.prototype);
+  }
+}

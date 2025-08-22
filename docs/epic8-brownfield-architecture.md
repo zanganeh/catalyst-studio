@@ -5,10 +5,10 @@
 ---
 
 ## Document Information
-- **Version**: 1.0
-- **Date**: 2025-08-21
+- **Version**: 1.1
+- **Date**: 2025-08-22
 - **Author**: Winston (System Architect)
-- **Status**: Draft
+- **Status**: Draft (Updated with Unified Service Architecture)
 - **Epic**: Epic 8 - Site Structure Generation
 
 ---
@@ -1574,10 +1574,415 @@ interface FutureMicroservices {
 | **Hybrid Orchestration Pattern** | **Atomic page operations, prevent orphaned nodes** | **Separate APIs, Loosely coupled, Structure-first** | **2025-08-22** |
 | **Pages API as primary** | **Simplifies AI integration, ensures consistency** | **Direct structure manipulation, Content-first approach** | **2025-08-22** |
 | **ContentItem owns slug** | **Single source of truth, prevents slug conflicts** | **SiteStructure owns slug, Duplicate slug storage** | **2025-08-22** |
+| **Unified Page Service** | **Single entry point for all page operations** | **Multiple creation paths, Direct ContentItem access** | **2025-08-22** |
 
 ---
 
-## Appendix A: API Documentation
+## 16. Unified Page Management Architecture (Critical Update)
+
+### 16.1 Problem Statement
+
+**CRITICAL FINDING**: Analysis of PR #47 revealed that while the PageOrchestrator was correctly implemented, different subsystems are bypassing it:
+
+1. **UI System**: ✅ Correctly uses PageOrchestrator
+2. **AI Tools**: ❌ Creates ContentItems directly without SiteStructure
+3. **Sync System**: ⚠️ Unknown - requires investigation
+
+This creates **orphaned content** that exists in the database but has no navigation structure, making it unreachable via URL.
+
+### 16.2 Unified Service Architecture
+
+To ensure consistency across all systems, we introduce a **UnifiedPageService** as the mandatory single entry point:
+
+```typescript
+// lib/services/unified-page-service.ts
+export class UnifiedPageService {
+  private pageOrchestrator: PageOrchestrator;
+  private validator: UnifiedValidator;
+  private auditLogger: AuditLogger;
+  private responseFormatter: ResponseFormatter;
+
+  /**
+   * Single entry point for all page creation
+   * @param dto - Page creation request
+   * @param source - System initiating the request (ui|ai|sync)
+   * @returns StandardResponse with consistent error format
+   */
+  async createPage(
+    dto: CreatePageRequest, 
+    source: 'ui' | 'ai' | 'sync'
+  ): Promise<StandardResponse<PageResult>> {
+    // 1. Unified validation
+    const validation = await this.validator.validate(dto);
+    if (!validation.success) {
+      return this.responseFormatter.validationError(validation);
+    }
+
+    // 2. Atomic page creation via PageOrchestrator
+    try {
+      const result = await this.pageOrchestrator.createPage(
+        dto, 
+        dto.websiteId
+      );
+      
+      // 3. Audit logging
+      await this.auditLogger.log({
+        action: 'page_created',
+        source,
+        pageId: result.contentItem.id,
+        websiteId: dto.websiteId,
+        userId: dto.userId,
+        timestamp: new Date()
+      });
+
+      return this.responseFormatter.success(result);
+    } catch (error) {
+      return this.handleError(error, dto);
+    }
+  }
+
+  /**
+   * Intelligent error handling with recovery suggestions
+   */
+  private handleError(error: unknown, dto: CreatePageRequest): StandardResponse {
+    if (error instanceof SlugConflictError) {
+      return {
+        success: false,
+        data: null,
+        errors: [{
+          code: ErrorCode.SLUG_CONFLICT,
+          field: 'slug',
+          message: error.message,
+          severity: 'error',
+          recovery: {
+            action: 'regenerate_slug',
+            suggestion: 'Try a different slug or let the system generate one',
+            alternativeValues: this.generateSlugAlternatives(dto.title)
+          }
+        }],
+        warnings: []
+      };
+    }
+    // Handle other error types...
+  }
+}
+```
+
+### 16.3 Standardized Response Format
+
+All operations must return responses in this standardized format for cross-system compatibility:
+
+```typescript
+// lib/types/unified-response.types.ts
+export interface StandardResponse<T = any> {
+  success: boolean;
+  data: T | null;
+  errors: ValidationError[];
+  warnings: ValidationWarning[];
+  metadata?: {
+    executionTime: string;
+    source: 'ui' | 'ai' | 'sync';
+    requestId: string;
+    version: string;
+  };
+}
+
+export interface ValidationError {
+  code: ErrorCode;          // Machine-readable error code
+  field?: string;           // Field that caused the error
+  message: string;          // Human-readable message
+  severity: 'error' | 'critical';
+  recovery?: RecoverySuggestion;  // AI-friendly recovery hints
+}
+
+export interface RecoverySuggestion {
+  action: 'regenerate_slug' | 'select_parent' | 'use_existing' | 'retry';
+  suggestion: string;
+  alternativeValues?: string[];
+}
+
+export enum ErrorCode {
+  SLUG_CONFLICT = 'SLUG_CONFLICT',
+  DUPLICATE_ID = 'DUPLICATE_ID', 
+  INVALID_SLUG = 'INVALID_SLUG',
+  ORPHANED_NODE = 'ORPHANED_NODE',
+  CIRCULAR_REF = 'CIRCULAR_REF',
+  PARENT_NOT_FOUND = 'PARENT_NOT_FOUND',
+  CONTENT_TYPE_NOT_FOUND = 'CONTENT_TYPE_NOT_FOUND',
+  VALIDATION_FAILED = 'VALIDATION_FAILED'
+}
+```
+
+### 16.4 System Integration Updates
+
+#### AI Tool Integration (Priority: P0)
+
+Replace the current `create-content-item` tool with a new `create-page` tool:
+
+```typescript
+// lib/ai-tools/tools/pages/create-page.ts
+export const createPage = tool({
+  description: 'Create a new page with content and site structure',
+  parameters: z.object({
+    websiteId: z.string(),
+    contentTypeId: z.string(),
+    title: z.string(),
+    content: z.record(z.any()),
+    parentId: z.string().optional(),
+    slug: z.string().optional(),
+    metadata: z.record(z.any()).optional()
+  }),
+  execute: async (params) => {
+    const unifiedService = getUnifiedPageService();
+    
+    // Use unified service for atomic page creation
+    const response = await unifiedService.createPage({
+      ...params,
+      status: 'draft'
+    }, 'ai');
+
+    // AI-specific error recovery
+    if (!response.success) {
+      const slugError = response.errors.find(e => e.code === ErrorCode.SLUG_CONFLICT);
+      if (slugError && slugError.recovery) {
+        // Attempt recovery using suggested alternatives
+        const alternativeSlug = slugError.recovery.alternativeValues?.[0];
+        if (alternativeSlug) {
+          return unifiedService.createPage({
+            ...params,
+            slug: alternativeSlug
+          }, 'ai');
+        }
+      }
+    }
+
+    return response;
+  }
+});
+```
+
+#### Sync System Integration
+
+Update sync system to use unified service:
+
+```typescript
+// lib/sync/storage/unified-storage.ts
+export class UnifiedSyncStorage implements SyncStorage {
+  private unifiedService: UnifiedPageService;
+
+  async syncContentItem(item: ExtractedContentItem): Promise<void> {
+    // Convert to page creation request
+    const pageRequest: CreatePageRequest = {
+      websiteId: item.websiteId,
+      contentTypeId: item.contentTypeId,
+      title: item.title,
+      content: item.fields,
+      slug: item.slug,
+      parentId: await this.resolveParentId(item),
+      metadata: {
+        syncedFrom: item.source,
+        originalId: item.externalId
+      }
+    };
+
+    // Use unified service
+    const response = await this.unifiedService.createPage(pageRequest, 'sync');
+    
+    if (!response.success) {
+      throw new SyncError('Failed to sync content', response.errors);
+    }
+  }
+}
+```
+
+### 16.5 Cascading Operations Manager
+
+Implement dependency-aware cascading operations for safe deletions:
+
+```typescript
+// lib/services/cascade-manager.ts
+export class CascadeManager {
+  private prisma: PrismaClient;
+  private unifiedService: UnifiedPageService;
+
+  /**
+   * Analyzes cascading impact before deletion
+   */
+  async analyzeDeleteImpact(
+    entityType: 'contentType' | 'page' | 'website',
+    entityId: string
+  ): Promise<CascadeAnalysis> {
+    const dependencies = await this.findDependencies(entityType, entityId);
+    
+    return {
+      canDelete: dependencies.criticalDependencies.length === 0,
+      impact: {
+        contentItems: dependencies.contentItems.length,
+        siteStructures: dependencies.siteStructures.length,
+        childNodes: dependencies.childNodes.length,
+        totalAffected: dependencies.totalCount
+      },
+      strategy: this.determineStrategy(dependencies),
+      requiredConfirmation: dependencies.totalCount > 0,
+      warningLevel: this.calculateWarningLevel(dependencies)
+    };
+  }
+
+  /**
+   * Executes cascading deletion with safety checks
+   */
+  async executeCascade(
+    entityType: string,
+    entityId: string,
+    options: CascadeOptions
+  ): Promise<CascadeResult> {
+    return await this.prisma.$transaction(async (tx) => {
+      // 1. Validate cascade is safe
+      const analysis = await this.analyzeDeleteImpact(entityType, entityId);
+      if (!analysis.canDelete && !options.force) {
+        throw new Error('Cannot delete: critical dependencies exist');
+      }
+
+      // 2. Execute based on strategy
+      switch (analysis.strategy.type) {
+        case 'orphan_reassignment':
+          await this.reassignOrphans(tx, entityId, options.newParentId);
+          break;
+        case 'cascade_delete':
+          await this.cascadeDelete(tx, entityType, entityId);
+          break;
+        case 'soft_delete':
+          await this.softDelete(tx, entityType, entityId);
+          break;
+      }
+
+      // 3. Return detailed result
+      return {
+        success: true,
+        deletedCount: analysis.impact.totalAffected,
+        strategy: analysis.strategy.type,
+        timestamp: new Date()
+      };
+    });
+  }
+
+  private calculateWarningLevel(deps: Dependencies): 'low' | 'medium' | 'high' | 'critical' {
+    if (deps.criticalDependencies.length > 0) return 'critical';
+    if (deps.totalCount > 100) return 'high';
+    if (deps.totalCount > 10) return 'medium';
+    return 'low';
+  }
+}
+```
+
+### 16.6 Migration Strategy
+
+To transition to the unified architecture:
+
+```typescript
+// migrations/002_enforce_unified_service.ts
+export async function up(knex: Knex): Promise<void> {
+  // 1. Add audit log table
+  await knex.schema.createTable('page_audit_log', (table) => {
+    table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
+    table.string('action', 50).notNullable();
+    table.string('source', 20).notNullable();
+    table.uuid('page_id');
+    table.uuid('website_id');
+    table.uuid('user_id');
+    table.jsonb('metadata');
+    table.timestamp('created_at').defaultTo(knex.fn.now());
+    
+    table.index(['page_id']);
+    table.index(['website_id']);
+    table.index(['source']);
+    table.index(['created_at']);
+  });
+
+  // 2. Identify orphaned content items (no site structure)
+  const orphans = await knex.raw(`
+    SELECT ci.id, ci.title, ci.slug, ci.website_id
+    FROM content_items ci
+    LEFT JOIN site_structure ss ON ss.content_item_id = ci.id
+    WHERE ss.id IS NULL
+      AND ci.category = 'page'
+  `);
+
+  // 3. Create site structure for orphans
+  for (const orphan of orphans.rows) {
+    await knex('site_structure').insert({
+      id: knex.raw('gen_random_uuid()'),
+      website_id: orphan.website_id,
+      content_item_id: orphan.id,
+      parent_id: null, // Place at root
+      slug: orphan.slug,
+      full_path: `/${orphan.slug}`,
+      path_depth: 1,
+      position: 0,
+      weight: 0,
+      created_at: knex.fn.now(),
+      updated_at: knex.fn.now()
+    });
+    
+    console.log(`Repaired orphaned content: ${orphan.title} (${orphan.id})`);
+  }
+}
+```
+
+### 16.7 Implementation Roadmap
+
+| Phase | Task | Priority | Status | Story |
+|-------|------|----------|--------|-------|
+| **1** | Fix AI tool to use UnifiedPageService | P0 | 🔴 Pending | 8.5 |
+| **2** | Create UnifiedPageService wrapper | P0 | 🔴 Pending | 8.5 |
+| **3** | Implement StandardResponse format | P0 | 🔴 Pending | 8.5 |
+| **4** | Update Sync system integration | P1 | 🟡 Pending | 8.5 |
+| **5** | Add CascadeManager | P1 | 🟡 Pending | 8.7 |
+| **6** | Migration for orphaned content | P1 | 🟡 Pending | 8.5 |
+| **7** | Deprecate direct ContentItem creation | P2 | ⚪ Future | 8.9 |
+| **8** | Add comprehensive audit logging | P2 | ⚪ Future | 8.9 |
+
+### 16.8 Validation & Testing Requirements
+
+```typescript
+// __tests__/unified-service.test.ts
+describe('UnifiedPageService', () => {
+  describe('Cross-System Consistency', () => {
+    test('UI, AI, and Sync create identical structures', async () => {
+      const pageData = { title: 'Test Page', contentTypeId: 'page' };
+      
+      const uiResult = await service.createPage(pageData, 'ui');
+      const aiResult = await service.createPage(pageData, 'ai');
+      const syncResult = await service.createPage(pageData, 'sync');
+      
+      // All should create both ContentItem AND SiteStructure
+      expect(uiResult.data.contentItem).toBeDefined();
+      expect(uiResult.data.siteStructure).toBeDefined();
+      expect(aiResult.data.siteStructure).toBeDefined();
+      expect(syncResult.data.siteStructure).toBeDefined();
+    });
+
+    test('No orphaned content items possible', async () => {
+      // Attempt to create ContentItem without structure should fail
+      await expect(
+        prisma.contentItem.create({ data: pageData })
+      ).rejects.toThrow('Direct ContentItem creation deprecated');
+    });
+
+    test('Cascade deletion prevents orphaned structures', async () => {
+      const cascade = new CascadeManager();
+      const analysis = await cascade.analyzeDeleteImpact('page', pageId);
+      
+      expect(analysis.impact.childNodes).toBeGreaterThan(0);
+      expect(analysis.strategy.type).toBe('orphan_reassignment');
+    });
+  });
+});
+```
+
+---
+
+## 17. Appendix A: API Documentation
 
 [Detailed API documentation would be generated from OpenAPI/Swagger specs]
 
@@ -1591,7 +1996,7 @@ interface FutureMicroservices {
 
 ---
 
-## 16. Expert CMS Platform Review
+## 18. Expert CMS Platform Review
 
 ### Expert Panel Validation (2025-08-21)
 
@@ -1630,10 +2035,20 @@ interface FutureMicroservices {
 | Role | Name | Date | Notes |
 |------|------|------|-------|
 | System Architect | Winston | 2025-08-21 | Initial architecture with expert validation |
+| System Architect | Winston | 2025-08-22 | Added Unified Page Management Architecture (Section 16) |
 | Product Manager | John | 2025-08-21 | PRD reviewed and aligned |
 | CMS Expert Panel | 7 Architects | 2025-08-21 | Unanimous approval |
 | Tech Lead | - | - | Pending review |
 | DevOps Lead | - | - | Pending review |
+
+---
+
+## Revision History
+
+| Version | Date | Author | Changes |
+|---------|------|--------|---------|
+| 1.0 | 2025-08-21 | Winston | Initial architecture document with hybrid orchestration pattern |
+| 1.1 | 2025-08-22 | Winston | Added Section 16: Unified Page Management Architecture to address critical finding that AI tools bypass PageOrchestrator, creating orphaned content. Introduced UnifiedPageService, StandardResponse format, and CascadeManager. |
 
 ---
 
