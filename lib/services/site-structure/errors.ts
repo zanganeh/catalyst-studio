@@ -130,3 +130,45 @@ export function getSlugErrorStatusCode(error: unknown): number {
   }
   return 500; // Default to Internal Server Error
 }
+
+/**
+ * Error thrown when a duplicate slug is encountered
+ */
+export class DuplicateSlugError extends Error {
+  public readonly statusCode: number;
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'DuplicateSlugError';
+    this.statusCode = 409; // HTTP Conflict
+    Object.setPrototypeOf(this, DuplicateSlugError.prototype);
+  }
+}
+
+/**
+ * Error thrown when attempting to create an orphaned node
+ */
+export class OrphanedNodeError extends Error {
+  public readonly statusCode: number;
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'OrphanedNodeError';
+    this.statusCode = 400; // HTTP Bad Request
+    Object.setPrototypeOf(this, OrphanedNodeError.prototype);
+  }
+}
+
+/**
+ * Error thrown when a circular reference would be created
+ */
+export class CircularReferenceError extends Error {
+  public readonly statusCode: number;
+
+  constructor(message: string) {
+    super(message);
+    this.name = 'CircularReferenceError';
+    this.statusCode = 400; // HTTP Bad Request
+    Object.setPrototypeOf(this, CircularReferenceError.prototype);
+  }
+}
