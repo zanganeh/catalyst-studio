@@ -11,7 +11,51 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 import { unifiedPageService } from '@/lib/services/unified-page-service';
-import { ErrorCode } from '@/lib/types/unified-response.types';
+import { ErrorCode, PageResult } from '@/lib/types/unified-response.types';
+
+/**
+ * Helper function to format the response from UnifiedPageService
+ */
+function formatPageResponse(
+  data: PageResult,
+  startTime: number,
+  retryUsed = false,
+  alternativeSlug?: string
+) {
+  const result: any = {
+    success: true,
+    page: {
+      id: data.contentItem.id,
+      title: data.contentItem.title,
+      slug: data.contentItem.slug,
+      url: data.url,
+      websiteId: data.contentItem.websiteId,
+      contentTypeId: data.contentItem.contentTypeId,
+      parentId: data.siteStructure?.parentId || null,
+      status: data.contentItem.status,
+      createdAt: data.contentItem.createdAt,
+      updatedAt: data.contentItem.updatedAt
+    },
+    executionTime: `${Date.now() - startTime}ms`
+  };
+  
+  if (retryUsed && alternativeSlug) {
+    result.retryUsed = true;
+    result.alternativeSlug = alternativeSlug;
+  }
+  
+  // Only add siteStructure if it exists (pages have it, components don't)
+  if (data.siteStructure) {
+    result.siteStructure = {
+      id: data.siteStructure.id,
+      fullPath: data.siteStructure.fullPath,
+      pathDepth: data.siteStructure.pathDepth,
+      position: data.siteStructure.position
+    };
+  }
+  
+  return result;
+}
 
 /**
  * Create content (page or component) with proper structure
@@ -73,37 +117,7 @@ export const createPage = tool({
           );
 
           if (retryResponse.success && retryResponse.data) {
-            // Handle both components (no siteStructure) and pages (with siteStructure)
-            const result: any = {
-              success: true,
-              page: {
-                id: retryResponse.data.contentItem.id,
-                title: retryResponse.data.contentItem.title,
-                slug: retryResponse.data.contentItem.slug,
-                url: retryResponse.data.url,
-                websiteId: retryResponse.data.contentItem.websiteId,
-                contentTypeId: retryResponse.data.contentItem.contentTypeId,
-                parentId: retryResponse.data.siteStructure?.parentId || null,
-                status: retryResponse.data.contentItem.status,
-                createdAt: retryResponse.data.contentItem.createdAt,
-                updatedAt: retryResponse.data.contentItem.updatedAt
-              },
-              executionTime: `${Date.now() - startTime}ms`,
-              retryUsed: true,
-              alternativeSlug
-            };
-            
-            // Only add siteStructure if it exists (pages have it, components don't)
-            if (retryResponse.data.siteStructure) {
-              result.siteStructure = {
-                id: retryResponse.data.siteStructure.id,
-                fullPath: retryResponse.data.siteStructure.fullPath,
-                pathDepth: retryResponse.data.siteStructure.pathDepth,
-                position: retryResponse.data.siteStructure.position
-              };
-            }
-            
-            return result;
+            return formatPageResponse(retryResponse.data, startTime, true, alternativeSlug);
           }
         }
 
@@ -120,35 +134,7 @@ export const createPage = tool({
 
       // Success response
       if (response.success && response.data) {
-        // Handle both components (no siteStructure) and pages (with siteStructure)
-        const result: any = {
-          success: true,
-          page: {
-            id: response.data.contentItem.id,
-            title: response.data.contentItem.title,
-            slug: response.data.contentItem.slug,
-            url: response.data.url,
-            websiteId: response.data.contentItem.websiteId,
-            contentTypeId: response.data.contentItem.contentTypeId,
-            parentId: response.data.siteStructure?.parentId || null,
-            status: response.data.contentItem.status,
-            createdAt: response.data.contentItem.createdAt,
-            updatedAt: response.data.contentItem.updatedAt
-          },
-          executionTime: response.metadata?.executionTime || `${Date.now() - startTime}ms`
-        };
-        
-        // Only add siteStructure if it exists (pages have it, components don't)
-        if (response.data.siteStructure) {
-          result.siteStructure = {
-            id: response.data.siteStructure.id,
-            fullPath: response.data.siteStructure.fullPath,
-            pathDepth: response.data.siteStructure.pathDepth,
-            position: response.data.siteStructure.position
-          };
-        }
-        
-        return result;
+        return formatPageResponse(response.data, startTime);
       }
 
       // Unexpected response format

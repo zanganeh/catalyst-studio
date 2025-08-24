@@ -24,10 +24,8 @@ import {
 } from './content-types/index';
 
 // Import content item management tools from Story 5.4
-// DEPRECATED: createContentItem creates orphaned content - use createPage instead
 import {
   listContentItems,
-  createContentItem, // @deprecated Use createPage from pages/index
   updateContentItem
 } from './content-items/index';
 
@@ -71,10 +69,9 @@ export const allTools = [
   createContentType,
   updateContentType,
   // Page management tools (Story 8.5 - Fixed)
-  createPage, // NEW: Replaces createContentItem
+  createPage, // Replaces deprecated createContentItem
   // Content item management tools (Story 5.4)
   listContentItems,
-  // createContentItem, // DEPRECATED: Creates orphaned content
   updateContentItem,
   // Test tool
   echoTool
@@ -94,10 +91,9 @@ export const tools = {
   createContentType,
   updateContentType,
   // Page management tools (Story 8.5 - Fixed)
-  createPage, // NEW: Replaces createContentItem
+  createPage, // Replaces deprecated createContentItem
   // Content item management tools (Story 5.4)
   listContentItems,
-  createContentItem, // @deprecated - Use createPage instead
   updateContentItem,
   // Test tool
   echoTool

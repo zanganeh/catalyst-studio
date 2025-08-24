@@ -19,6 +19,7 @@ import {
   DeleteOptions,
   RecoverySuggestion
 } from '@/lib/types/unified-response.types';
+import { isComponent } from '@/lib/utils/content-type-utils';
 
 /**
  * Unified Page Service - Ensures no orphaned content
@@ -55,10 +56,10 @@ export class UnifiedPageService {
         where: { id: dto.contentTypeId }
       });
       
-      const isComponent = contentType?.category === 'component';
+      const isComponentType = isComponent(contentType);
 
       // Components don't need SiteStructure
-      if (isComponent) {
+      if (isComponentType) {
         return this.createComponent(dto, source, startTime, requestId);
       }
 
