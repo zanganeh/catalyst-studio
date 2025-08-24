@@ -25,20 +25,31 @@ jobs:
         run: |
           echo "🔍 Removing premium content before sync..."
           
-          # Remove ALL premium content (everything is now under lib/premium)
-          rm -rf lib/premium
+          # Remove ALL premium content (everything is under lib/premium)
+          if [ -d "lib/premium" ]; then
+            rm -rf lib/premium
+            echo "  ✅ Removed lib/premium/"
+          fi
           
-          # Remove internal migration/management scripts
-          rm -rf scripts/migrate-to-premium.js
-          rm -rf scripts/repo-status.js
-          rm -rf scripts/backup-state.js
-          rm -rf scripts/reorganize-premium.js
-          rm -rf scripts/consolidate-premium.js
-          rm -rf scripts/fix-imports.js
+          # Remove internal scripts (but keep the workflow itself!)
+          for script in migrate-to-premium.js repo-status.js backup-state.js reorganize-premium.js consolidate-premium.js fix-imports.js; do
+            if [ -f "scripts/$script" ]; then
+              rm -f "scripts/$script"
+              echo "  ✅ Removed scripts/$script"
+            fi
+          done
           
-          # Remove GitHub workflows that are premium-specific
-          rm -rf .github/workflows/sync-to-public.yml
-          rm -rf .github/premium-files.txt
+          # Remove premium-specific files (but NOT the sync workflow!)
+          if [ -f ".github/premium-files.txt" ]; then
+            rm -f .github/premium-files.txt
+            echo "  ✅ Removed .github/premium-files.txt"
+          fi
+          
+          # Remove backup directory if exists
+          if [ -d "backups" ]; then
+            rm -rf backups
+            echo "  ✅ Removed backups/"
+          fi
           
           echo "✅ Premium content removed"
       
@@ -48,36 +59,73 @@ jobs:
         run: |
           echo "📤 Syncing to public repository..."
           
-          # Add public repo as remote
-          git remote add public https://x-access-token:${PUBLIC_REPO_TOKEN}@github.com/zanganeh/catalyst-studio.git
+          # Check if public remote already exists
+          if git remote | grep -q "public"; then
+            echo "  ℹ️ Public remote already exists"
+            git remote set-url public https://x-access-token:${PUBLIC_REPO_TOKEN}@github.com/zanganeh/catalyst-studio.git
+          else
+            echo "  ➕ Adding public remote"
+            git remote add public https://x-access-token:${PUBLIC_REPO_TOKEN}@github.com/zanganeh/catalyst-studio.git
+          fi
           
-          # Create a new branch for the sync
-          git checkout -b public-sync
+          # Fetch the current state of public repo
+          git fetch public main || echo "  ℹ️ Public repo might be empty"
           
-          # Commit the changes (removed files)
+          # Create or switch to sync branch
+          git checkout -B public-sync
+          
+          # Stage all changes
           git add -A
-          git commit -m "chore: sync from premium - premium features excluded" || echo "No changes to commit"
           
-          # Push to public repo
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "  ℹ️ No changes to sync"
+          else
+            # Commit the changes
+            git commit -m "chore: sync from premium - $(date +'%Y-%m-%d %H:%M:%S')" \
+              -m "Premium features excluded from this sync" \
+              -m "Source: catalyst-studio-premium"
+            echo "  ✅ Changes committed"
+          fi
+          
+          # Push to public repo (force to overwrite)
           git push public public-sync:main --force
           
           echo "✅ Successfully synced to public repository!"
       
-      - name: Summary
+      - name: Generate Summary
+        if: always()
         run: |
           echo "## 📊 Sync Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Successfully synced to public repository**" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ **Successfully synced to public repository**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Sync failed - check logs**" >> $GITHUB_STEP_SUMMARY
+          fi
+          
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Premium content excluded:" >> $GITHUB_STEP_SUMMARY
+          echo "### Configuration:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Source**: \`catalyst-studio-premium\` (private)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Target**: \`catalyst-studio\` (public)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: \`main\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### Premium Content Excluded:" >> $GITHUB_STEP_SUMMARY
           echo "- 📦 \`lib/premium/\` - All premium features" >> $GITHUB_STEP_SUMMARY
-          echo "  - Demo applications" >> $GITHUB_STEP_SUMMARY
-          echo "  - Premium components" >> $GITHUB_STEP_SUMMARY
+          echo "  - Demo applications (\`demo-app/\`)" >> $GITHUB_STEP_SUMMARY
+          echo "  - Premium components (\`components/\`)" >> $GITHUB_STEP_SUMMARY
+          echo "  - Premium hooks (\`hooks/\`)" >> $GITHUB_STEP_SUMMARY
           echo "  - Premium utilities" >> $GITHUB_STEP_SUMMARY
-          echo "- 📜 Internal scripts and workflows" >> $GITHUB_STEP_SUMMARY
+          echo "- 📜 Internal migration scripts" >> $GITHUB_STEP_SUMMARY
+          echo "- 📁 Backup directories" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Target Repository:" >> $GITHUB_STEP_SUMMARY
-          echo "- Repository: \`zanganeh/catalyst-studio\`" >> $GITHUB_STEP_SUMMARY
-          echo "- Branch: \`main\`" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### Sync Details:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Actor**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Time**: $(date +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "🔒 Premium features remain private in \`catalyst-studio-premium\`" >> $GITHUB_STEP_SUMMARY
