@@ -16,14 +16,18 @@ export default async function DynamicPage({ params }: PageProps) {
   // Construct the path from slug segments
   const path = resolvedParams.slug ? `/${resolvedParams.slug.join('/')}` : '/';
   
-  // Get website ID from environment or create/find default website
-  let websiteId = process.env.DEFAULT_WEBSITE_ID;
+  // TODO: In production, implement one of these strategies:
+  // 1. Domain-based: Extract from headers().get('host')
+  // 2. Path-based: Use first segment as website identifier
+  // 3. Header-based: Get from custom header
+  // 4. Subdomain-based: Extract from subdomain
+  
+  // For MVP testing only - this should be replaced with proper website resolution
+  const websiteId = process.env.TEST_WEBSITE_ID;
   
   if (!websiteId) {
-    // For MVP: Find or create a default website instead of using hardcoded ID
-    // This ensures it works even after DB refresh
-    console.warn('No DEFAULT_WEBSITE_ID set, URL resolution will fail. Set DEFAULT_WEBSITE_ID in .env');
-    return notFound(); // Fail gracefully instead of using invalid ID
+    console.error('No TEST_WEBSITE_ID set. In production, website should be resolved from domain/path/header');
+    return notFound();
   }
   
   // Log the resolution attempt
