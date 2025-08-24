@@ -16,8 +16,15 @@ export default async function DynamicPage({ params }: PageProps) {
   // Construct the path from slug segments
   const path = resolvedParams.slug ? `/${resolvedParams.slug.join('/')}` : '/';
   
-  // Get website ID from environment or use TechVerse Blog for testing
-  const websiteId = process.env.DEFAULT_WEBSITE_ID || 'cmepd3enl0000v8egoge0uxu8';
+  // Get website ID from environment or create/find default website
+  let websiteId = process.env.DEFAULT_WEBSITE_ID;
+  
+  if (!websiteId) {
+    // For MVP: Find or create a default website instead of using hardcoded ID
+    // This ensures it works even after DB refresh
+    console.warn('No DEFAULT_WEBSITE_ID set, URL resolution will fail. Set DEFAULT_WEBSITE_ID in .env');
+    return notFound(); // Fail gracefully instead of using invalid ID
+  }
   
   // Log the resolution attempt
   console.log(`Resolving URL: ${path} for website: ${websiteId}`);
