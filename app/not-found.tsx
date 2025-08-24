@@ -1,16 +1,25 @@
+'use client';
+
 import Link from 'next/link';
-import { headers } from 'next/headers';
+import { useEffect, useState } from 'react';
 
 export default function NotFound() {
-  const headersList = headers();
-  const fourOhFourType = headersList.get('x-404-type') || 'hard';
-  const fourOhFourPath = headersList.get('x-404-path') || '';
-  const pageId = headersList.get('x-page-id') || '';
+  const [mounted, setMounted] = useState(false);
 
-  // Log 404 occurrence for monitoring
-  if (typeof window === 'undefined') {
-    // Server-side logging
-    console.log(`404 Page Rendered - Type: ${fourOhFourType}, Path: ${fourOhFourPath}, PageId: ${pageId}`);
+  useEffect(() => {
+    setMounted(true);
+    // Log 404 for monitoring (client-side)
+    console.log('404 Page Rendered');
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -19,18 +28,11 @@ export default function NotFound() {
         <div className="text-center">
           <h1 className="text-9xl font-bold text-gray-900">404</h1>
           <h2 className="mt-4 text-3xl font-semibold text-gray-700">
-            {fourOhFourType === 'soft' ? 'Page Unavailable' : 'Page Not Found'}
+            Page Not Found
           </h2>
           <p className="mt-2 text-gray-600">
-            {fourOhFourType === 'soft'
-              ? 'This page exists but is currently unpublished or unavailable.'
-              : "The page you're looking for doesn't exist or has been moved."}
+            The page you're looking for doesn't exist or has been moved.
           </p>
-          {fourOhFourPath && (
-            <p className="mt-2 text-sm text-gray-500">
-              Requested path: <code className="bg-gray-100 px-2 py-1 rounded">{fourOhFourPath}</code>
-            </p>
-          )}
         </div>
 
         <div className="mt-8 space-y-4">
@@ -72,27 +74,6 @@ export default function NotFound() {
           </ul>
         </div>
 
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
-            <h4 className="text-sm font-medium text-yellow-800 mb-2">Debug Info (Dev Only)</h4>
-            <dl className="text-xs space-y-1">
-              <div className="flex">
-                <dt className="font-medium text-yellow-700 mr-2">Type:</dt>
-                <dd className="text-yellow-600">{fourOhFourType}</dd>
-              </div>
-              <div className="flex">
-                <dt className="font-medium text-yellow-700 mr-2">Path:</dt>
-                <dd className="text-yellow-600">{fourOhFourPath || 'N/A'}</dd>
-              </div>
-              {pageId && (
-                <div className="flex">
-                  <dt className="font-medium text-yellow-700 mr-2">Page ID:</dt>
-                  <dd className="text-yellow-600">{pageId}</dd>
-                </div>
-              )}
-            </dl>
-          </div>
-        )}
       </div>
     </div>
   );
