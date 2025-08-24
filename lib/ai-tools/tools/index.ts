@@ -26,9 +26,14 @@ import {
 // Import content item management tools from Story 5.4
 import {
   listContentItems,
-  createContentItem,
   updateContentItem
 } from './content-items/index';
+
+// Import page management tools (Story 8.5 - Fixed Implementation)
+// These tools ensure atomic creation of both ContentItem and SiteStructure
+import {
+  createPage
+} from './pages/index';
 
 /**
  * Test tool for verifying tool execution
@@ -63,9 +68,10 @@ export const allTools = [
   getContentType,
   createContentType,
   updateContentType,
+  // Page management tools (Story 8.5)
+  createPage,
   // Content item management tools (Story 5.4)
   listContentItems,
-  createContentItem,
   updateContentItem,
   // Test tool
   echoTool
@@ -84,9 +90,10 @@ export const tools = {
   getContentType,
   createContentType,
   updateContentType,
+  // Page management tools (Story 8.5)
+  createPage,
   // Content item management tools (Story 5.4)
   listContentItems,
-  createContentItem,
   updateContentItem,
   // Test tool
   echoTool

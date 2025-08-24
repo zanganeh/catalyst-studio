@@ -48,7 +48,7 @@ const toolDisplayNames: Record<string, string> = {
   updateContentType: 'Updating Content Type',
   // Content item management tools
   listContentItems: 'Listing Content Items',
-  createContentItem: 'Creating Content Item',
+  createPage: 'Creating Page',
   updateContentItem: 'Updating Content Item',
   // Test tool
   echoTool: 'Echo Test'
@@ -63,7 +63,7 @@ const toolIcons: Record<string, string> = {
   createContentType: '✨',
   updateContentType: '✏️',
   listContentItems: '📝',
-  createContentItem: '➕',
+  createPage: '📄',
   updateContentItem: '🔄',
   echoTool: '🔧'
 };

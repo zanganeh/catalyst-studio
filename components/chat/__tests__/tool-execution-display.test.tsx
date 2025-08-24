@@ -274,7 +274,7 @@ describe('MultiStepToolExecution', () => {
     },
     {
       toolCallId: 'step-2',
-      toolName: 'createContentItem',
+      toolName: 'createPage',
       args: { title: 'Test Item' },
       state: 'executing',
       startTime: new Date(),
@@ -298,7 +298,7 @@ describe('MultiStepToolExecution', () => {
     
     expect(screen.getByText('Step 2 of 3')).toBeInTheDocument();
     expect(screen.getByText('Validating Content')).toBeInTheDocument();
-    expect(screen.getByText('Creating Content Item')).toBeInTheDocument();
+    expect(screen.getByText('Creating Page')).toBeInTheDocument();
     expect(screen.getByText('Updating Content Item')).toBeInTheDocument();
   });
 

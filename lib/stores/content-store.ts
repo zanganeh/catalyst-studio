@@ -142,10 +142,10 @@ export const useContentStore = create<ContentState>()(
         const payload = transformInternalToApi(optimisticItem, websiteId);
         
         const response = await api.post(
-          '/api/content-items',
-          payload,
+          '/api/pages',
+          { ...payload, source: 'ui' },
           undefined,
-          `create-content-${optimisticItem.id}`
+          `create-page-${optimisticItem.id}`
         );
         
         if (!response.ok) {
