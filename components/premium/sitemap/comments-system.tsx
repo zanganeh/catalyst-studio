@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/premium/ui/avatar'
 import { MessageSquare, Send, X, Clock, Edit2, Trash2, Reply } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 

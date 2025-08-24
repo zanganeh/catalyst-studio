@@ -1,0 +1,79 @@
+name: Sync to Public Repository
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Premium Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Git Config
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+      
+      - name: Remove Premium Directories
+        run: |
+          echo "🔍 Removing premium directories before sync..."
+          
+          # Remove all premium directories (cleanly organized)
+          rm -rf app/premium-demo
+          rm -rf components/premium
+          rm -rf lib/premium
+          rm -rf hooks/premium
+          
+          # Remove internal scripts
+          rm -rf scripts/migrate-to-premium.js
+          rm -rf scripts/repo-status.js
+          rm -rf scripts/backup-state.js
+          rm -rf scripts/reorganize-premium.js
+          
+          echo "✅ Premium directories removed"
+      
+      - name: Push to Public Repository
+        env:
+          PUBLIC_REPO_TOKEN: ${{ secrets.PUBLIC_REPO_TOKEN }}
+        run: |
+          echo "📤 Syncing to public repository..."
+          
+          # Add public repo as remote
+          git remote add public https://x-access-token:${PUBLIC_REPO_TOKEN}@github.com/zanganeh/catalyst-studio.git
+          
+          # Create a new branch for the sync
+          git checkout -b public-sync
+          
+          # Commit the changes (removed files)
+          git add -A
+          git commit -m "chore: sync from premium - premium features excluded" || echo "No changes to commit"
+          
+          # Push to public repo
+          git push public public-sync:main --force
+          
+          echo "✅ Successfully synced to public repository!"
+      
+      - name: Summary
+        run: |
+          echo "## 📊 Sync Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Successfully synced to public repository**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Premium content excluded:" >> $GITHUB_STEP_SUMMARY
+          echo "- 📁 \`app/premium-demo/\` - Premium demos" >> $GITHUB_STEP_SUMMARY
+          echo "- 🧩 \`components/premium/\` - Premium components" >> $GITHUB_STEP_SUMMARY
+          echo "- 🛠️ \`lib/premium/\` - Premium libraries" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔧 \`hooks/premium/\` - Premium hooks" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Target Repository:" >> $GITHUB_STEP_SUMMARY
+          echo "- Repository: \`zanganeh/catalyst-studio\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Branch: \`main\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔒 Premium features remain private in \`catalyst-studio-premium\`" >> $GITHUB_STEP_SUMMARY

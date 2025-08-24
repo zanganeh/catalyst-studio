@@ -14,7 +14,7 @@ import {
   FileImage, FileText, Users, Lock, Globe, QrCode
 } from 'lucide-react'
 import { Node, Edge, getNodesBounds, getViewportForBounds } from 'reactflow'
-import { toPng, toPdf } from '@/lib/sitemap/export-utils'
+import { toPng, toPdf } from '@/lib/premium/export-utils'
 import QRCode from 'qrcode'
 
 interface ShareExportModalProps {
