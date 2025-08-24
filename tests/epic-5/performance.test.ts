@@ -229,13 +229,13 @@ describe('Performance Testing', () => {
       });
 
       it('should create single content item in under 1 second', async () => {
-        const createContentItemTool = allTools.find(t => t.name === 'create-content-item')!;
+        const createPageTool = allTools.find(t => t.name === 'create-page')!;
         const contentType = await prisma.contentType.findFirst({
           where: { websiteId: smallWebsiteId }
         });
 
         const startTime = Date.now();
-        const result = await createContentItemTool.execute({
+        const result = await createPageTool.execute({
           websiteId: smallWebsiteId,
           contentTypeId: contentType!.id,
           name: 'PERF_Simple_Item',
@@ -270,7 +270,7 @@ describe('Performance Testing', () => {
 
     describe('Complex Operations (<2s)', () => {
       it('should handle bulk content creation in under 2 seconds', async () => {
-        const createContentItemTool = allTools.find(t => t.name === 'create-content-item')!;
+        const createPageTool = allTools.find(t => t.name === 'create-page')!;
         const contentType = await prisma.contentType.findFirst({
           where: { websiteId: mediumWebsiteId }
         });
@@ -281,7 +281,7 @@ describe('Performance Testing', () => {
         // Create 10 items in parallel
         for (let i = 1; i <= 10; i++) {
           promises.push(
-            createContentItemTool.execute({
+            createPageTool.execute({
               websiteId: mediumWebsiteId,
               contentTypeId: contentType!.id,
               name: `PERF_Bulk_Item_${i}`,
@@ -368,7 +368,7 @@ describe('Performance Testing', () => {
 
     describe('Bulk Operations (Linear Scaling)', () => {
       it('should scale linearly for bulk operations', async () => {
-        const createContentItemTool = allTools.find(t => t.name === 'create-content-item')!;
+        const createPageTool = allTools.find(t => t.name === 'create-page')!;
         const contentType = await prisma.contentType.findFirst({
           where: { websiteId: largeWebsiteId }
         });
@@ -383,7 +383,7 @@ describe('Performance Testing', () => {
 
           for (let i = 1; i <= batchSize; i++) {
             promises.push(
-              createContentItemTool.execute({
+              createPageTool.execute({
                 websiteId: largeWebsiteId,
                 contentTypeId: contentType!.id,
                 name: `PERF_Scale_Item_${batchSize}_${i}`,
@@ -529,7 +529,7 @@ describe('Performance Testing', () => {
     });
 
     it('should batch database operations efficiently', async () => {
-      const createContentItemTool = allTools.find(t => t.name === 'create-content-item')!;
+      const createPageTool = allTools.find(t => t.name === 'create-page')!;
       const contentType = await prisma.contentType.findFirst({
         where: { websiteId: largeWebsiteId }
       });
@@ -539,7 +539,7 @@ describe('Performance Testing', () => {
       const sequentialIds = [];
       
       for (let i = 1; i <= 5; i++) {
-        const result = await createContentItemTool.execute({
+        const result = await createPageTool.execute({
           websiteId: largeWebsiteId,
           contentTypeId: contentType!.id,
           name: `PERF_Sequential_${i}`,
@@ -557,7 +557,7 @@ describe('Performance Testing', () => {
       
       for (let i = 1; i <= 5; i++) {
         batchPromises.push(
-          createContentItemTool.execute({
+          createPageTool.execute({
             websiteId: largeWebsiteId,
             contentTypeId: contentType!.id,
             name: `PERF_Batch_${i}`,

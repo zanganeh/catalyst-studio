@@ -12,7 +12,7 @@ describe('Content Item Tools', () => {
   let testContentItemId: string;
   
   const contentItemTools = allTools.filter(t => 
-    ['list-content-items', 'create-content-item', 'update-content-item'].includes(t.name)
+    ['list-content-items', 'create-page', 'update-content-item'].includes(t.name)
   );
 
   beforeAll(async () => {
@@ -62,8 +62,8 @@ describe('Content Item Tools', () => {
     });
   });
 
-  describe('create-content-item', () => {
-    const tool = contentItemTools.find(t => t.name === 'create-content-item')!;
+  describe('create-page', () => {
+    const tool = contentItemTools.find(t => t.name === 'create-page')!;
 
     it('should create content item with validation', async () => {
       const result = await tool.execute({
@@ -546,7 +546,7 @@ describe('Content Item Tools', () => {
 
   describe('bulk operations (20-item limit)', () => {
     it('should handle bulk creation up to limit', async () => {
-      const createTool = contentItemTools.find(t => t.name === 'create-content-item')!;
+      const createTool = contentItemTools.find(t => t.name === 'create-page')!;
       const promises = [];
 
       // Try to create 25 items (should handle up to 20)
@@ -650,7 +650,7 @@ describe('Content Item Tools', () => {
 
   describe('content type field validation', () => {
     it('should enforce field constraints strictly', async () => {
-      const createTool = contentItemTools.find(t => t.name === 'create-content-item')!;
+      const createTool = contentItemTools.find(t => t.name === 'create-page')!;
 
       // Create content type with strict validation
       const strictType = await prisma.contentType.create({

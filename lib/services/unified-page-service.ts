@@ -94,8 +94,27 @@ export class UnifiedPageService {
 
       // Format result to match PageResult interface
       const formattedResult: PageResult = {
-        contentItem: result.contentItem,
-        siteStructure: result.siteStructure,
+        contentItem: {
+          id: result.contentItem.id,
+          title: result.contentItem.title,
+          slug: result.contentItem.slug,
+          websiteId: result.contentItem.websiteId,
+          contentTypeId: result.contentItem.contentTypeId,
+          content: (result.contentItem.content || {}) as Record<string, any>,
+          status: result.contentItem.status,
+          createdAt: result.contentItem.createdAt,
+          updatedAt: result.contentItem.updatedAt
+        },
+        siteStructure: {
+          id: result.siteStructure.id,
+          websiteId: result.siteStructure.websiteId,
+          contentItemId: result.siteStructure.contentItemId || '',
+          parentId: result.siteStructure.parentId,
+          slug: result.siteStructure.slug,
+          fullPath: result.siteStructure.fullPath,
+          pathDepth: result.siteStructure.pathDepth,
+          position: result.siteStructure.position
+        },
         url: result.fullPath || result.siteStructure.fullPath
       };
 
@@ -151,7 +170,17 @@ export class UnifiedPageService {
 
       // Format response (no SiteStructure for components)
       const formattedResult: PageResult = {
-        contentItem,
+        contentItem: {
+          id: contentItem.id,
+          title: contentItem.title,
+          slug: contentItem.slug,
+          websiteId: contentItem.websiteId,
+          contentTypeId: contentItem.contentTypeId,
+          content: (contentItem.content || {}) as Record<string, any>,
+          status: contentItem.status,
+          createdAt: contentItem.createdAt,
+          updatedAt: contentItem.updatedAt
+        },
         siteStructure: null as any, // Components don't have SiteStructure
         url: null as any // Components don't have URLs
       };
@@ -240,7 +269,7 @@ export class UnifiedPageService {
           data: {
             title: dto.title || contentItem.title,
             slug: dto.slug || contentItem.slug,
-            content: dto.content || contentItem.content,
+            content: dto.content || (contentItem.content as any),
             status: dto.status || contentItem.status
           }
         });

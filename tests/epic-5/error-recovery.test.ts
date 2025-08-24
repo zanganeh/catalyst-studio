@@ -96,14 +96,14 @@ describe('Error Recovery and Rollback Testing', () => {
     });
 
     it('should rollback content item creation on validation failure', async () => {
-      const createContentItemTool = allTools.find(t => t.name === 'create-content-item');
+      const createPageTool = allTools.find(t => t.name === 'create-page');
       
       // Mock validation failure during transaction
       mockTransaction.mockImplementationOnce(async (callback) => {
         throw new Error('Validation failed: Required field missing');
       });
 
-      const result = await createContentItemTool!.execute({
+      const result = await createPageTool!.execute({
         websiteId: testWebsiteId,
         contentTypeId: testContentTypeId,
         name: 'Test Item',
@@ -148,7 +148,7 @@ describe('Error Recovery and Rollback Testing', () => {
 
   describe('Partial Operation Recovery', () => {
     it('should recover from partial bulk creation failure', async () => {
-      const createContentItemTool = allTools.find(t => t.name === 'create-content-item');
+      const createPageTool = allTools.find(t => t.name === 'create-page');
       
       let callCount = 0;
       mockTransaction.mockImplementation(async (callback) => {
@@ -165,7 +165,7 @@ describe('Error Recovery and Rollback Testing', () => {
       const promises = [];
       for (let i = 1; i <= 20; i++) {
         promises.push(
-          createContentItemTool!.execute({
+          createPageTool!.execute({
             websiteId: testWebsiteId,
             contentTypeId: testContentTypeId,
             name: `Bulk Item ${i}`,
@@ -352,7 +352,7 @@ describe('Error Recovery and Rollback Testing', () => {
 
   describe('API Rate Limit Scenarios', () => {
     it('should handle rate limit errors gracefully', async () => {
-      const createContentItemTool = allTools.find(t => t.name === 'create-content-item');
+      const createPageTool = allTools.find(t => t.name === 'create-page');
       
       let requestCount = 0;
       const resetTime = Date.now() + 60000; // 1 minute from now
@@ -371,7 +371,7 @@ describe('Error Recovery and Rollback Testing', () => {
       const promises = [];
       for (let i = 1; i <= 15; i++) {
         promises.push(
-          createContentItemTool!.execute({
+          createPageTool!.execute({
             websiteId: testWebsiteId,
             contentTypeId: testContentTypeId,
             name: `Rate Test ${i}`,
@@ -629,13 +629,13 @@ describe('Error Recovery and Rollback Testing', () => {
 
     describe('Content Item Tool Rollbacks', () => {
       it('should rollback content item creation on validation failure', async () => {
-        const createContentItemTool = allTools.find(t => t.name === 'create-content-item');
+        const createPageTool = allTools.find(t => t.name === 'create-page');
         
         mockTransaction.mockImplementationOnce(async () => {
           throw new Error('Content validation failed: Missing required field');
         });
 
-        const result = await createContentItemTool!.execute({
+        const result = await createPageTool!.execute({
           websiteId: testWebsiteId,
           contentTypeId: testContentTypeId,
           name: 'Invalid Item',
@@ -647,7 +647,7 @@ describe('Error Recovery and Rollback Testing', () => {
       });
 
       it('should rollback bulk content item operations on partial failure', async () => {
-        const createContentItemTool = allTools.find(t => t.name === 'create-content-item');
+        const createPageTool = allTools.find(t => t.name === 'create-page');
         
         let itemCount = 0;
         mockTransaction.mockImplementation(async () => {
@@ -661,7 +661,7 @@ describe('Error Recovery and Rollback Testing', () => {
         const promises = [];
         for (let i = 1; i <= 20; i++) {
           promises.push(
-            createContentItemTool!.execute({
+            createPageTool!.execute({
               websiteId: testWebsiteId,
               contentTypeId: testContentTypeId,
               name: `Bulk ${i}`,

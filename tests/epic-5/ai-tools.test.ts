@@ -36,7 +36,10 @@ describe('AI Tools Test Suite', () => {
     const contentType = await prisma.contentType.create({
       data: {
         name: 'TEST_Product',
+        key: 'test_product',
+        pluralName: 'TEST_Products',
         websiteId: testWebsiteId,
+        category: 'page',
         fields: JSON.stringify([
           { name: 'title', type: 'text', required: true },
           { name: 'description', type: 'text', required: true },
@@ -195,15 +198,15 @@ describe('AI Tools Test Suite', () => {
     });
   });
 
-  describe('Content Item Management Tools', () => {
-    it('should create a content item', async () => {
-      const createContentItem = tools.createContentItem;
-      expect(createContentItem).toBeDefined();
+  describe('Page Management Tools', () => {
+    it('should create a page', async () => {
+      const createPage = tools.createPage;
+      expect(createPage).toBeDefined();
 
-      const result = await createContentItem.execute({
+      const result = await createPage.execute({
         websiteId: testWebsiteId,
         contentTypeId: testContentTypeId,
-        name: 'TEST_Laptop',
+        title: 'Gaming Laptop',
         content: {
           title: 'Gaming Laptop',
           description: 'High-performance gaming laptop with RTX 4080 graphics card and Intel i9 processor. Perfect for gaming and content creation.',
@@ -215,8 +218,8 @@ describe('AI Tools Test Suite', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.data).toHaveProperty('id');
-      testContentItemId = result.data.id;
+      expect(result.page).toHaveProperty('id');
+      testContentItemId = result.page.id;
     });
 
     it('should list content items', async () => {

@@ -68,8 +68,8 @@ export const allTools = [
   getContentType,
   createContentType,
   updateContentType,
-  // Page management tools (Story 8.5 - Fixed)
-  createPage, // Replaces deprecated createContentItem
+  // Page management tools (Story 8.5)
+  createPage,
   // Content item management tools (Story 5.4)
   listContentItems,
   updateContentItem,
@@ -90,8 +90,8 @@ export const tools = {
   getContentType,
   createContentType,
   updateContentType,
-  // Page management tools (Story 8.5 - Fixed)
-  createPage, // Replaces deprecated createContentItem
+  // Page management tools (Story 8.5)
+  createPage,
   // Content item management tools (Story 5.4)
   listContentItems,
   updateContentItem,

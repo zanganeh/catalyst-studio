@@ -39,15 +39,19 @@ export async function getContentItem(id: string): Promise<ContentItem> {
   return result.data;
 }
 
-export async function createContentItem(data: CreateContentItemRequest): Promise<ContentItem> {
-  const response = await fetch('/api/content-items', {
+export async function createPage(data: CreateContentItemRequest): Promise<ContentItem> {
+  const response = await fetch('/api/pages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      ...data,
+      source: 'ui' // Default to UI source for direct API calls
+    }),
   });
   
   if (!response.ok) {
-    throw new Error('Failed to create content item');
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to create page');
   }
   
   const result = await response.json();
@@ -124,11 +128,11 @@ export function useContentItem(id: string | null | undefined) {
   });
 }
 
-export function useCreateContentItem() {
+export function useCreatePage() {
   const queryClient = useQueryClient();
   
   return useMutation({
-    mutationFn: createContentItem,
+    mutationFn: createPage,
     onMutate: async (newItem) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['content-items'] });
