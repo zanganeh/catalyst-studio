@@ -11,17 +11,18 @@
 
 ## 1. Executive Summary
 
-This PRD outlines the development of an AI-powered site structure generator for Catalyst Studio, addressing the critical gap in hierarchical page relationship management and URL routing. The solution will enable automated generation of site structures from natural language requirements, with proper storage mechanisms and a Miro-like visual interface for intuitive management.
+This PRD outlines the development of an AI-powered site structure generator for Catalyst Studio (Open Source MVP), addressing the critical gap in hierarchical page relationship management and URL routing. The solution will enable automated generation of site structures from natural language requirements with proper storage mechanisms. Visual interface capabilities are reserved for the premium version.
 
 **🔴 CRITICAL ARCHITECTURAL UPDATE (2025-08-22)**: This PRD has been updated to implement the **Hybrid Orchestration Pattern**, ensuring that every SiteStructure node MUST have an associated ContentItem. Pages are now created atomically through a unified API, preventing orphaned nodes and maintaining data consistency.
 
 **🔴 CRITICAL FINDING (2025-08-22)**: PR #47 analysis revealed that AI tools are bypassing PageOrchestrator, creating orphaned ContentItems without SiteStructure. Story 8.5 has been updated to prioritize the UnifiedPageService implementation to resolve this P0 issue.
 
-### Key Business Value
-- **Automated site structure generation** from requirements, reducing manual setup time by 90%
+### Key Business Value (Open Source MVP)
+- **Automated site structure generation** from requirements via API
 - **Standardized hierarchical storage** enabling consistent URL routing across all CMS platforms
-- **Visual site management** through intuitive Miro-like interface improving user experience
+- **Programmatic site management** through comprehensive API endpoints
 - **Platform-agnostic approach** ensuring compatibility with multiple CMS systems
+- **Foundation for premium features** including visual interface and advanced optimization
 
 ---
 
@@ -35,11 +36,11 @@ This PRD outlines the development of an AI-powered site structure generator for 
 - ✅ Website generator framework
 - ✅ Database schema with content_items and content_types tables
 
-#### Critical Gaps
+#### Critical Gaps (Addressed in Open Source MVP)
 - ❌ **No site structure generator** - Cannot create hierarchical sitemaps
 - ❌ **Missing hierarchy storage** - No mechanism for parent-child relationships
 - ❌ **No slug management** - Cannot handle URL routing and uniqueness
-- ❌ **No visual management** - Lack of intuitive interface for structure manipulation
+- ⏸️ **Visual management** - Deferred to premium version
 
 ### Impact of Current Gaps
 - **Manual Process Overhead**: 4-6 hours per website for structure setup
@@ -54,25 +55,27 @@ The current system was designed for content generation but lacks the architectur
 
 ## 3. Solution Overview
 
-### Proposed Solution
+### Proposed Solution (Open Source MVP)
 Implement a hybrid storage pattern (Adjacency List + Materialized Path) for site structures with:
 1. AI-powered site structure generation from natural language
 2. Robust hierarchical storage with slug management
-3. Miro-like visual interface using React Flow
+3. Comprehensive API for programmatic management
 4. Integration with existing content management system
 
-### Solution Architecture
+Note: Visual interface using React Flow is reserved for premium version.
+
+### Solution Architecture (Open Source MVP)
 
 ```
 ┌──────────────────┐     ┌─────────────────┐     ┌──────────────────┐
-│   AI Generator   │────▶│  Site Structure │────▶│  Visual Canvas   │
-│  (GPT-4 based)   │     │    Storage      │     │  (React Flow)    │
+│   AI Generator   │────▶│  Site Structure │────▶│     REST API     │
+│  (GPT-4 based)   │     │    Storage      │     │   (CRUD Ops)     │
 └──────────────────┘     └─────────────────┘     └──────────────────┘
          │                        │                        │
          ▼                        ▼                        ▼
 ┌──────────────────┐     ┌─────────────────┐     ┌──────────────────┐
-│  Prompt Engine   │     │   PostgreSQL    │     │   Interactive    │
-│  & Parser        │     │   with Hybrid   │     │   Drag & Drop    │
+│  Prompt Engine   │     │   PostgreSQL    │     │  UnifiedPage     │
+│  & Parser        │     │   with Hybrid   │     │    Service       │
 └──────────────────┘     └─────────────────┘     └──────────────────┘
 ```
 
@@ -128,18 +131,7 @@ CREATE TABLE site_structure (
 );
 ```
 
-#### FR-004: Visual Site Structure UI
-- **Priority**: P1 (High)
-- **Description**: Miro-like canvas for visual management
-- **Acceptance Criteria**:
-  - Infinite canvas with pan/zoom capabilities
-  - Drag-drop node repositioning
-  - Parent-child relationship editing via connection dragging
-  - Inline editing with double-click
-  - Keyboard shortcuts (Delete, Undo, Redo)
-  - Support for 500+ nodes without performance degradation
-
-#### FR-005: CRUD Operations
+#### FR-004: CRUD Operations
 - **Priority**: P0 (Critical)
 - **Description**: Complete site structure management operations
 - **Operations**:
@@ -150,25 +142,13 @@ CREATE TABLE site_structure (
 
 ### 4.2 Non-Functional Requirements
 
-#### NFR-001: Performance
-- **Priority**: P2 (Medium)
-- Site structure generation: < 5 seconds for 50 pages
-- URL resolution: < 10ms with indexed paths
-- UI rendering: < 100ms for 500 nodes
-- Canvas interaction: 60 FPS minimum
-
-#### NFR-002: Scalability (MVP)
-- Support up to 1000 pages per website
-- Handle 10 concurrent generation requests
-- Canvas supports 500 nodes without lag
-
-#### NFR-003: Data Integrity
+#### NFR-001: Data Integrity
 - 100% slug uniqueness enforcement
 - Zero broken parent-child relationships
 - Transactional updates for path changes
 - Prevent circular references
 
-#### NFR-004: Research Requirements
+#### NFR-002: Research Requirements
 - **MANDATORY**: Use Zen tools for architecture decisions
 - **MANDATORY**: Use WebSearch for best practices
 - Document all research findings
@@ -181,16 +161,16 @@ CREATE TABLE site_structure (
 ### User Story Map (Revised for Hybrid Orchestration)
 
 ```
-Epic 8: Site Structure Generator
+Epic 8: Site Structure Generator (Open Source MVP)
 ├── Story 8.1: Database Schema Implementation ✅
 ├── Story 8.2: Slug Management System ✅
 ├── Story 8.3: Page Orchestration API (was: AI Prompt Engineering)
 ├── Story 8.4: Site Structure Service Layer (was: Storage Layer CRUD)
 ├── Story 8.5: AI Site Generation Engine (was: Path Management)
-├── Story 8.6: React Flow Canvas Setup
-├── Story 8.7: Visual Editor Integration
-├── Story 8.8: URL Resolution & Routing
-└── Story 8.9: Performance & Optimization
+└── Story 8.8: URL Resolution & Routing
+
+Note: Visual interface features (Stories 8.6, 8.7) and optimization (8.9) 
+are reserved for premium version.
 ```
 
 ### Primary User Workflow (Updated for Atomic Page Creation)
@@ -198,14 +178,12 @@ Epic 8: Site Structure Generator
 ```mermaid
 graph LR
     A[Enter Requirements] --> B[AI Generates Structure]
-    B --> C[Review Visual Tree]
+    B --> C[Review Generated Structure]
     C --> D{Approve?}
     D -->|Yes| E[Create Pages Atomically]
-    D -->|No| F[Edit on Canvas]
-    F --> G[Drag/Drop Nodes]
-    G --> H[Update Pages]
-    H --> E
-    E --> I[Pages Created with Content + Structure]
+    D -->|No| F[Modify Requirements]
+    F --> B
+    E --> G[Pages Created with Content + Structure]
 ```
 
 ### Story 8.3: Page Orchestration API (Critical Update)
@@ -364,8 +342,6 @@ Analysis of PR #47 revealed critical architectural violation:
 | Storage Pattern | Hybrid (Adjacency + Materialized Path) | Balance of simplicity and performance |
 | AI Model | GPT-4 | Best accuracy for structure generation |
 | UI Framework | React + TypeScript | Type safety and component reusability |
-| Canvas Library | React Flow | Closest to Miro experience |
-| State Management | Zustand | Lightweight and performant |
 | API Layer | Next.js API Routes | Existing infrastructure |
 
 ### 6.2 Database Design
@@ -434,21 +410,20 @@ function generateSlug(title: string, siblings: string[]): string {
 | Metric | Target | Measurement Method |
 |--------|--------|-------------------|
 | Generation Success Rate | > 95% | Successful generations / Total attempts |
-| Generation Time | < 5 sec for 50 pages | Average time from request to completion |
-| URL Resolution Speed | < 10ms | 95th percentile query time |
-| User Task Completion | > 90% | Users completing site setup without support |
-| Canvas Performance | 60 FPS | Frame rate during interactions |
+| API Response Time | < 2 sec | Average response time for structure generation |
+| URL Resolution | Functional | Successful path-to-page resolution |
+| Data Integrity | 100% | No orphaned content or broken relationships |
 
 ### 7.2 Quality Metrics
 
 - **Code Coverage**: Minimum 80% test coverage
 - **Error Rate**: < 1% of operations result in errors
 - **Data Integrity**: 100% consistency in parent-child relationships
-- **User Satisfaction**: > 4.5/5 rating for UI experience
+- **API Reliability**: 99% uptime for endpoints
 
 ---
 
-## 8. Implementation Plan (Revised for Hybrid Orchestration)
+## 8. Implementation Plan (Revised for Open Source MVP)
 
 ### Phase 1: Foundation (Week 1) ✅
 - [x] Story 8.1: Database migration for site_structure table
@@ -467,7 +442,7 @@ function generateSlug(title: string, siblings: string[]): string {
   - [ ] Path recalculation logic
   - [ ] Validation and constraints
 
-### Phase 3: AI Integration (Week 3)
+### Phase 3: AI Integration & Routing (Week 3)
 - [ ] **Story 8.5: AI Site Generation Engine**
   - [ ] Prompt engineering for structure generation
   - [ ] Integration with PageOrchestrator
@@ -478,17 +453,11 @@ function generateSlug(title: string, siblings: string[]): string {
   - [ ] Middleware for URL handling
   - [ ] 404 and redirect management
 
-### Phase 4: Visual Interface (Week 4)
-- [ ] Story 8.6: React Flow canvas setup
-- [ ] Story 8.7: Visual editor integration
-- [ ] Drag-drop with live page updates
-- [ ] Real-time synchronization
-
-### Phase 5: Optimization & Polish (Week 5)
-- [ ] Story 8.9: Performance optimization
-- [ ] Caching strategy implementation
+### Phase 4: Testing & Documentation (Week 4)
 - [ ] End-to-end testing
-- [ ] Documentation and deployment
+- [ ] API documentation
+- [ ] Integration guides
+- [ ] Deployment preparation
 
 ---
 
@@ -499,8 +468,8 @@ function generateSlug(title: string, siblings: string[]): string {
 | Slug conflicts during migration | Medium | High | Implement conflict resolution with suffixes |
 | Path inconsistency after updates | Low | Critical | Use database transactions, add integrity checks |
 | AI hallucination in structure | Medium | Medium | Validate output schema, use few-shot examples |
-| Canvas performance with large trees | Medium | Medium | Implement virtualization for > 500 nodes |
 | Circular reference creation | Low | High | Add validation in update operations |
+| Orphaned content items | Medium | High | Enforce atomic page creation via UnifiedPageService |
 
 ---
 
@@ -530,24 +499,28 @@ describe('Site Structure Generator', () => {
 
 ---
 
-## 11. Security Considerations
+## 11. Security Considerations (Deferred to Premium Version)
 
-### 11.1 Input Validation
+### 11.1 Input Validation (Open Source MVP)
 - Sanitize all user inputs for slug generation
 - Validate parent relationships to prevent loops
 - Enforce maximum tree depth (default: 10 levels)
-- Rate limiting on generation requests (MVP: basic)
 
-### 11.2 Data Protection
-- Ensure website isolation (no cross-website queries)
-- Validate user permissions for structure modifications
-- Audit log for structure changes (post-MVP)
+Note: Authentication, authorization, rate limiting, and audit logging 
+are reserved for the premium version.
 
 ---
 
-## 12. Future Enhancements (Post-MVP)
+## 12. Future Enhancements (Premium Version)
 
-### Planned Improvements
+### Premium Features
+1. **Visual Canvas Interface**: Miro-like drag-and-drop site management (Stories 8.6, 8.7)
+2. **Performance Optimization**: Advanced caching and query optimization (Story 8.9)
+3. **Authentication & Authorization**: User permissions and access control
+4. **Rate Limiting**: API usage controls and quotas
+5. **Audit Logging**: Complete change history and tracking
+
+### Additional Planned Improvements
 1. **Localization Support**: Multi-language site structures
 2. **Publishing Workflow**: Draft/Published states
 3. **URL Aliases**: Multiple paths to same content
@@ -563,30 +536,28 @@ describe('Site Structure Generator', () => {
 
 ### 13.1 External Dependencies
 - OpenAI API for GPT-4 access
-- React Flow library (MIT license)
 - PostgreSQL 14+ for JSONB support
 
 ### 13.2 Internal Dependencies
 - Existing content_items table
 - Existing content_types system
 - Website management module
-- Authentication system (post-MVP)
 
 ---
 
 ## 14. Acceptance Criteria
 
-### MVP Completion Checklist
+### Open Source MVP Completion Checklist
 - [ ] Database schema implemented with all indexes
 - [ ] Slug generation working with uniqueness validation
 - [ ] AI generates valid site structures from text
 - [ ] CRUD operations functional with path management
-- [ ] Visual canvas displays and allows editing
-- [ ] URL resolution works in < 10ms
+- [ ] Page Orchestration API complete (atomic operations)
+- [ ] UnifiedPageService preventing orphaned content
+- [ ] URL resolution functional
 - [ ] Integration with content system complete
 - [ ] All tests passing with > 80% coverage
-- [ ] Performance targets met
-- [ ] Documentation complete
+- [ ] API documentation complete
 
 ---
 
@@ -625,8 +596,8 @@ describe('Site Structure Generator', () => {
 
 6. **Sanity Expert**
    - "Cleaner than document references for sitemaps"
-   - "React Flow excellent choice for UI"
-   - "Well-thought-out schema design"
+   - "Schema design is solid for hierarchical structures"
+   - "Well-thought-out data model"
 
 7. **Sitecore Expert**
    - "Matches our content tree implementation"
@@ -670,7 +641,8 @@ describe('Site Structure Generator', () => {
 - **Materialized Path**: Full path stored as string for fast lookups
 - **Slug**: URL-safe version of page title
 - **Path Depth**: Level in hierarchy (0 = root)
-- **React Flow**: Canvas library for node-based UIs
+- **Hybrid Storage**: Combination of adjacency list and materialized path patterns
+- **Atomic Operations**: Database operations that succeed or fail as a complete unit
 
 ---
 
@@ -682,6 +654,7 @@ describe('Site Structure Generator', () => {
 | 1.1 | 2025-08-21 | John (PM) | Updated with 7 CMS expert feedback and schema improvements |
 | 1.2 | 2025-08-21 | John (PM) | Removed locale field per MVP scope refinement |
 | 2.0 | 2025-08-22 | John (PM) | **Major revision**: Implemented Hybrid Orchestration Pattern, updated Stories 8.3 & 8.5, revised API architecture for atomic page operations |
+| 2.1 | 2025-08-24 | John (PM) | **Open Source MVP revision**: Removed visual interface (Stories 8.6, 8.7), performance optimization (Story 8.9), and authentication/authorization/rate limiting for premium version |
 
 ---
 
