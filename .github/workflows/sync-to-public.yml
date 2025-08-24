@@ -25,7 +25,13 @@ jobs:
         run: |
           echo "🔍 Removing premium content before sync..."
           
-          # Remove ALL premium content (everything is under lib/premium)
+          # Remove premium demo pages
+          if [ -d "app/premium" ]; then
+            rm -rf app/premium
+            echo "  ✅ Removed app/premium/"
+          fi
+          
+          # Remove premium components and hooks
           if [ -d "lib/premium" ]; then
             rm -rf lib/premium
             echo "  ✅ Removed lib/premium/"
@@ -113,8 +119,12 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           
           echo "### Premium Content Excluded:" >> $GITHUB_STEP_SUMMARY
-          echo "- 📦 \`lib/premium/\` - All premium features" >> $GITHUB_STEP_SUMMARY
-          echo "  - Demo applications (\`demo-app/\`)" >> $GITHUB_STEP_SUMMARY
+          echo "- 📱 \`app/premium/\` - Premium demo applications" >> $GITHUB_STEP_SUMMARY
+          echo "  - Import/Export features" >> $GITHUB_STEP_SUMMARY
+          echo "  - Sitemap Builder" >> $GITHUB_STEP_SUMMARY
+          echo "  - Style Guide" >> $GITHUB_STEP_SUMMARY
+          echo "  - Wireframe tools" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 \`lib/premium/\` - Premium libraries" >> $GITHUB_STEP_SUMMARY
           echo "  - Premium components (\`components/\`)" >> $GITHUB_STEP_SUMMARY
           echo "  - Premium hooks (\`hooks/\`)" >> $GITHUB_STEP_SUMMARY
           echo "  - Premium utilities" >> $GITHUB_STEP_SUMMARY
