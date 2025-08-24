@@ -24,6 +24,7 @@ model Website {
   contentItems   ContentItem[]
   deployments    Deployment[]
   siteStructures SiteStructure[]
+  redirects      Redirect[]
 }
 
 enum ContentTypeCategory {
@@ -206,4 +207,22 @@ model SiteStructure {
   @@index([pathDepth])
   @@index([contentItemId])
   @@index([websiteId, fullPath]) // Composite index for faster URL resolution per website
+}
+
+model Redirect {
+  id           String   @id @default(uuid())
+  websiteId    String   @map("website_id")
+  sourcePath   String   @map("source_path")
+  targetPath   String   @map("target_path")
+  redirectType Int      @map("redirect_type") // 301 or 302
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  
+  website      Website  @relation(fields: [websiteId], references: [id])
+  
+  @@unique([websiteId, sourcePath])
+  @@index([sourcePath])
+  @@index([websiteId, isActive])
+  @@map("redirects")
 }
