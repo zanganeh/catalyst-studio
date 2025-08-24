@@ -24,11 +24,18 @@ import {
 } from './content-types/index';
 
 // Import content item management tools from Story 5.4
+// DEPRECATED: createContentItem creates orphaned content - use createPage instead
 import {
   listContentItems,
-  createContentItem,
+  createContentItem, // @deprecated Use createPage from pages/index
   updateContentItem
 } from './content-items/index';
+
+// Import page management tools (Story 8.5 - Fixed Implementation)
+// These tools ensure atomic creation of both ContentItem and SiteStructure
+import {
+  createPage
+} from './pages/index';
 
 /**
  * Test tool for verifying tool execution
@@ -63,9 +70,11 @@ export const allTools = [
   getContentType,
   createContentType,
   updateContentType,
+  // Page management tools (Story 8.5 - Fixed)
+  createPage, // NEW: Replaces createContentItem
   // Content item management tools (Story 5.4)
   listContentItems,
-  createContentItem,
+  // createContentItem, // DEPRECATED: Creates orphaned content
   updateContentItem,
   // Test tool
   echoTool
@@ -84,9 +93,11 @@ export const tools = {
   getContentType,
   createContentType,
   updateContentType,
+  // Page management tools (Story 8.5 - Fixed)
+  createPage, // NEW: Replaces createContentItem
   // Content item management tools (Story 5.4)
   listContentItems,
-  createContentItem,
+  createContentItem, // @deprecated - Use createPage instead
   updateContentItem,
   // Test tool
   echoTool

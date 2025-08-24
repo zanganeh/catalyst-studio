@@ -129,12 +129,14 @@ export function useChatPersistence({
 
   // Convert AI SDK messages to our Message format
   const convertMessages = useCallback((aiMessages: AIMessage[]): ContextAIMessage[] => {
-    return aiMessages.map(msg => ({
-      role: msg.role as 'user' | 'assistant' | 'system',
-      content: msg.content,
-      timestamp: msg.createdAt || new Date(),
-      metadata: msg.annotations as Record<string, any>
-    }));
+    return aiMessages
+      .filter(msg => msg.content && msg.content.trim().length > 0) // Skip empty messages
+      .map(msg => ({
+        role: msg.role as 'user' | 'assistant' | 'system',
+        content: msg.content,
+        timestamp: msg.createdAt || new Date(),
+        metadata: msg.annotations as Record<string, any>
+      }));
   }, []);
 
   // Save messages immediately (for critical paths like unmount)
