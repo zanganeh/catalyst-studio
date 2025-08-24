@@ -241,3 +241,29 @@ ALTER TABLE "public"."Deployment" ADD CONSTRAINT "Deployment_websiteId_fkey" FOR
 
 -- AddForeignKey
 ALTER TABLE "public"."ContentTypeVersion" ADD CONSTRAINT "ContentTypeVersion_contentTypeId_fkey" FOREIGN KEY ("contentTypeId") REFERENCES "public"."ContentType"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- CreateTable
+CREATE TABLE "public"."redirects" (
+    "id" TEXT NOT NULL,
+    "website_id" TEXT NOT NULL,
+    "source_path" TEXT NOT NULL,
+    "target_path" TEXT NOT NULL,
+    "redirect_type" INTEGER NOT NULL,
+    "is_active" BOOLEAN NOT NULL DEFAULT true,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "redirects_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "redirects_website_id_source_path_key" ON "public"."redirects"("website_id", "source_path");
+
+-- CreateIndex
+CREATE INDEX "redirects_source_path_idx" ON "public"."redirects"("source_path");
+
+-- CreateIndex
+CREATE INDEX "redirects_website_id_is_active_idx" ON "public"."redirects"("website_id", "is_active");
+
+-- AddForeignKey
+ALTER TABLE "public"."redirects" ADD CONSTRAINT "redirects_website_id_fkey" FOREIGN KEY ("website_id") REFERENCES "public"."Website"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
