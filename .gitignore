@@ -64,3 +64,6 @@ playwright-report/**
 
 # data files
 /data
+
+# backups
+/backups
