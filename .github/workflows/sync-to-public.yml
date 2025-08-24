@@ -21,23 +21,26 @@ jobs:
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
       
-      - name: Remove Premium Directories
+      - name: Remove Premium Content
         run: |
-          echo "🔍 Removing premium directories before sync..."
+          echo "🔍 Removing premium content before sync..."
           
-          # Remove all premium directories (cleanly organized)
-          rm -rf app/premium-demo
-          rm -rf components/premium
+          # Remove ALL premium content (everything is now under lib/premium)
           rm -rf lib/premium
-          rm -rf hooks/premium
           
-          # Remove internal scripts
+          # Remove internal migration/management scripts
           rm -rf scripts/migrate-to-premium.js
           rm -rf scripts/repo-status.js
           rm -rf scripts/backup-state.js
           rm -rf scripts/reorganize-premium.js
+          rm -rf scripts/consolidate-premium.js
+          rm -rf scripts/fix-imports.js
           
-          echo "✅ Premium directories removed"
+          # Remove GitHub workflows that are premium-specific
+          rm -rf .github/workflows/sync-to-public.yml
+          rm -rf .github/premium-files.txt
+          
+          echo "✅ Premium content removed"
       
       - name: Push to Public Repository
         env:
@@ -67,10 +70,11 @@ jobs:
           echo "✅ **Successfully synced to public repository**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Premium content excluded:" >> $GITHUB_STEP_SUMMARY
-          echo "- 📁 \`app/premium-demo/\` - Premium demos" >> $GITHUB_STEP_SUMMARY
-          echo "- 🧩 \`components/premium/\` - Premium components" >> $GITHUB_STEP_SUMMARY
-          echo "- 🛠️ \`lib/premium/\` - Premium libraries" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔧 \`hooks/premium/\` - Premium hooks" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 \`lib/premium/\` - All premium features" >> $GITHUB_STEP_SUMMARY
+          echo "  - Demo applications" >> $GITHUB_STEP_SUMMARY
+          echo "  - Premium components" >> $GITHUB_STEP_SUMMARY
+          echo "  - Premium utilities" >> $GITHUB_STEP_SUMMARY
+          echo "- 📜 Internal scripts and workflows" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Target Repository:" >> $GITHUB_STEP_SUMMARY
           echo "- Repository: \`zanganeh/catalyst-studio\`" >> $GITHUB_STEP_SUMMARY
