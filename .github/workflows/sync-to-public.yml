@@ -37,13 +37,19 @@ jobs:
             echo "  ✅ Removed lib/premium/"
           fi
           
-          # Remove internal scripts (but keep the workflow itself!)
+          # Remove internal scripts
           for script in migrate-to-premium.js repo-status.js backup-state.js reorganize-premium.js consolidate-premium.js fix-imports.js; do
             if [ -f "scripts/$script" ]; then
               rm -f "scripts/$script"
               echo "  ✅ Removed scripts/$script"
             fi
           done
+          
+          # Remove the sync workflow itself (public repo doesn't need it)
+          if [ -f ".github/workflows/sync-to-public.yml" ]; then
+            rm -f .github/workflows/sync-to-public.yml
+            echo "  ✅ Removed .github/workflows/sync-to-public.yml"
+          fi
           
           # Remove premium-specific files (but NOT the sync workflow!)
           if [ -f ".github/premium-files.txt" ]; then
@@ -129,6 +135,7 @@ jobs:
           echo "  - Premium hooks (\`hooks/\`)" >> $GITHUB_STEP_SUMMARY
           echo "  - Premium utilities" >> $GITHUB_STEP_SUMMARY
           echo "- 📜 Internal migration scripts" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔧 Premium sync workflow (.github/workflows/sync-to-public.yml)" >> $GITHUB_STEP_SUMMARY
           echo "- 📁 Backup directories" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
