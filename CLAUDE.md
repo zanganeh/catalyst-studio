@@ -1,5 +1,97 @@
 # CLAUDE.md - AI Integration Guide
 
+## Repository Organization: Open Source vs Premium
+
+### Structure Overview
+This repository follows a dual-repository strategy with clear separation:
+
+```
+catalyst-studio-premium/ (Private Repository)
+├── app/                    # Open source app code
+├── components/             
+│   ├── ui/                # Common UI components (open source)
+│   └── studio/            # Open source studio components
+├── lib/
+│   ├── providers/         # Open source providers
+│   └── premium/           # ALL PREMIUM CONTENT HERE
+│       ├── demo-app/      # Premium demo applications
+│       ├── components/    # Premium components
+│       ├── hooks/         # Premium hooks
+│       └── *.ts          # Premium utilities
+└── .github/
+    └── workflows/
+        └── sync-to-public.yml  # Auto-sync to public repo
+```
+
+### Key Rules
+
+#### 1. **ALL Premium Content Goes Under `lib/premium/`**
+- Never place premium features outside `lib/premium/`
+- This includes demos, components, hooks, and utilities
+- Makes sync simple: just remove `lib/premium/` for public
+
+#### 2. **Common Code Stays in Standard Locations**
+- Basic UI components: `components/ui/`
+- Core functionality: `app/`, `lib/providers/`
+- These sync to both repositories
+
+#### 3. **Import Paths**
+- Premium imports: `@/lib/premium/...`
+- Common imports: `@/components/ui/...`, `@/lib/...`
+- Never import premium in common code
+
+### GitHub Actions Auto-Sync
+
+The workflow automatically syncs to public repo on every push:
+1. Removes `lib/premium/` directory
+2. Removes internal scripts
+3. Pushes clean version to public repo
+
+**Required Setup:**
+- Add `PUBLIC_REPO_TOKEN` secret to premium repo
+- Token needs `repo` scope for public repository
+
+### Working with the Repositories
+
+#### Daily Development
+```bash
+# Work in premium repo only
+git add .
+git commit -m "feat: your changes"
+git push premium main  # Auto-syncs to public
+```
+
+#### Adding Premium Features
+```bash
+# Always create under lib/premium/
+mkdir -p lib/premium/new-feature
+# Add your premium code there
+```
+
+#### Bug Fixes (affects both repos)
+```bash
+# Fix in common code
+git commit -m "fix: bug in common component"
+git push premium main  # Auto-syncs fix to public
+```
+
+### File Organization Examples
+
+**Premium Component:**
+```
+lib/premium/components/sitemap/professional-nodes.tsx
+```
+
+**Premium Demo:**
+```
+lib/premium/demo-app/sitemap-builder/page.tsx
+```
+
+**Common Component (in both repos):**
+```
+components/ui/button.tsx
+```
+
 ## Universal Type Generation System
 
 ### Overview
