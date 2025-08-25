@@ -4,7 +4,7 @@ import { UpdatePageDto, DeleteOptions } from '@/lib/types/page-orchestrator.type
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // TODO: Add authentication when auth is set up
@@ -13,7 +13,8 @@ export async function GET(
     //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     // }
 
-    const result = await pageOrchestrator.getPage(params.id);
+    const resolvedParams = await params;
+    const result = await pageOrchestrator.getPage(resolvedParams.id);
 
     if (!result) {
       return NextResponse.json(
@@ -34,7 +35,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // TODO: Add authentication when auth is set up
@@ -43,8 +44,9 @@ export async function PATCH(
     //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     // }
 
+    const resolvedParams = await params;
     const body: UpdatePageDto = await request.json();
-    const result = await pageOrchestrator.updatePage(params.id, body);
+    const result = await pageOrchestrator.updatePage(resolvedParams.id, body);
 
     return NextResponse.json(result);
   } catch (error) {
@@ -74,7 +76,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // TODO: Add authentication when auth is set up
@@ -83,6 +85,7 @@ export async function DELETE(
     //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     // }
 
+    const resolvedParams = await params;
     // Parse delete options from query params
     const url = new URL(request.url);
     const options: DeleteOptions = {
@@ -91,7 +94,7 @@ export async function DELETE(
       deleteContent: url.searchParams.get('deleteContent') !== 'false'
     };
 
-    await pageOrchestrator.deletePage(params.id, options);
+    await pageOrchestrator.deletePage(resolvedParams.id, options);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

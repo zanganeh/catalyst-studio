@@ -4,9 +4,9 @@ import { redirectService } from '@/lib/services/redirect-service';
 import { redirect } from 'next/navigation';
 
 interface PageProps {
-  params: {
+  params: Promise<{
     slug?: string[];
-  };
+  }>;
 }
 
 export default async function DynamicPage({ params }: PageProps) {
