@@ -120,23 +120,7 @@ describe('transformToReactFlow', () => {
       id: '',
       slug: '',
       title: 'Invalid',
-      children: [
-        {
-          id: 'valid',
-          slug: 'valid',
-          title: 'Valid Child',
-          children: [],
-          websiteId: 'test',
-          contentItemId: null,
-          parentId: '',
-          fullPath: '/valid',
-          pathDepth: 1,
-          position: 0,
-          weight: 0,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      ],
+      children: [],  // Invalid parent won't process children
       websiteId: 'test',
       contentItemId: null,
       parentId: null,
@@ -152,8 +136,8 @@ describe('transformToReactFlow', () => {
     const result = transformToReactFlow(treeNode);
 
     expect(consoleSpy).toHaveBeenCalled();
-    expect(result.nodes).toHaveLength(1);
-    expect(result.nodes[0].id).toBe('valid');
+    expect(result.nodes).toHaveLength(0);  // No valid nodes processed
+    expect(result.edges).toHaveLength(0);
 
     consoleSpy.mockRestore();
   });

@@ -1,16 +1,24 @@
 import { TreeNode } from '@/lib/types/site-structure.types';
 import { SitemapNode, SitemapEdge, TransformResult } from '../types';
+import { 
+  PopulatedTreeNode, 
+  hasPopulatedContent, 
+  getNodeType, 
+  getNodeLabel, 
+  getNodeComponents, 
+  getNodeMetadata 
+} from '../types/populated-tree';
 
 /**
  * Transform database tree structure to React Flow nodes and edges
  * @param treeData The tree data from the database
  * @returns Object containing React Flow nodes and edges arrays
  */
-export function transformToReactFlow(treeData: TreeNode | TreeNode[]): TransformResult {
+export function transformToReactFlow(treeData: TreeNode | TreeNode[] | PopulatedTreeNode | PopulatedTreeNode[]): TransformResult {
   const nodes: SitemapNode[] = [];
   const edges: SitemapEdge[] = [];
   
-  function traverse(node: TreeNode, parent?: string, parentPath: string = '') {
+  function traverse(node: PopulatedTreeNode, parent?: string, parentPath: string = '') {
     // Validate required fields
     if (!node.id || !node.slug) {
       console.warn('Skipping invalid node:', node);
@@ -20,15 +28,12 @@ export function transformToReactFlow(treeData: TreeNode | TreeNode[]): Transform
     // Build fullPath from hierarchy traversal (NOT from node.fullPath which may be different)
     const fullPath = parentPath ? `${parentPath}/${node.slug}` : node.slug;
     
-    // Safe type detection with null checks
-    // @ts-ignore - contentType relation may be populated
-    const nodeType = node.contentType?.category || (node.contentItemId ? 'page' : 'folder');
-    const hasContent = node.contentItemId !== null && node.contentItemId !== undefined;
-    
-    // Extract content if contentItem is populated
-    // @ts-ignore - contentItem relation may be populated
-    const contentData = node.contentItem?.content;
-    const components = hasContent && contentData ? (contentData.components || []) : [];
+    // Safe type detection with proper type helpers
+    const nodeType = getNodeType(node);
+    const hasContent = hasPopulatedContent(node);
+    const components = getNodeComponents(node);
+    const metadata = getNodeMetadata(node);
+    const label = getNodeLabel(node);
     
     // Create React Flow node with validated data
     const flowNode: SitemapNode = {
@@ -36,15 +41,13 @@ export function transformToReactFlow(treeData: TreeNode | TreeNode[]): Transform
       type: nodeType,
       position: { x: 0, y: 0 }, // Dagre will calculate actual positions
       data: {
-        // @ts-ignore - title may be from contentItem or node
-        label: node.title || node.contentItem?.title || node.slug,
+        label: label,
         slug: node.slug,
         fullPath: fullPath,
         components: components,
         childCount: node.children?.length || 0,
-        // @ts-ignore - metadata from contentItem if populated
-        metadata: hasContent ? node.contentItem?.metadata : undefined,
-        contentTypeCategory: nodeType as any,
+        metadata: metadata,
+        contentTypeCategory: nodeType,
         hasContent: hasContent
       }
     };
@@ -69,9 +72,9 @@ export function transformToReactFlow(treeData: TreeNode | TreeNode[]): Transform
   
   // Handle both single node and array of nodes (for multiple root nodes)
   if (Array.isArray(treeData)) {
-    treeData.forEach(node => traverse(node));
+    treeData.forEach(node => traverse(node as PopulatedTreeNode));
   } else {
-    traverse(treeData);
+    traverse(treeData as PopulatedTreeNode);
   }
   
   return { nodes, edges };

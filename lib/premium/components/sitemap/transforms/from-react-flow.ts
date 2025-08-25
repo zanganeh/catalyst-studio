@@ -12,7 +12,8 @@ import { Operation } from '../types';
 export function transformFromReactFlow(
   nodes: Node[], 
   edges: Edge[],
-  previousNodes?: Node[]
+  previousNodes?: Node[],
+  previousEdges?: Edge[]
 ): Operation[] {
   const operations: Operation[] = [];
   
@@ -40,7 +41,7 @@ export function transformFromReactFlow(
   currentNodeMap.forEach((node, nodeId) => {
     const prevNode = previousNodeMap.get(nodeId);
     const parentId = edgeMap.get(nodeId) || null;
-    const prevParentId = getPreviousParentId(nodeId, previousNodes || []);
+    const prevParentId = getPreviousParentId(nodeId, previousEdges);
     
     if (!prevNode) {
       // New node - CREATE operation
@@ -91,12 +92,16 @@ export function transformFromReactFlow(
 }
 
 /**
- * Helper to find previous parent ID from edges
+ * Helper to find previous parent ID from previous edges
  */
-function getPreviousParentId(nodeId: string, previousNodes: Node[]): string | null {
-  // This would need access to previous edges as well
-  // For now, we'll extract from node data if available
-  return null; // Simplified for MVP
+function getPreviousParentId(nodeId: string, previousEdges?: Edge[]): string | null {
+  if (!previousEdges || previousEdges.length === 0) {
+    return null;
+  }
+  
+  // Find the edge where this node was the target (child)
+  const parentEdge = previousEdges.find(edge => edge.target === nodeId);
+  return parentEdge?.source || null;
 }
 
 /**

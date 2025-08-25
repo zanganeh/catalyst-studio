@@ -20,6 +20,8 @@ interface SitemapState {
   // History for undo/redo (added later)
   history: Array<{ nodes: SitemapNode[]; edges: SitemapEdge[] }>;
   historyIndex: number;
+  previousNodes: SitemapNode[];
+  previousEdges: SitemapEdge[];
   
   // Actions
   loadStructure: (websiteId: string) => Promise<void>;
@@ -67,6 +69,8 @@ export const useSitemapStore = create<SitemapState>()(
     errorState: null,
     history: [],
     historyIndex: -1,
+    previousNodes: [],
+    previousEdges: [],
     
     // Load structure from API
     loadStructure: async (websiteId: string) => {
@@ -87,6 +91,8 @@ export const useSitemapStore = create<SitemapState>()(
         set((state) => {
           state.nodes = data.nodes || [];
           state.edges = data.edges || [];
+          state.previousNodes = data.nodes || [];
+          state.previousEdges = data.edges || [];
           state.isLoading = false;
           // Initialize history with loaded state
           state.history = [{ nodes: data.nodes || [], edges: data.edges || [] }];
@@ -142,10 +148,21 @@ export const useSitemapStore = create<SitemapState>()(
         }
       });
       
-      get().pushHistory();
+      const state = get();
+      const operations = transformFromReactFlow(
+        state.nodes, 
+        state.edges, 
+        state.previousNodes, 
+        state.previousEdges
+      );
       
-      // Generate and save operations
-      const operations = transformFromReactFlow(get().nodes, get().edges);
+      // Update previous state for next diff
+      set((s) => {
+        s.previousNodes = [...state.nodes];
+        s.previousEdges = [...state.edges];
+      });
+      
+      state.pushHistory();
       saveManager.addOperations(operations);
     },
     
@@ -158,10 +175,21 @@ export const useSitemapStore = create<SitemapState>()(
         }
       });
       
-      get().pushHistory();
+      const state = get();
+      const operations = transformFromReactFlow(
+        state.nodes, 
+        state.edges, 
+        state.previousNodes, 
+        state.previousEdges
+      );
       
-      // Generate and save operations
-      const operations = transformFromReactFlow(get().nodes, get().edges);
+      // Update previous state for next diff
+      set((s) => {
+        s.previousNodes = [...state.nodes];
+        s.previousEdges = [...state.edges];
+      });
+      
+      state.pushHistory();
       saveManager.addOperations(operations);
     },
     
