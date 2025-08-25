@@ -6,6 +6,7 @@ This document consolidates all research, decisions, and technical specifications
 
 **Goal**: Connect the existing React Flow sitemap demo to our production database, enabling users to visually create and manage site structures with real data persistence.
 
+**Feature Type**: PREMIUM (This is a paid feature - all code must be isolated in premium directories)  
 **Timeline**: 6 weeks  
 **Team Required**: 2-3 developers  
 **Status**: Ready for implementation
@@ -18,8 +19,9 @@ Before starting development, ensure you have:
 - [ ] Read this entire document
 - [ ] Access to the sitemap demo at `/app/premium/demo/sitemap-builder/page.tsx`
 - [ ] Understanding of existing Epic 8 infrastructure (SiteStructure, ContentItem, PageOrchestrator)
+- [ ] Understanding of premium feature isolation requirements (see CLAUDE.md)
 - [ ] Node.js 18+, PostgreSQL, Prisma CLI installed
-- [ ] Reviewed the React Flow documentation
+- [ ] Reviewed the React Flow documentation v11.10.1 (exact version required)
 
 ---
 
@@ -40,6 +42,47 @@ Before starting development, ensure you have:
 - Position persistence
 - Performance optimization
 - Component configuration UI
+
+---
+
+## CRITICAL: Premium Feature Placement
+
+**⚠️ IMPORTANT: The sitemap builder is a PREMIUM feature. ALL code must follow premium isolation rules:**
+
+### Correct File Placement
+```
+✅ CORRECT Premium Locations:
+/lib/premium/                        # Premium libraries and utilities
+  ├── components/sitemap/             # Sitemap components
+  │   ├── transforms/                 # Data transformation functions
+  │   ├── save-manager.ts            # Save management
+  │   ├── undo-manager.ts            # Undo/redo functionality
+  │   └── layout/                    # Layout algorithms
+  ├── stores/                        # Zustand stores
+  │   └── sitemap-store.ts
+  └── hooks/                         # Custom hooks
+      └── use-auto-save.ts
+
+/app/premium/                        # Premium app routes
+  ├── demo/sitemap-builder/          # Existing demo page
+  └── api/sitemap/                   # Premium API endpoints (NEW pattern)
+      ├── [websiteId]/
+      │   └── route.ts              # GET /api/premium/sitemap/[websiteId]
+      ├── save/
+      │   └── route.ts              # POST /api/premium/sitemap/save
+      └── bulk/
+          └── route.ts              # POST /api/premium/sitemap/bulk
+
+❌ FORBIDDEN Locations (will leak to open-source):
+/components/                         # Common components - DO NOT USE
+/lib/ (root)                        # Common libraries - DO NOT USE  
+/app/api/                           # Common API routes - DO NOT USE
+```
+
+### Why This Matters
+- The premium repository syncs to public, but `/lib/premium/` and `/app/premium/` are git-ignored
+- Any code outside premium directories will be exposed in the open-source version
+- This feature is a paid feature and must not be accessible in the free version
 
 ---
 
@@ -194,7 +237,7 @@ export function calculateLayout(nodes: Node[], edges: Edge[]) {
 + const initialNodes = await fetchSitemapData(websiteId)
 
 async function fetchSitemapData(websiteId: string) {
-  const response = await fetch(`/api/sitemap/${websiteId}`)
+  const response = await fetch(`/api/premium/sitemap/${websiteId}`)
   const data = await response.json()
   
   // Transform database structure to React Flow nodes
@@ -208,11 +251,13 @@ function transformToReactFlow(siteStructure: TreeNode): Node[] {
   function traverse(node: TreeNode, parent?: string) {
     nodes.push({
       id: node.id,
-      type: node.contentType?.category || 'page',
+      type: node.contentType?.category === 'folder' ? 'folder' : 'page',
       data: {
-        label: node.title,
+        label: node.title || node.slug,
+        slug: node.fullPath,  // Use fullPath not slug
         components: node.contentItem?.content?.components || [],
-        metadata: node.contentItem?.metadata
+        metadata: node.contentItem?.metadata,
+        childCount: node.children?.length || 0
       },
       position: { x: 0, y: 0 } // Will be calculated by auto-layout
     })
@@ -257,7 +302,7 @@ export class SaveManager {
     this.pendingChanges = []
     
     try {
-      await fetch('/api/sitemap/save', {
+      await fetch('/api/premium/sitemap/save', {
         method: 'POST',
         body: JSON.stringify({ changes })
       })
@@ -269,9 +314,16 @@ export class SaveManager {
 }
 ```
 
-#### 2.3 API Endpoints
+#### 2.3 API Endpoints (Premium)
+
+**IMPORTANT: File Path vs URL Endpoint Distinction**
+- **File Path**: Where you create the file in the codebase
+- **URL Endpoint**: What you call in fetch() requests
+- Next.js App Router maps `/app/premium/api/...` files to `/api/premium/...` URLs
+
 ```typescript
-// app/api/sitemap/[websiteId]/route.ts
+// FILE PATH: app/premium/api/sitemap/[websiteId]/route.ts
+// URL ENDPOINT: /api/premium/sitemap/[websiteId]
 export async function GET(request: Request, { params }) {
   const { websiteId } = params
   
@@ -279,7 +331,8 @@ export async function GET(request: Request, { params }) {
   return NextResponse.json(tree)
 }
 
-// app/api/sitemap/save/route.ts
+// FILE PATH: app/premium/api/sitemap/save/route.ts  
+// URL ENDPOINT: /api/premium/sitemap/save
 export async function POST(request: Request) {
   const { changes } = await request.json()
   
@@ -380,7 +433,8 @@ function useSitemapUndo() {
 
 #### 3.2 Bulk Operations
 ```typescript
-// app/api/sitemap/bulk/route.ts
+// FILE PATH: app/premium/api/sitemap/bulk/route.ts
+// URL ENDPOINT: /api/premium/sitemap/bulk
 export async function POST(request: Request) {
   const { operation, ids, data } = await request.json()
   
@@ -418,7 +472,7 @@ function BulkOperations({ selectedNodes }) {
     
     if (!confirm(`Delete ${ids.length} items?`)) return
     
-    const response = await fetch('/api/sitemap/bulk', {
+    const response = await fetch('/api/premium/sitemap/bulk', {
       method: 'POST',
       body: JSON.stringify({
         operation: 'DELETE',
@@ -633,20 +687,32 @@ describe('Sitemap Integration', () => {
 
 ### Key Files
 ```
+# Main UI Components
 /app/premium/demo/sitemap-builder/page.tsx    # Main UI to modify
-/lib/services/site-structure/                  # Existing backend services
-/components/globals/                           # Component library location
-/app/api/sitemap/                             # New API endpoints
-/lib/sitemap/                                 # New sitemap utilities
+
+# API Endpoints (File Paths)
+/app/premium/api/sitemap/[websiteId]/route.ts # GET sitemap endpoint
+/app/premium/api/sitemap/save/route.ts        # POST save endpoint
+/app/premium/api/sitemap/bulk/route.ts        # POST bulk operations
+
+# Premium Libraries
+/lib/premium/components/sitemap/              # Sitemap utilities
+/lib/premium/stores/sitemap-store.ts          # State management
+/lib/premium/hooks/use-auto-save.ts           # Auto-save hook
+
+# Existing Services (Common/Shared)
+/lib/services/site-structure/                 # Backend services
+/components/globals/                          # Component library
 ```
 
 ### Key Dependencies
 ```json
 {
   "dagre": "^0.8.5",          // Layout algorithm
-  "reactflow": "^11.10.1",    // Flow diagram library
+  "reactflow": "^11.10.1",    // Flow diagram library (CRITICAL: exact version required)
   "zustand": "^4.4.7",        // State management
-  "immer": "^10.0.3"          // Immutable updates
+  "immer": "^10.0.3",         // Immutable updates
+  "zod": "^3.22.0"            // Input validation schemas
 }
 ```
 
@@ -675,19 +741,29 @@ npm test
 
 ## Appendix A: API Reference
 
-### Sitemap Endpoints
+### Premium Sitemap Endpoints
 
-#### GET /api/sitemap/[websiteId]
-Returns complete sitemap tree structure
+**Note**: These are URL endpoints. The actual files are located in `/app/premium/api/sitemap/`
 
-#### POST /api/sitemap/save
-Saves changes to sitemap
+#### GET /api/premium/sitemap/[websiteId]
+- **File Location**: `/app/premium/api/sitemap/[websiteId]/route.ts`
+- **URL Endpoint**: `/api/premium/sitemap/[websiteId]`
+- **Description**: Returns complete sitemap tree structure (PREMIUM ONLY)
 
-#### POST /api/sitemap/bulk
-Performs bulk operations
+#### POST /api/premium/sitemap/save
+- **File Location**: `/app/premium/api/sitemap/save/route.ts`
+- **URL Endpoint**: `/api/premium/sitemap/save`
+- **Description**: Saves changes to sitemap (PREMIUM ONLY)
 
-#### POST /api/sitemap/[nodeId]/components
-Updates components for a node
+#### POST /api/premium/sitemap/bulk
+- **File Location**: `/app/premium/api/sitemap/bulk/route.ts`
+- **URL Endpoint**: `/api/premium/sitemap/bulk`
+- **Description**: Performs bulk operations (PREMIUM ONLY)
+
+#### POST /api/premium/sitemap/[nodeId]/components
+- **File Location**: `/app/premium/api/sitemap/[nodeId]/components/route.ts`
+- **URL Endpoint**: `/api/premium/sitemap/[nodeId]/components`
+- **Description**: Updates components for a node (PREMIUM ONLY)
 
 ---
 
@@ -710,6 +786,8 @@ Updates components for a node
 ---
 
 ## Get Started
+
+**⚠️ REMINDER: This is a PREMIUM feature. ALL code must go in `/lib/premium/` or `/app/premium/` directories.**
 
 1. **Set up your environment**
    ```bash
