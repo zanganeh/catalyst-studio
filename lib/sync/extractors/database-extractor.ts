@@ -5,6 +5,7 @@ export interface ExtractedContentType {
   websiteId: string;
   websiteName: string | null;
   name: string;
+  category?: 'page' | 'component' | 'folder';
   fields: Record<string, any>;
   settings: Record<string, any>;
   createdAt: string;
@@ -60,6 +61,7 @@ export class DatabaseExtractor {
         websiteId: ct.websiteId,
         websiteName: ct.website?.name || null,
         name: ct.name,
+        category: ct.category as 'page' | 'component' | 'folder' | undefined,
         fields: (ct.fields || {}) as Record<string, any>,
         settings: {} as Record<string, any>,
         createdAt: ct.createdAt.toISOString(),
@@ -94,6 +96,7 @@ export class DatabaseExtractor {
         websiteId: ct.websiteId,
         websiteName: ct.website?.name || null,
         name: ct.name,
+        category: ct.category as 'page' | 'component' | 'folder' | undefined,
         fields: (ct.fields || {}) as Record<string, any>,
         settings: {} as Record<string, any>,
         createdAt: ct.createdAt.toISOString(),

@@ -28,7 +28,6 @@ export interface ValidationResult {
 }
 
 export class OptimizelyTransformer {
-  private readonly baseType = '_component';
   private readonly typeMapping: Record<string, string> = {
     'text': 'String',
     'textarea': 'String', 
@@ -47,6 +46,20 @@ export class OptimizelyTransformer {
     'json': 'String'
   };
 
+  private determineBaseType(category?: 'page' | 'component' | 'folder'): string {
+    switch (category) {
+      case 'page':
+        return '_page';
+      case 'component':
+        return '_component';
+      case 'folder':
+        return '_folder';
+      default:
+        // Default to component if category is not specified (backwards compatibility)
+        return '_component';
+    }
+  }
+
   transformContentType(catalystContentType: ExtractedContentType): TransformationResult {
     const optimizelyKey = this.generateOptimizelyKey(catalystContentType.name);
     
@@ -55,7 +68,7 @@ export class OptimizelyTransformer {
       displayName: catalystContentType.fields?.name || catalystContentType.name || 'Untitled',
       description: catalystContentType.fields?.description || 
                    `Content type imported from Catalyst Studio - ${catalystContentType.id}`,
-      baseType: this.baseType,
+      baseType: this.determineBaseType(catalystContentType.category),
       source: 'catalyst-studio-sync',
       sortOrder: 100,
       mayContainTypes: [],
