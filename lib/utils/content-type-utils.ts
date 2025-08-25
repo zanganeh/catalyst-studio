@@ -24,12 +24,20 @@ export function isPage(contentType: ContentTypeWithCategory | null | undefined):
 }
 
 /**
+ * Check if a content type is a folder (organizational node)
+ * Folders are used to structure the site hierarchy
+ */
+export function isFolder(contentType: ContentTypeWithCategory | null | undefined): boolean {
+  return contentType?.category === 'folder';
+}
+
+/**
  * Get the category of a content type with a default fallback
  */
 export function getContentTypeCategory(
   contentType: ContentTypeWithCategory | null | undefined,
-  defaultCategory: 'page' | 'component' = 'page'
-): 'page' | 'component' {
+  defaultCategory: 'page' | 'component' | 'folder' = 'page'
+): 'page' | 'component' | 'folder' {
   if (!contentType?.category) {
     return defaultCategory;
   }
@@ -37,6 +45,10 @@ export function getContentTypeCategory(
   // Ensure we only return valid categories
   if (contentType.category === 'component') {
     return 'component';
+  }
+  
+  if (contentType.category === 'folder') {
+    return 'folder';
   }
   
   return 'page';
