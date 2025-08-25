@@ -4,8 +4,9 @@
   "license": "CC-BY-NC-4.0",
   "private": false,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "build:components": "node scripts/generate-component-registry.js",
+    "dev": "npm run build:components && next dev",
+    "build": "npm run build:components && next build",
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
