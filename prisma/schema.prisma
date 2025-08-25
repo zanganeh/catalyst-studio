@@ -30,6 +30,7 @@ model Website {
 enum ContentTypeCategory {
   page
   component
+  folder
 }
 
 model ContentType {
