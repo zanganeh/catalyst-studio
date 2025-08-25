@@ -27,8 +27,8 @@ export function ExportDemo() {
   const [importedUrl, setImportedUrl] = useState<string>('')
   const [hasStarted, setHasStarted] = useState(false)
 
-  const targetContentTypes = 29
-  const targetContent = 890
+  const targetContentTypes = 5
+  const targetContent = 20
 
   const contentTypeNames = [
     'PageTemplate', 'ArticleBlock', 'HeroSection', 'ProjectGallery', 'TeamMember',
@@ -72,22 +72,22 @@ export function ExportDemo() {
     setTimeout(() => {
       setOptimizelyConnected(true)
       setStatus('exporting-types')
-    }, 2000)
+    }, 300)
 
     setTimeout(() => {
       setVercelConnected(true)
-    }, 3000)
+    }, 500)
 
     // Generate commit hash
     setTimeout(() => {
       setCommitHash('a7f8d92')
       setGitBranch('main')
-    }, 4000)
+    }, 600)
 
     // Progress simulation
     const progressInterval = setInterval(() => {
       setBuildProgress(prev => {
-        const newProgress = prev + 1
+        const newProgress = prev + 3
         if (newProgress >= 100) {
           clearInterval(progressInterval)
           setStatus('complete')
@@ -146,7 +146,7 @@ export function ExportDemo() {
 
         return newProgress
       })
-    }, 300)
+    }, 30)
 
     return () => {
       clearInterval(progressInterval)
@@ -193,8 +193,27 @@ export function ExportDemo() {
     <DemoLayout title="Content Export & Deployment" subtitle="Step 5: Deploy to Production">
       <>
 
+          {/* Start Export Button - Always visible at top when not started */}
+          {!hasStarted && (
+            <div className="rounded-lg bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md border border-white/10 p-4 mb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-white mb-1">Ready to Export & Deploy</h3>
+                  <p className="text-xs text-white/60">Export your content to Optimizely CMS and deploy to Vercel</p>
+                </div>
+                <Button
+                  onClick={() => setHasStarted(true)}
+                  className="bg-gradient-to-r from-[#FF5500] to-[#FF6600] hover:from-[#FF6600] hover:to-[#FF7700] text-white border-0"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Start Export
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Import Status Badge */}
-          {importedUrl && (
+          {importedUrl && hasStarted && (
             <div className="mb-4">
               <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
                 <Globe className="h-3 w-3 mr-1" />
@@ -204,6 +223,7 @@ export function ExportDemo() {
           )}
 
           {/* Top Section - Service Connections */}
+          {hasStarted && (
           <div className="grid grid-cols-3 gap-4">
             {/* Optimizely Connection */}
             <div className="rounded-lg bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md border border-white/10 p-3">
@@ -292,8 +312,10 @@ export function ExportDemo() {
               </div>
             </div>
           </div>
+          )}
 
           {/* Main Content Area */}
+          {hasStarted && (
           <div className="flex-1 grid grid-cols-3 gap-4">
             {/* Left Column - Export Progress */}
             <div className="col-span-2 rounded-lg bg-gradient-to-br from-white/5 to-white/10 backdrop-blur-md border border-white/10 p-4">
@@ -538,6 +560,7 @@ export function ExportDemo() {
               </div>
             </div>
           </div>
+          )}
       </>
     </DemoLayout>
   )

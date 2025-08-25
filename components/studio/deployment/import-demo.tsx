@@ -26,8 +26,8 @@ export function ImportDemo() {
   const [importedPages, setImportedPages] = useState<string[]>([])
   const [seoScore, setSeoScore] = useState(87)
 
-  const targetContent = 1159
-  const targetContentTypes = 38
+  const targetContent = 20
+  const targetContentTypes = 5
 
   const contentItems = [
     'Homepage', 'About Us', 'Contact Form', 'Product Catalog', 'Blog Posts',
@@ -74,7 +74,7 @@ export function ImportDemo() {
     // Progress bar (drives everything else)
     const progressInterval = setInterval(() => {
       setProgress(prev => {
-        const newProgress = prev + 1
+        const newProgress = prev + 3
         if (newProgress >= 100) {
           clearInterval(progressInterval)
           setStatus('complete')
@@ -138,25 +138,25 @@ export function ImportDemo() {
         
         return newProgress
       })
-    }, 50) // Reduced from 300ms to 100ms for faster progress
+    }, 30) // Super fast progress
 
-    // Connection phase (1 second)
+    // Connection phase (0.3 seconds)
     const connectionTimer = setTimeout(() => {
       setStatus('analyzing')
-    }, 1000)
+    }, 300)
 
-    // Start AI analysis (2 seconds)
+    // Start AI analysis (0.6 seconds)
     const analysisTimer = setTimeout(() => {
       setAiProcessing(true)
       setStatus('importing')
-    }, 2000)
+    }, 600)
 
     // Status updates
     const processingTimer = setTimeout(() => {
       if (status !== 'complete') {
         setStatus('processing')
       }
-    }, 5000)
+    }, 1000)
 
     return () => {
       clearTimeout(connectionTimer)
