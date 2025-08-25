@@ -32,7 +32,7 @@ export const createContentType = tool({
   parameters: z.object({
     websiteId: z.string().describe('The website ID'),
     name: z.string().describe('The content type name'),
-    category: z.enum(['page', 'component']).describe('Content type category - page for routable content, component for reusable blocks'),
+    category: z.enum(['page', 'component', 'folder']).describe('Content type category - page for routable content, component for reusable blocks, folder for organizational structure'),
     fields: z.array(fieldSchema).optional()
       .describe('Custom fields (category-specific fields will be added automatically)'),
     settings: z.record(z.any()).optional()
