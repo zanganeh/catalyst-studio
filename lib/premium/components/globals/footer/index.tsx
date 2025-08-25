@@ -1,18 +1,23 @@
 import React from 'react';
+import Link from 'next/link';
 import { FooterProps } from './types';
+
+export type { FooterProps } from './types';
 
 export const Footer: React.FC<FooterProps> = ({ copyright, columns, socialLinks }) => {
   return (
-    <footer className="footer-section">
+    <footer role="contentinfo">
       {columns && columns.length > 0 && (
-        <div className="footer-columns">
-          {columns.map((column, index) => (
-            <div key={index} className="footer-column">
+        <div>
+          {columns.map((column) => (
+            <div key={`footer-col-${column.title}`}>
               <h3>{column.title}</h3>
               <ul>
-                {column.links.map((link, linkIndex) => (
-                  <li key={linkIndex}>
-                    <a href={link.url}>{link.label}</a>
+                {column.links.map((link) => (
+                  <li key={`footer-link-${link.label}-${link.url}`}>
+                    <Link href={link.url}>
+                      {link.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -21,15 +26,19 @@ export const Footer: React.FC<FooterProps> = ({ copyright, columns, socialLinks 
         </div>
       )}
       {socialLinks && socialLinks.length > 0 && (
-        <div className="social-links">
-          {socialLinks.map((social, index) => (
-            <a key={index} href={social.url} aria-label={social.platform}>
+        <div>
+          {socialLinks.map((social) => (
+            <Link 
+              key={`social-${social.platform}-${social.url}`} 
+              href={social.url} 
+              aria-label={`Visit our ${social.platform}`}
+            >
               {social.platform}
-            </a>
+            </Link>
           ))}
         </div>
       )}
-      {copyright && <div className="copyright">{copyright}</div>}
+      {copyright && <div>{copyright}</div>}
     </footer>
   );
 };

@@ -1,4 +1,5 @@
 import { CTAProps } from './types';
+import { isValidUrl } from '@/lib/premium/utils/url-validator';
 
 export const ctaSchema = {
   name: 'Call to Action',
@@ -11,12 +12,28 @@ export const ctaSchema = {
   }
 };
 
-export const validateCTA = (props: Partial<CTAProps>): boolean => {
+export type ValidationResult = { isValid: boolean; error?: string };
+
+export const validateCTA = (props: Partial<CTAProps>): ValidationResult => {
+  // Validate primary button
   if (props.primaryButton) {
-    return !!props.primaryButton.text && props.primaryButton.text.trim().length > 0;
+    if (!props.primaryButton.text || props.primaryButton.text.trim().length === 0) {
+      return { isValid: false, error: 'Primary button text is required when button is present' };
+    }
+    if (props.primaryButton.url && !isValidUrl(props.primaryButton.url)) {
+      return { isValid: false, error: 'Primary button URL is invalid or potentially unsafe' };
+    }
   }
+  
+  // Validate secondary button
   if (props.secondaryButton) {
-    return !!props.secondaryButton.text && props.secondaryButton.text.trim().length > 0;
+    if (!props.secondaryButton.text || props.secondaryButton.text.trim().length === 0) {
+      return { isValid: false, error: 'Secondary button text is required when button is present' };
+    }
+    if (props.secondaryButton.url && !isValidUrl(props.secondaryButton.url)) {
+      return { isValid: false, error: 'Secondary button URL is invalid or potentially unsafe' };
+    }
   }
-  return true;
+  
+  return { isValid: true };
 };

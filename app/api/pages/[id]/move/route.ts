@@ -4,7 +4,7 @@ import { MovePageDto } from '@/lib/types/page-orchestrator.types';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // TODO: Add authentication when auth is set up
@@ -13,8 +13,9 @@ export async function POST(
     //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     // }
 
+    const resolvedParams = await params;
     const body: MovePageDto = await request.json();
-    const result = await pageOrchestrator.movePage(params.id, body);
+    const result = await pageOrchestrator.movePage(resolvedParams.id, body);
 
     return NextResponse.json(result);
   } catch (error) {

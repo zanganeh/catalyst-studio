@@ -12,7 +12,7 @@ export function TestComponents() {
   testResults.push({
     name: 'Hero',
     renders: !!HeroComponent,
-    validatesCorrectly: heroValidation({ title: 'Test' }) === true && heroValidation({}) === false
+    validatesCorrectly: heroValidation({ title: 'Test' }).isValid === true && heroValidation({}).isValid === false
   });
 
   // Test Header Component
@@ -23,7 +23,7 @@ export function TestComponents() {
   testResults.push({
     name: 'Header',
     renders: !!HeaderComponent,
-    validatesCorrectly: headerValidation({ logo: 'Test' }) === true && headerValidation({}) === false
+    validatesCorrectly: headerValidation({ logo: 'Test' }).isValid === true && headerValidation({}).isValid === false
   });
 
   // Test Footer Component
@@ -34,7 +34,7 @@ export function TestComponents() {
   testResults.push({
     name: 'Footer',
     renders: !!FooterComponent,
-    validatesCorrectly: footerValidation({}) === true // Footer has no required fields
+    validatesCorrectly: footerValidation({}).isValid === true // Footer has no required fields
   });
 
   // Test CTA Component
@@ -45,29 +45,29 @@ export function TestComponents() {
   testResults.push({
     name: 'CTA',
     renders: !!CTAComponent,
-    validatesCorrectly: ctaValidation({ primaryButton: { text: 'Test', url: '/' } }) === true && 
-                        ctaValidation({ primaryButton: { text: '', url: '/' } }) === false
+    validatesCorrectly: ctaValidation({ primaryButton: { text: 'Test', url: '/' } }).isValid === true && 
+                        ctaValidation({ primaryButton: { text: '', url: '/' } }).isValid === false
   });
 
   return (
-    <div style={{ padding: '20px' }}>
+    <div className="test-container">
       <h1>Component Test Results</h1>
-      <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+      <table className="test-results-table">
         <thead>
           <tr>
-            <th style={{ border: '1px solid #ddd', padding: '8px' }}>Component</th>
-            <th style={{ border: '1px solid #ddd', padding: '8px' }}>Renders</th>
-            <th style={{ border: '1px solid #ddd', padding: '8px' }}>Validation</th>
+            <th>Component</th>
+            <th>Renders</th>
+            <th>Validation</th>
           </tr>
         </thead>
         <tbody>
           {testResults.map((result) => (
             <tr key={result.name}>
-              <td style={{ border: '1px solid #ddd', padding: '8px' }}>{result.name}</td>
-              <td style={{ border: '1px solid #ddd', padding: '8px', color: result.renders ? 'green' : 'red' }}>
+              <td>{result.name}</td>
+              <td className={result.renders ? 'test-pass' : 'test-fail'}>
                 {result.renders ? '✓' : '✗'}
               </td>
-              <td style={{ border: '1px solid #ddd', padding: '8px', color: result.validatesCorrectly ? 'green' : 'red' }}>
+              <td className={result.validatesCorrectly ? 'test-pass' : 'test-fail'}>
                 {result.validatesCorrectly ? '✓' : '✗'}
               </td>
             </tr>
@@ -75,32 +75,32 @@ export function TestComponents() {
         </tbody>
       </table>
       
-      <h2 style={{ marginTop: '40px' }}>Component Rendering with Default Values</h2>
+      <h2 className="section-title">Component Rendering with Default Values</h2>
       
-      <div style={{ marginBottom: '30px' }}>
+      <div className="component-preview">
         <h3>Hero Component</h3>
-        <div style={{ border: '1px solid #ddd', padding: '20px' }}>
+        <div className="component-wrapper">
           <HeroComponent {...heroDefaults} />
         </div>
       </div>
 
-      <div style={{ marginBottom: '30px' }}>
+      <div className="component-preview">
         <h3>Header Component</h3>
-        <div style={{ border: '1px solid #ddd', padding: '20px' }}>
+        <div className="component-wrapper">
           <HeaderComponent {...headerDefaults} />
         </div>
       </div>
 
-      <div style={{ marginBottom: '30px' }}>
+      <div className="component-preview">
         <h3>Footer Component</h3>
-        <div style={{ border: '1px solid #ddd', padding: '20px' }}>
+        <div className="component-wrapper">
           <FooterComponent {...footerDefaults} />
         </div>
       </div>
 
-      <div style={{ marginBottom: '30px' }}>
+      <div className="component-preview">
         <h3>CTA Component</h3>
-        <div style={{ border: '1px solid #ddd', padding: '20px' }}>
+        <div className="component-wrapper">
           <CTAComponent {...ctaDefaults} />
         </div>
       </div>
