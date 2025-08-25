@@ -34,9 +34,9 @@ We are **productionizing an existing React Flow demo** at `/app/premium/demo/sit
 - Folder operations in services/folder-service.ts
 
 **Component Files Location**:
-- Global components used by sitemap: `/components/globals/` (shared)
+- Global components used by sitemap: `/lib/premium/components/globals/` (shared)
 - Sitemap-specific components: `/app/premium/demo/sitemap-builder/components/`
-- The 4 MVP components (hero, header, footer, cta) are referenced from existing `/components/globals/`
+- The 4 MVP components (hero, header, footer, cta) are referenced from existing `/lib/premium/components/globals/`
 - No new component files needed for MVP
 
 **Note about location**: While new premium features should go under /lib/premium/, this existing demo stays at its current location to avoid breaking changes. This is the brownfield approach - we work with what's already there.
