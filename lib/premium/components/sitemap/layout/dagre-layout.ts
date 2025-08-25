@@ -7,6 +7,15 @@ export function calculateLayout(
   edges: LayoutEdge[],
   config?: Partial<LayoutConfig>
 ): LayoutResult {
+  // Input validation
+  if (!Array.isArray(nodes)) {
+    throw new Error('Nodes parameter must be an array');
+  }
+  
+  if (!Array.isArray(edges)) {
+    throw new Error('Edges parameter must be an array');
+  }
+  
   try {
     const startTime = performance.now();
     
