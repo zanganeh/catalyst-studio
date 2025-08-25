@@ -10,6 +10,8 @@ export const footerSchema = {
   }
 };
 
-export const validateFooter = (props: Partial<FooterProps>): boolean => {
-  return true;
+export type ValidationResult = { isValid: boolean; error?: string };
+
+export const validateFooter = (props: Partial<FooterProps>): ValidationResult => {
+  return { isValid: true }; // No required fields
 };

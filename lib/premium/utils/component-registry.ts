@@ -1,5 +1,5 @@
 import { Hero } from '../components/globals/hero';
-import { heroSchema, validateHero } from '../components/globals/hero/schema';
+import { heroSchema, validateHero, ValidationResult } from '../components/globals/hero/schema';
 import { heroDefaults } from '../components/globals/hero/defaults';
 
 import { Header } from '../components/globals/header';
@@ -13,6 +13,8 @@ import { footerDefaults } from '../components/globals/footer/defaults';
 import { CTA } from '../components/globals/cta';
 import { ctaSchema, validateCTA } from '../components/globals/cta/schema';
 import { ctaDefaults } from '../components/globals/cta/defaults';
+
+export type { ValidationResult };
 
 export const COMPONENT_REGISTRY = {
   hero: {

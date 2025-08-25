@@ -11,6 +11,11 @@ export const heroSchema = {
   }
 };
 
-export const validateHero = (props: Partial<HeroProps>): boolean => {
-  return !!props.title && props.title.trim().length > 0;
+export type ValidationResult = { isValid: boolean; error?: string };
+
+export const validateHero = (props: Partial<HeroProps>): ValidationResult => {
+  if (!props.title || props.title.trim().length === 0) {
+    return { isValid: false, error: 'Title is required and cannot be empty' };
+  }
+  return { isValid: true };
 };

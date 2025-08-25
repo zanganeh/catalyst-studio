@@ -1,23 +1,26 @@
 import React from 'react';
+import Link from 'next/link';
 import { CTAProps } from './types';
+
+export type { CTAProps } from './types';
 
 export const CTA: React.FC<CTAProps> = ({ headline, subheadline, primaryButton, secondaryButton }) => {
   return (
-    <div className="cta-section">
+    <section role="region" aria-label="Call to action">
       {headline && <h2>{headline}</h2>}
       {subheadline && <p>{subheadline}</p>}
-      <div className="cta-buttons">
+      <div>
         {primaryButton && (
-          <a href={primaryButton.url} className="primary-button">
+          <Link href={primaryButton.url}>
             {primaryButton.text}
-          </a>
+          </Link>
         )}
         {secondaryButton && (
-          <a href={secondaryButton.url} className="secondary-button">
+          <Link href={secondaryButton.url}>
             {secondaryButton.text}
-          </a>
+          </Link>
         )}
       </div>
-    </div>
+    </section>
   );
 };

@@ -155,14 +155,14 @@ export async function GET(request: NextRequest) {
     let responseData: any = {};
 
     // Always include basic page info
-    responseData.pageId = result.id;
+    responseData.pageId = result.siteStructure.id;
     responseData.path = result.fullPath;
-    responseData.slug = result.slug;
+    responseData.slug = result.siteStructure.slug;
 
     // Include content if requested
-    if (options.includeContent && result.contentItemId) {
+    if (options.includeContent && result.contentItem) {
       const contentItem = await prisma.contentItem.findUnique({
-        where: { id: result.contentItemId }
+        where: { id: result.contentItem.id }
       });
       
       if (contentItem) {
@@ -170,7 +170,7 @@ export async function GET(request: NextRequest) {
           id: contentItem.id,
           title: contentItem.title,
           slug: contentItem.slug,
-          data: contentItem.data,
+          content: contentItem.content,
           publishedAt: contentItem.publishedAt,
           status: contentItem.status
         };
@@ -180,12 +180,12 @@ export async function GET(request: NextRequest) {
     // Include structure if requested
     if (options.includeStructure) {
       responseData.structure = {
-        id: result.id,
-        parentId: result.parentId,
+        id: result.siteStructure.id,
+        parentId: result.siteStructure.parentId,
         fullPath: result.fullPath,
-        depth: result.depth,
-        position: result.position,
-        isActive: result.isActive
+        pathDepth: result.siteStructure.pathDepth,
+        position: result.siteStructure.position,
+        weight: result.siteStructure.weight
       };
     }
 
@@ -193,9 +193,8 @@ export async function GET(request: NextRequest) {
     if (options.includeChildren) {
       const children = await prisma.siteStructure.findMany({
         where: {
-          parentId: result.id,
-          websiteId: websiteId,
-          isActive: true
+          parentId: result.siteStructure.id,
+          websiteId: websiteId
         },
         select: {
           id: true,
@@ -213,10 +212,10 @@ export async function GET(request: NextRequest) {
     // Include metadata if requested
     if (options.includeMeta) {
       responseData.meta = {
-        createdAt: result.createdAt,
-        updatedAt: result.updatedAt,
-        websiteId: result.websiteId,
-        contentItemId: result.contentItemId
+        createdAt: result.siteStructure.createdAt,
+        updatedAt: result.siteStructure.updatedAt,
+        websiteId: result.siteStructure.websiteId,
+        contentItemId: result.contentItem.id
       };
     }
 

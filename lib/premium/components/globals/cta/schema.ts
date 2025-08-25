@@ -11,12 +11,14 @@ export const ctaSchema = {
   }
 };
 
-export const validateCTA = (props: Partial<CTAProps>): boolean => {
-  if (props.primaryButton) {
-    return !!props.primaryButton.text && props.primaryButton.text.trim().length > 0;
+export type ValidationResult = { isValid: boolean; error?: string };
+
+export const validateCTA = (props: Partial<CTAProps>): ValidationResult => {
+  if (props.primaryButton && (!props.primaryButton.text || props.primaryButton.text.trim().length === 0)) {
+    return { isValid: false, error: 'Primary button text is required when button is present' };
   }
-  if (props.secondaryButton) {
-    return !!props.secondaryButton.text && props.secondaryButton.text.trim().length > 0;
+  if (props.secondaryButton && (!props.secondaryButton.text || props.secondaryButton.text.trim().length === 0)) {
+    return { isValid: false, error: 'Secondary button text is required when button is present' };
   }
-  return true;
+  return { isValid: true };
 };

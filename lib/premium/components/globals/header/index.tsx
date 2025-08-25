@@ -1,25 +1,30 @@
 import React from 'react';
+import Link from 'next/link';
 import { HeaderProps } from './types';
+
+export type { HeaderProps } from './types';
 
 export const Header: React.FC<HeaderProps> = ({ logo, menuItems, ctaButton, sticky }) => {
   return (
-    <header className={`header-section ${sticky ? 'sticky' : ''}`}>
-      <div className="logo">{logo}</div>
+    <header role="banner" style={sticky ? { position: 'sticky', top: 0, zIndex: 50 } : undefined}>
+      <div>{logo}</div>
       {menuItems && menuItems.length > 0 && (
-        <nav>
+        <nav role="navigation" aria-label="Main navigation">
           <ul>
-            {menuItems.map((item, index) => (
-              <li key={index}>
-                <a href={item.url}>{item.label}</a>
+            {menuItems.map((item) => (
+              <li key={`nav-${item.label}-${item.url}`}>
+                <Link href={item.url}>
+                  {item.label}
+                </Link>
               </li>
             ))}
           </ul>
         </nav>
       )}
       {ctaButton && (
-        <a href={ctaButton.url} className="cta-button">
+        <Link href={ctaButton.url}>
           {ctaButton.text}
-        </a>
+        </Link>
       )}
     </header>
   );
