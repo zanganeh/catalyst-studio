@@ -34,8 +34,6 @@ export default function StyleGuidePage() {
     <DemoLayout
       title="Style Guide"
       subtitle="Step 4: AI-Generated Design System"
-      currentStep={4}
-      totalSteps={5}
     >
       <div className="space-y-6">
         {/* Header with concept selector */}

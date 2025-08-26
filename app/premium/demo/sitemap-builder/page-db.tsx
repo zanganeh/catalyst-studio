@@ -90,12 +90,20 @@ function SitemapFlowDB() {
       height: 200
     }
     
-    const layoutedNodes = calculateLayout(nodes, edges, layoutConfig)
+    // Ensure nodes have proper type for layout calculation
+    const layoutNodes = nodes.map(node => ({
+      ...node,
+      type: (node.type || 'page') as 'page' | 'folder'
+    }))
+    
+    const layoutResult = calculateLayout(layoutNodes, edges, layoutConfig)
     
     // Update node positions in store
-    layoutedNodes.forEach(node => {
-      updateNode(node.id, { position: node.position })
-    })
+    if (layoutResult.success && layoutResult.nodes) {
+      layoutResult.nodes.forEach(node => {
+        updateNode(node.id, { position: node.position })
+      })
+    }
     
     setTimeout(() => fitView({ padding: 0.2, duration: 800 }), 100)
   }, [nodes, edges, updateNode, fitView])
@@ -103,9 +111,9 @@ function SitemapFlowDB() {
   // Handle add new node
   const handleAddNode = useCallback(() => {
     addNode(null, {
-      type: 'page',
       title: 'New Page',
-      slug: 'new-page'
+      slug: 'new-page',
+      contentTypeId: 'default-page-type' // TODO: Get actual content type ID
     })
   }, [addNode])
   
@@ -217,7 +225,6 @@ function SitemapFlowDB() {
         }}
       >
         <Background 
-          variant="dots" 
           gap={20} 
           size={1.5} 
           color="rgba(255, 255, 255, 0.03)" 

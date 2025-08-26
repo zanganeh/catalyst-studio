@@ -1,14 +1,21 @@
 import { Node, Edge } from 'reactflow';
 import { TreeNode } from '@/lib/types/site-structure.types';
-import { ContentTypeCategory } from '@prisma/client';
+import { ContentTypeCategory } from '@/lib/generated/prisma';
+
+// Component data structure for global components
+export interface ComponentData {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+}
 
 export interface SitemapNodeData {
   label: string;
   slug: string;
   fullPath?: string;
-  components?: any[];
+  components?: ComponentData[];
   childCount: number;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   contentTypeCategory?: ContentTypeCategory;
   hasContent: boolean;
 }
@@ -21,10 +28,29 @@ export interface TransformResult {
   edges: SitemapEdge[];
 }
 
+// Node operation data structures
+export interface CreateNodeData {
+  title: string;
+  slug: string;
+  parentId?: string | null;
+  contentTypeId: string;
+  contentItemId?: string;
+  weight?: number;
+  metadata?: Record<string, unknown>;
+}
+
+export interface UpdateNodeData {
+  title?: string;
+  slug?: string;
+  weight?: number;
+  metadata?: Record<string, unknown>;
+  status?: string;
+}
+
 export interface Operation {
   type: 'CREATE' | 'UPDATE' | 'DELETE' | 'MOVE';
   nodeId?: string;
-  data?: any;
+  data?: CreateNodeData | UpdateNodeData;
   newParentId?: string;
 }
 
@@ -33,8 +59,15 @@ export interface SaveRequest {
   operations: Operation[];
 }
 
+export interface OperationResult {
+  operationType: string;
+  nodeId?: string;
+  success: boolean;
+  error?: string;
+}
+
 export interface SaveResponse {
   success: boolean;
-  results?: any[];
+  results?: OperationResult[];
   error?: string;
 }

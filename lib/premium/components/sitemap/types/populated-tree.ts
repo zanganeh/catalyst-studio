@@ -1,17 +1,26 @@
 import { TreeNode } from '@/lib/types/site-structure.types';
-import { ContentTypeCategory } from '@prisma/client';
+import { ContentTypeCategory } from '@/lib/generated/prisma';
 
 /**
  * TreeNode with populated relations for transform operations
  * Properly typed to avoid @ts-ignore statements
  */
-export interface PopulatedTreeNode extends TreeNode {
+export interface PopulatedTreeNode {
+  id: string;
+  slug: string;
+  title: string;
+  websiteId: string;
+  parentId?: string | null;
+  contentItemId?: string | null;
+  position: number;
+  createdAt: Date;
+  updatedAt: Date;
   contentType?: {
     category: ContentTypeCategory;
   };
   contentItem?: {
     title?: string;
-    content?: {
+    content?: string | {
       components?: string[] | unknown[];
     };
     metadata?: Record<string, unknown>;
@@ -47,8 +56,20 @@ export function getNodeLabel(node: PopulatedTreeNode): string {
  * Safe accessor for components array
  */
 export function getNodeComponents(node: PopulatedTreeNode): unknown[] {
-  if (hasPopulatedContent(node) && node.contentItem?.content?.components) {
-    return node.contentItem.content.components;
+  if (hasPopulatedContent(node) && node.contentItem?.content) {
+    // Handle both string (JSON) and object content
+    const content = node.contentItem.content;
+    
+    if (typeof content === 'string') {
+      try {
+        const parsed = JSON.parse(content);
+        return parsed.components || [];
+      } catch {
+        return [];
+      }
+    } else if (typeof content === 'object' && 'components' in content) {
+      return (content as any).components || [];
+    }
   }
   return [];
 }

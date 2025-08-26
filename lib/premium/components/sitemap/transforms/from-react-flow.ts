@@ -1,6 +1,24 @@
 import { Node, Edge } from 'reactflow';
 import { Operation } from '../types';
 
+// Extended data for API processing (includes fields not in base types)
+interface ExtendedCreateData {
+  parentId?: string | null;
+  slug: string;
+  title: string;
+  contentTypeId: string;
+  metadata?: Record<string, unknown>;
+  contentTypeCategory?: string;
+  components?: unknown[];
+}
+
+interface ExtendedUpdateData {
+  slug?: string;
+  title?: string;
+  metadata?: Record<string, unknown>;
+  components?: unknown[];
+}
+
 /**
  * Transform React Flow nodes and edges to database operations
  * Analyzes changes and generates appropriate CRUD operations
@@ -45,17 +63,26 @@ export function transformFromReactFlow(
     
     if (!prevNode) {
       // New node - CREATE operation
+      const createData: ExtendedCreateData = {
+        parentId: parentId,
+        slug: node.data?.slug || generateSlugFromLabel(node.data?.label),
+        title: node.data?.label || 'Untitled',
+        contentTypeId: '', // Will be determined server-side based on category
+        metadata: node.data?.metadata
+      };
+      
+      // Add additional data for API to process
+      if (node.type) {
+        createData.contentTypeCategory = node.type;
+      }
+      if (node.data?.components) {
+        createData.components = node.data.components;
+      }
+      
       operations.push({
         type: 'CREATE',
-        data: {
-          id: nodeId,
-          parentId: parentId,
-          slug: node.data?.slug || generateSlugFromLabel(node.data?.label),
-          title: node.data?.label || 'Untitled',
-          contentTypeCategory: node.type || 'page',
-          components: node.data?.components || [],
-          metadata: node.data?.metadata
-        }
+        nodeId: nodeId, // For tracking purposes
+        data: createData
       });
     } else {
       // Check if node was moved (parent changed)
@@ -69,15 +96,27 @@ export function transformFromReactFlow(
       
       // Check if node data was updated
       if (hasDataChanged(node, prevNode)) {
+        const updateData: ExtendedUpdateData = {};
+        
+        if (node.data?.slug !== prevNode.data?.slug) {
+          updateData.slug = node.data?.slug;
+        }
+        if (node.data?.label !== prevNode.data?.label) {
+          updateData.title = node.data?.label;
+        }
+        if (node.data?.metadata !== prevNode.data?.metadata) {
+          updateData.metadata = node.data?.metadata;
+        }
+        
+        // Add components if changed (will be handled server-side)
+        if (JSON.stringify(node.data?.components) !== JSON.stringify(prevNode.data?.components)) {
+          updateData.components = node.data?.components;
+        }
+        
         operations.push({
           type: 'UPDATE',
           nodeId: nodeId,
-          data: {
-            slug: node.data?.slug,
-            title: node.data?.label,
-            components: node.data?.components,
-            metadata: node.data?.metadata
-          }
+          data: updateData
         });
       }
     }

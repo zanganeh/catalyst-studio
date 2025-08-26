@@ -2,10 +2,101 @@ import { PrismaClient } from '../lib/generated/prisma'
 
 const prisma = new PrismaClient()
 
-async function seedSiteStructure(websiteId: string) {
-  console.log('🏗️ Creating site structure hierarchy...')
+// Define global components that can be reused across pages
+const globalComponents = {
+  navbar: {
+    id: 'global-navbar',
+    type: 'Navbar',
+    isGlobal: true,
+    props: {
+      logo: 'TechVerse',
+      links: [
+        { label: 'Home', href: '/' },
+        { label: 'About', href: '/about' },
+        { label: 'Blog', href: '/blog' },
+        { label: 'Products', href: '/products' }
+      ]
+    }
+  },
+  footer: {
+    id: 'global-footer',
+    type: 'Footer',
+    isGlobal: true,
+    props: {
+      copyright: '© 2024 TechVerse',
+      links: [
+        { label: 'Privacy', href: '/privacy' },
+        { label: 'Terms', href: '/terms' },
+        { label: 'Contact', href: '/contact' }
+      ],
+      social: ['twitter', 'github', 'linkedin']
+    }
+  },
+  newsletter: {
+    id: 'global-newsletter',
+    type: 'NewsletterSignup',
+    isGlobal: true,
+    props: {
+      title: 'Stay Updated',
+      description: 'Get the latest tech news and tutorials',
+      buttonText: 'Subscribe'
+    }
+  }
+};
+
+async function seedSiteStructure(websiteId: string, folderTypeId: string, pageTypeId: string) {
+  console.log('🏗️ Creating site structure hierarchy with folders and pages...')
   
-  // Root level pages
+  // Store global components definition in a special content item
+  const globalComponentsContent = await prisma.contentItem.create({
+    data: {
+      contentTypeId: pageTypeId,
+      websiteId,
+      slug: '_global-components',
+      title: 'Global Components Registry',
+      status: 'published',
+      publishedAt: new Date(),
+      content: JSON.stringify({
+        title: 'Global Components',
+        description: 'Shared components used across multiple pages',
+        components: globalComponents
+      })
+    }
+  })
+  
+  console.log('✅ Created global components registry')
+  
+  // Create content items for pages first with proper components
+  const homeContent = await prisma.contentItem.create({
+    data: {
+      contentTypeId: pageTypeId,
+      websiteId,
+      slug: 'home',
+      title: 'Home',
+      status: 'published',
+      publishedAt: new Date(),
+      content: JSON.stringify({
+        title: 'Home',
+        content: '<h1>Welcome to TechVerse</h1>',
+        components: [
+          // Global component reference
+          { id: 'global-navbar', type: 'GlobalComponent', globalId: 'global-navbar' },
+          // Local component
+          { id: 'hero-1', type: 'Hero', isGlobal: false, props: { title: 'Welcome to TechVerse', subtitle: 'Your tech journey starts here' } },
+          // Local component
+          { id: 'features-1', type: 'Features', isGlobal: false, props: { items: ['Blog', 'Products', 'About Us'] } },
+          // Global component reference
+          { id: 'global-newsletter', type: 'GlobalComponent', globalId: 'global-newsletter' },
+          // Local component
+          { id: 'cta-1', type: 'CTA', isGlobal: false, props: { text: 'Get Started', link: '/about' } },
+          // Global component reference
+          { id: 'global-footer', type: 'GlobalComponent', globalId: 'global-footer' }
+        ]
+      })
+    }
+  })
+  
+  // Home is the ROOT (parentId: null, fullPath: '/')
   const home = await prisma.siteStructure.create({
     data: {
       websiteId,
@@ -13,35 +104,71 @@ async function seedSiteStructure(websiteId: string) {
       fullPath: '/',
       pathDepth: 0,
       position: 0,
-      weight: 0
+      weight: 0,
+      parentId: null, // This is the ROOT
+      contentItemId: homeContent.id
     }
   })
 
+  const aboutContent = await prisma.contentItem.create({
+    data: {
+      contentTypeId: pageTypeId,
+      websiteId,
+      slug: 'about',
+      title: 'About',
+      status: 'published',
+      publishedAt: new Date(),
+      content: JSON.stringify({
+        title: 'About',
+        content: '<h1>About Us</h1>',
+        components: [
+          // Global navbar
+          { id: 'global-navbar', type: 'GlobalComponent', globalId: 'global-navbar' },
+          // Local hero component with custom content for About page
+          { id: 'hero-2', type: 'Hero', isGlobal: false, props: { title: 'About TechVerse', subtitle: 'Building the future of technology' } },
+          // Local text component
+          { id: 'text-1', type: 'TextBlock', isGlobal: false, props: { content: 'We are a team of passionate developers and designers...' } },
+          // Local team component
+          { id: 'team-1', type: 'TeamSection', isGlobal: false, props: { members: ['John Doe', 'Jane Smith', 'Bob Johnson'] } },
+          // Global footer
+          { id: 'global-footer', type: 'GlobalComponent', globalId: 'global-footer' }
+        ]
+      })
+    }
+  })
+  
   const about = await prisma.siteStructure.create({
     data: {
       websiteId,
+      parentId: home.id,  // Make it a child of Home
       slug: 'about',
       fullPath: '/about',
       pathDepth: 1,
       position: 1,
-      weight: 10
+      weight: 10,
+      contentItemId: aboutContent.id
     }
   })
 
+  // Blog is a folder - no content item needed
   const blog = await prisma.siteStructure.create({
     data: {
       websiteId,
+      parentId: home.id,  // Make it a child of Home
       slug: 'blog',
       fullPath: '/blog',
       pathDepth: 1,
       position: 2,
       weight: 20
+      // No contentItemId for folders
     }
   })
 
+  // Products is a folder
   const products = await prisma.siteStructure.create({
     data: {
       websiteId,
+      parentId: home.id,  // Make it a child of Home
       slug: 'products',
       fullPath: '/products',
       pathDepth: 1,
@@ -51,6 +178,40 @@ async function seedSiteStructure(websiteId: string) {
   })
 
   // Second level - About sub-pages
+  const teamContent = await prisma.contentItem.create({
+    data: {
+      contentTypeId: pageTypeId,
+      websiteId,
+      slug: 'team',
+      title: 'Our Team',
+      status: 'published',
+      publishedAt: new Date(),
+      content: JSON.stringify({
+        title: 'Our Team',
+        content: '<h1>Meet Our Team</h1>',
+        components: [
+          // Global navbar
+          { id: 'global-navbar', type: 'GlobalComponent', globalId: 'global-navbar' },
+          // Local heading
+          { id: 'heading-1', type: 'Heading', isGlobal: false, props: { text: 'Meet Our Amazing Team' } },
+          // Local team grid with detailed member info
+          { id: 'grid-1', type: 'TeamGrid', isGlobal: false, props: { 
+            columns: 3, 
+            members: [
+              { name: 'Alice Chen', role: 'CEO', image: '/team/alice.jpg' },
+              { name: 'Bob Smith', role: 'CTO', image: '/team/bob.jpg' },
+              { name: 'Carol Davis', role: 'Lead Designer', image: '/team/carol.jpg' }
+            ] 
+          }},
+          // Local CTA
+          { id: 'cta-2', type: 'CTA', isGlobal: false, props: { text: 'Join Our Team', link: '/careers' } },
+          // Global footer
+          { id: 'global-footer', type: 'GlobalComponent', globalId: 'global-footer' }
+        ]
+      })
+    }
+  })
+  
   const team = await prisma.siteStructure.create({
     data: {
       websiteId,
@@ -59,10 +220,40 @@ async function seedSiteStructure(websiteId: string) {
       fullPath: '/about/team',
       pathDepth: 2,
       position: 0,
-      weight: 0
+      weight: 0,
+      contentItemId: teamContent.id
     }
   })
 
+  const missionContent = await prisma.contentItem.create({
+    data: {
+      contentTypeId: pageTypeId,
+      websiteId,
+      slug: 'mission',
+      title: 'Mission',
+      status: 'published',
+      publishedAt: new Date(),
+      content: JSON.stringify({
+        title: 'Our Mission',
+        content: '<h1>Our Mission</h1>',
+        components: [
+          // Global navbar
+          { id: 'global-navbar', type: 'GlobalComponent', globalId: 'global-navbar' },
+          // Local banner
+          { id: 'banner-1', type: 'Banner', isGlobal: false, props: { title: 'Our Mission', bgColor: '#1a1a1a' } },
+          // Local quote
+          { id: 'quote-1', type: 'Quote', isGlobal: false, props: { text: 'Innovation through collaboration', author: 'Founder' } },
+          // Local feature list
+          { id: 'features-2', type: 'FeatureList', isGlobal: false, props: { items: ['Quality', 'Innovation', 'Customer Focus'] } },
+          // Global newsletter signup
+          { id: 'global-newsletter', type: 'GlobalComponent', globalId: 'global-newsletter' },
+          // Global footer
+          { id: 'global-footer', type: 'GlobalComponent', globalId: 'global-footer' }
+        ]
+      })
+    }
+  })
+  
   const mission = await prisma.siteStructure.create({
     data: {
       websiteId,
@@ -71,11 +262,12 @@ async function seedSiteStructure(websiteId: string) {
       fullPath: '/about/mission',
       pathDepth: 2,
       position: 1,
-      weight: 10
+      weight: 10,
+      contentItemId: missionContent.id
     }
   })
 
-  // Second level - Blog categories
+  // Second level - Blog categories (as folders)
   const techBlog = await prisma.siteStructure.create({
     data: {
       websiteId,
@@ -100,7 +292,7 @@ async function seedSiteStructure(websiteId: string) {
     }
   })
 
-  // Third level - Technology sub-categories
+  // Third level - Technology sub-categories (folders)
   const javascript = await prisma.siteStructure.create({
     data: {
       websiteId,
@@ -125,7 +317,45 @@ async function seedSiteStructure(websiteId: string) {
     }
   })
 
-  // Fourth level - Specific articles
+  // Fourth level - Specific articles (pages)
+  const reactContent = await prisma.contentItem.create({
+    data: {
+      contentTypeId: pageTypeId,
+      websiteId,
+      slug: 'react-best-practices',
+      title: 'React Best Practices',
+      status: 'published',
+      publishedAt: new Date(),
+      content: JSON.stringify({
+        title: 'React Best Practices',
+        content: '<h1>React Best Practices in 2024</h1>',
+        components: [
+          // Global navbar
+          { id: 'global-navbar', type: 'GlobalComponent', globalId: 'global-navbar' },
+          // Local hero for article
+          { id: 'hero-3', type: 'Hero', isGlobal: false, props: { title: 'React Best Practices', subtitle: 'Modern patterns for 2024' } },
+          // Local code block
+          { id: 'code-1', type: 'CodeBlock', isGlobal: false, props: { 
+            language: 'javascript', 
+            code: 'const MyComponent = () => {\n  const [state, setState] = useState(null);\n  return <div>{state}</div>;\n}' 
+          }},
+          // Local tips list
+          { id: 'tips-1', type: 'TipsList', isGlobal: false, props: { 
+            tips: ['Use hooks for state management', 'Component composition over inheritance', 'Proper state management with Context'] 
+          }},
+          // Local author bio component
+          { id: 'author-1', type: 'AuthorBio', isGlobal: false, props: {
+            name: 'Sarah Johnson',
+            role: 'Senior React Developer',
+            bio: '10+ years of experience building scalable React applications'
+          }},
+          // Global footer
+          { id: 'global-footer', type: 'GlobalComponent', globalId: 'global-footer' }
+        ]
+      })
+    }
+  })
+  
   const reactArticle = await prisma.siteStructure.create({
     data: {
       websiteId,
@@ -134,10 +364,53 @@ async function seedSiteStructure(websiteId: string) {
       fullPath: '/blog/technology/javascript/react-best-practices',
       pathDepth: 4,
       position: 0,
-      weight: 0
+      weight: 0,
+      contentItemId: reactContent.id
     }
   })
 
+  const nextjsContent = await prisma.contentItem.create({
+    data: {
+      contentTypeId: pageTypeId,
+      websiteId,
+      slug: 'nextjs-14-features',
+      title: 'Next.js 14 Features',
+      status: 'published',
+      publishedAt: new Date(),
+      content: JSON.stringify({
+        title: 'Next.js 14 Features',
+        content: '<h1>What is new in Next.js 14</h1>',
+        components: [
+          // Global navbar
+          { id: 'global-navbar', type: 'GlobalComponent', globalId: 'global-navbar' },
+          // Local hero
+          { id: 'hero-4', type: 'Hero', isGlobal: false, props: { title: 'Next.js 14', subtitle: 'Server Actions and more' } },
+          // Local feature grid
+          { id: 'features-3', type: 'FeatureGrid', isGlobal: false, props: { 
+            features: [
+              { title: 'Server Actions', desc: 'Mutations directly from components' },
+              { title: 'Partial Prerendering', desc: 'Best of static and dynamic' },
+              { title: 'Metadata API', desc: 'SEO-friendly meta tags' }
+            ] 
+          }},
+          // Local demo section
+          { id: 'demo-1', type: 'DemoSection', isGlobal: false, props: { title: 'Try it out', demoUrl: '/demo/nextjs' } },
+          // Global newsletter
+          { id: 'global-newsletter', type: 'GlobalComponent', globalId: 'global-newsletter' },
+          // Local related articles component
+          { id: 'related-1', type: 'RelatedArticles', isGlobal: false, props: {
+            articles: [
+              { title: 'React Best Practices', link: '/blog/technology/javascript/react-best-practices' },
+              { title: 'TypeScript Tips', link: '/blog/technology/typescript-tips' }
+            ]
+          }},
+          // Global footer
+          { id: 'global-footer', type: 'GlobalComponent', globalId: 'global-footer' }
+        ]
+      })
+    }
+  })
+  
   const nextjsArticle = await prisma.siteStructure.create({
     data: {
       websiteId,
@@ -146,11 +419,12 @@ async function seedSiteStructure(websiteId: string) {
       fullPath: '/blog/technology/javascript/nextjs-14-features',
       pathDepth: 4,
       position: 1,
-      weight: 10
+      weight: 10,
+      contentItemId: nextjsContent.id
     }
   })
 
-  // Product categories
+  // Product categories (folders)
   const electronics = await prisma.siteStructure.create({
     data: {
       websiteId,
@@ -270,6 +544,40 @@ async function main() {
   
   console.log('✅ Created 3 websites')
   
+  // Create folder content types for site organization
+  const folderType = await prisma.contentType.create({
+    data: {
+      websiteId: techBlog.id,
+      key: 'folder',
+      name: 'Folder',
+      pluralName: 'Folders',
+      displayField: 'title',
+      category: 'folder',
+      fields: JSON.stringify([
+        { name: 'title', type: 'text', required: true },
+        { name: 'description', type: 'textarea', required: false },
+        { name: 'icon', type: 'text', required: false }
+      ])
+    }
+  })
+
+  const pageType = await prisma.contentType.create({
+    data: {
+      websiteId: techBlog.id,
+      key: 'page',
+      name: 'Page',
+      pluralName: 'Pages',
+      displayField: 'title',
+      category: 'page',
+      fields: JSON.stringify([
+        { name: 'title', type: 'text', required: true },
+        { name: 'content', type: 'richtext', required: true },
+        { name: 'seoTitle', type: 'text', required: false },
+        { name: 'seoDescription', type: 'textarea', required: false }
+      ])
+    }
+  })
+  
   // Create content types for tech blog
   const blogPost = await prisma.contentType.create({
     data: {
@@ -365,7 +673,7 @@ async function main() {
     }
   })
   
-  console.log('✅ Created 4 content types')
+  console.log('✅ Created 6 content types')
   
   // Create content items for blog
   const blogPosts = [
@@ -694,8 +1002,8 @@ async function main() {
   
   console.log('✅ Created 2 authors')
   
-  // Seed site structure for tech blog
-  await seedSiteStructure(techBlog.id)
+  // Seed site structure for tech blog with folder and page types
+  await seedSiteStructure(techBlog.id, folderType.id, pageType.id)
   
   // Link some content items to site structure nodes
   const techBlogPosts = await prisma.contentItem.findMany({
@@ -737,10 +1045,10 @@ async function main() {
   console.log('\n🎉 Database seeding completed successfully!')
   console.log('📊 Summary:')
   console.log('  - 3 Websites')
-  console.log('  - 4 Content Types')
+  console.log('  - 6 Content Types (including folder and page types)')
   console.log('  - 9 Content Items')
   console.log('  - 3 AI Contexts')
-  console.log('  - 14 Site Structure nodes (4 levels deep)')
+  console.log('  - 14 Site Structure nodes (4 levels deep with proper folders/pages)')
 }
 
 main()

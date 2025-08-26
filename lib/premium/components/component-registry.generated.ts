@@ -9,19 +9,19 @@ export interface ComponentRegistryEntry {
 export const COMPONENT_REGISTRY: ComponentRegistryEntry[] = [
   {
     "name": "hero",
-    "path": "@/lib/premium/components/globals/hero"
+    "path": "lib/premium/components/globals/hero"
   },
   {
     "name": "header",
-    "path": "@/lib/premium/components/globals/header"
+    "path": "lib/premium/components/globals/header"
   },
   {
     "name": "footer",
-    "path": "@/lib/premium/components/globals/footer"
+    "path": "lib/premium/components/globals/footer"
   },
   {
     "name": "cta",
-    "path": "@/lib/premium/components/globals/cta"
+    "path": "lib/premium/components/globals/cta"
   }
 ];
 

@@ -256,7 +256,7 @@ export const EnhancedPageNode = memo(({
                       key={i}
                       className={cn(
                         "w-1 h-3 rounded-full",
-                        i < Math.round(data.metadata.seoScore! / 20)
+                        i < Math.round((data.metadata?.seoScore ?? 0) / 20)
                           ? "bg-green-400"
                           : "bg-gray-600"
                       )}

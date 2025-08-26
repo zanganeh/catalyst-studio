@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@/lib/generated/prisma';
 import { siteStructureService } from '@/lib/services/site-structure/site-structure-service';
 import { pageOrchestrator } from '@/lib/services/site-structure/page-orchestrator';
 import { z } from 'zod';
@@ -59,7 +59,6 @@ export async function POST(request: NextRequest) {
                 // For pages with content, use pageOrchestrator for atomic creation
                 if (op.data?.contentTypeCategory === 'page' && op.data?.components) {
                   result = await pageOrchestrator.createPage({
-                    websiteId,
                     title: op.data.title,
                     contentTypeId: op.data.contentTypeId || await getDefaultContentTypeId(websiteId, 'page'),
                     parentId: op.data.parentId,
@@ -68,7 +67,7 @@ export async function POST(request: NextRequest) {
                       components: op.data.components || []
                     },
                     metadata: op.data.metadata
-                  });
+                  }, websiteId);
                 } else {
                   // For folders or simple nodes, use siteStructureService
                   result = await siteStructureService.create({

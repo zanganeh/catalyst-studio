@@ -62,11 +62,14 @@ export class SiteStructureRepository implements ISiteStructureRepository {
     const db = tx || this.db;
     return await db.siteStructure.findMany({
       where: { websiteId },
+      include: {
+        contentItem: true
+      },
       orderBy: [
         { pathDepth: 'asc' },
         { position: 'asc' }
       ]
-    });
+    }) as any;
   }
   
   /**

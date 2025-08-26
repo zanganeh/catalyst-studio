@@ -139,15 +139,19 @@ class SaveManager {
         signal: this.abortController.signal
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        
-        // Check if this is a retryable error
-        if (errorData.retryable || response.status === 409) {
-          throw new SaveError(errorData.error || 'Save failed - retrying');
+      if (!response || !response.ok) {
+        if (response) {
+          const errorData = await response.json();
+          
+          // Check if this is a retryable error
+          if (errorData.retryable || response.status === 409) {
+            throw new SaveError(errorData.error || 'Save failed - retrying');
+          }
+          
+          throw new SaveError(errorData.error || `Save failed: ${response.statusText}`);
+        } else {
+          throw new NetworkError();
         }
-        
-        throw new SaveError(errorData.error || `Save failed: ${response.statusText}`);
       }
       
       const result: SaveResponse = await response.json();

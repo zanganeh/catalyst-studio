@@ -1,5 +1,5 @@
 import { TreeNode } from '@/lib/types/site-structure.types';
-import { SitemapNode, SitemapEdge, TransformResult } from '../types';
+import { SitemapNode, SitemapEdge, TransformResult, ComponentData } from '../types';
 import { 
   PopulatedTreeNode, 
   hasPopulatedContent, 
@@ -19,8 +19,8 @@ export function transformToReactFlow(treeData: TreeNode | TreeNode[] | Populated
   const edges: SitemapEdge[] = [];
   
   function traverse(node: PopulatedTreeNode, parent?: string, parentPath: string = '') {
-    // Validate required fields
-    if (!node.id || !node.slug) {
+    // Validate required fields - allow empty slug for root node
+    if (!node.id || (!node.slug && node.slug !== '')) {
       console.warn('Skipping invalid node:', node);
       return;
     }
@@ -44,7 +44,7 @@ export function transformToReactFlow(treeData: TreeNode | TreeNode[] | Populated
         label: label,
         slug: node.slug,
         fullPath: fullPath,
-        components: components,
+        components: components as ComponentData[],
         childCount: node.children?.length || 0,
         metadata: metadata,
         contentTypeCategory: nodeType,

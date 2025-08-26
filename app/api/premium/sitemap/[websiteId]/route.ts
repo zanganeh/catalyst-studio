@@ -8,10 +8,10 @@ import { transformToReactFlow } from '@/lib/premium/components/sitemap/transform
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { websiteId: string } }
+  { params }: { params: Promise<{ websiteId: string }> }
 ) {
   try {
-    const { websiteId } = params;
+    const { websiteId } = await params;
     
     if (!websiteId) {
       return NextResponse.json(

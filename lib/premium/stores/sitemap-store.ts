@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { Node, Edge } from 'reactflow';
+import { Node, Edge, NodeChange, EdgeChange, Connection } from 'reactflow';
 import { saveManager, SaveStatus } from '../components/sitemap/save-manager';
 import { transformFromReactFlow } from '../components/sitemap/transforms/from-react-flow';
-import { SitemapNode, SitemapEdge } from '../components/sitemap/types';
+import { SitemapNode, SitemapEdge, CreateNodeData } from '../components/sitemap/types';
 
 interface SitemapState {
   // Data
@@ -25,7 +25,7 @@ interface SitemapState {
   
   // Actions
   loadStructure: (websiteId: string) => Promise<void>;
-  addNode: (parentId: string | null, data: any) => void;
+  addNode: (parentId: string | null, data: CreateNodeData) => void;
   updateNode: (nodeId: string, updates: Partial<Node>) => void;
   deleteNodes: (nodeIds: string[]) => void;
   moveNode: (nodeId: string, newParentId: string | null) => void;
@@ -35,9 +35,9 @@ interface SitemapState {
   clearSelection: () => void;
   
   // React Flow handlers
-  onNodesChange: (changes: any[]) => void;
-  onEdgesChange: (changes: any[]) => void;
-  onConnect: (connection: any) => void;
+  onNodesChange: (changes: NodeChange[]) => void;
+  onEdgesChange: (changes: EdgeChange[]) => void;
+  onConnect: (connection: Connection) => void;
   
   // Save management
   setSaveStatus: (status: SaveStatus) => void;
@@ -258,14 +258,14 @@ export const useSitemapStore = create<SitemapState>()(
     onNodesChange: (changes) => {
       set((state) => {
         // Apply React Flow changes
-        changes.forEach((change: any) => {
-          if (change.type === 'position' && change.dragging === false) {
+        changes.forEach((change) => {
+          if (change.type === 'position' && 'dragging' in change && change.dragging === false) {
             const node = state.nodes.find(n => n.id === change.id);
-            if (node) {
-              node.position = change.position;
+            if (node && 'position' in change) {
+              node.position = change.position!;
             }
           }
-          if (change.type === 'select') {
+          if (change.type === 'select' && 'selected' in change) {
             if (change.selected) {
               if (!state.selectedNodes.includes(change.id)) {
                 state.selectedNodes.push(change.id);
@@ -281,7 +281,7 @@ export const useSitemapStore = create<SitemapState>()(
     onEdgesChange: (changes) => {
       set((state) => {
         // Apply React Flow edge changes
-        changes.forEach((change: any) => {
+        changes.forEach((change) => {
           if (change.type === 'remove') {
             state.edges = state.edges.filter(e => e.id !== change.id);
           }
@@ -303,8 +303,8 @@ export const useSitemapStore = create<SitemapState>()(
       // Save the new connection
       saveManager.addOperation({
         type: 'MOVE',
-        nodeId: connection.target,
-        newParentId: connection.source
+        nodeId: connection.target || '',
+        newParentId: connection.source || null
       });
     },
     
