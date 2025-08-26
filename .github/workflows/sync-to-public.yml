@@ -31,6 +31,12 @@ jobs:
             echo "  ✅ Removed app/premium/"
           fi
           
+          # Remove premium API routes
+          if [ -d "app/api/premium" ]; then
+            rm -rf app/api/premium
+            echo "  ✅ Removed app/api/premium/"
+          fi
+          
           # Remove premium components and hooks
           if [ -d "lib/premium" ]; then
             rm -rf lib/premium
@@ -130,6 +136,9 @@ jobs:
           echo "  - Sitemap Builder" >> $GITHUB_STEP_SUMMARY
           echo "  - Style Guide" >> $GITHUB_STEP_SUMMARY
           echo "  - Wireframe tools" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔌 \`app/api/premium/\` - Premium API routes" >> $GITHUB_STEP_SUMMARY
+          echo "  - Sitemap API endpoints" >> $GITHUB_STEP_SUMMARY
+          echo "  - Premium-only business logic" >> $GITHUB_STEP_SUMMARY
           echo "- 📦 \`lib/premium/\` - Premium libraries" >> $GITHUB_STEP_SUMMARY
           echo "  - Premium components (\`components/\`)" >> $GITHUB_STEP_SUMMARY
           echo "  - Premium hooks (\`hooks/\`)" >> $GITHUB_STEP_SUMMARY
