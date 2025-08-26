@@ -22,14 +22,27 @@ export function useAutoSave(options: UseAutoSaveOptions = {}) {
     onSaveError
   } = options;
   
-  const { nodes, edges, saveStatus } = useSitemapStore();
+  const { nodes, edges, saveStatus, isLoading } = useSitemapStore();
   const previousNodesRef = useRef(nodes);
   const previousEdgesRef = useRef(edges);
   const hasUnsavedChangesRef = useRef(false);
+  const isInitializedRef = useRef(false);
+  
+  // Mark as initialized once initial data is loaded
+  useEffect(() => {
+    if (!isLoading && (nodes.length > 0 || edges.length > 0)) {
+      if (!isInitializedRef.current) {
+        isInitializedRef.current = true;
+        previousNodesRef.current = nodes;
+        previousEdgesRef.current = edges;
+      }
+    }
+  }, [nodes, edges, isLoading]);
   
   // Track changes and trigger saves
   useEffect(() => {
     if (!enabled) return;
+    if (!isInitializedRef.current) return; // Don't track changes until initialized
     
     // Check if nodes or edges have changed
     const nodesChanged = JSON.stringify(nodes) !== JSON.stringify(previousNodesRef.current);

@@ -2389,12 +2389,7 @@ function SitemapFlow() {
           saveToHistory()
         }}
         onAddSection={(nodeId, section) => {
-          setNodes((nds) => nds.map(n => 
-            n.id === nodeId 
-              ? { ...n, data: { ...n.data, components: [...(n.data.components || []), section] } }
-              : n
-          ))
-          saveToHistory()
+          handleComponentAdd(nodeId, section)
         }}
         onOptimize={(suggestion) => {
           console.log('Optimize:', suggestion)
@@ -2410,13 +2405,8 @@ function SitemapFlow() {
           // Add section to selected node or create new node
           if (selectedNodes.length > 0) {
             const nodeId = selectedNodes[0].id
-            setNodes((nds) => nds.map(n => 
-              n.id === nodeId 
-                ? { ...n, data: { ...n.data, components: [...(n.data.components || []), section.name] } }
-                : n
-            ))
+            handleComponentAdd(nodeId, section.name)
           }
-          saveToHistory()
         }}
         currentSections={selectedNodes[0]?.data.components || []}
       />

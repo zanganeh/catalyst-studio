@@ -156,8 +156,6 @@ export async function POST(request: NextRequest) {
               case 'UPDATE':
                 if (!op.nodeId) throw new Error('Node ID required for update');
                 
-                console.log('UPDATE operation for node:', op.nodeId, 'Data:', JSON.stringify(op.data));
-                
                 // Update SiteStructure fields
                 result = await siteStructureService.update(op.nodeId, {
                   slug: op.data?.slug,
@@ -285,17 +283,48 @@ export async function POST(request: NextRequest) {
 
 /**
  * Helper to get default content type ID for a category
+ * Creates a default ContentType if none exists
  */
 async function getDefaultContentTypeId(websiteId: string, category: 'page' | 'component' | 'folder'): Promise<string> {
-  const contentType = await prisma.contentType.findFirst({
+  // First try to find an existing content type
+  let contentType = await prisma.contentType.findFirst({
     where: {
       websiteId,
       category: category
     }
   });
   
+  // If none exists, create a default one
   if (!contentType) {
-    throw new Error(`No content type found for category: ${category}`);
+    // Check if website exists, if not create it
+    let website = await prisma.website.findUnique({
+      where: { id: websiteId }
+    });
+    
+    if (!website) {
+      // Create a default website for demo purposes
+      website = await prisma.website.create({
+        data: {
+          id: websiteId,
+          name: 'Demo Website',
+          domain: 'demo.local',
+          category: 'BUSINESS', // Add required category field
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      });
+    }
+    
+    // Create a default content type
+    contentType = await prisma.contentType.create({
+      data: {
+        websiteId,
+        name: `Default ${category.charAt(0).toUpperCase() + category.slice(1)}`,
+        category: category,
+        description: `Default content type for ${category}`,
+        schema: {} // Empty schema for now
+      }
+    });
   }
   
   return contentType.id;
