@@ -464,9 +464,10 @@ async function main() {
   
   console.log('✨ Cleaned existing data')
   
-  // Create websites
+  // Create websites with hardcoded IDs for easier testing
   const techBlog = await prisma.website.create({
     data: {
+      id: 'cmes3etl70000v83kds8yaqk2', // Hardcoded ID for consistent URLs
       name: 'TechVerse Blog',
       description: 'A technology blog covering the latest in software development',
       category: 'Technology',
@@ -491,6 +492,7 @@ async function main() {
   
   const ecommerce = await prisma.website.create({
     data: {
+      id: 'cmes3etl70001v83kds8yaqk3', // Hardcoded ID for consistent URLs
       name: 'ShopFlow Store',
       description: 'Modern e-commerce platform for digital products',
       category: 'E-commerce',
@@ -515,6 +517,7 @@ async function main() {
   
   const portfolio = await prisma.website.create({
     data: {
+      id: 'cmes3etl70002v83kds8yaqk4', // Hardcoded ID for consistent URLs
       name: 'Creative Portfolio',
       description: 'Designer portfolio showcasing digital art and UX projects',
       category: 'Portfolio',

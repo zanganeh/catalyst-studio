@@ -24,9 +24,9 @@ import 'reactflow/dist/style.css'
 import './sitemap-print.css'
 
 import { DemoLayoutFullWidth } from '@/lib/premium/components/layouts/demo-layout-fullwidth'
-import { ImportModal } from '@/components/studio/sitemap/import-modal'
+import { ImportModal } from '@/lib/premium/components/sitemap/import-modal'
 import { professionalNodeTypes, ProfessionalNodeData } from '@/lib/premium/components/sitemap/professional-nodes'
-import { NodeEditDialog } from '@/components/studio/sitemap/node-edit-dialog'
+import { NodeEditDialog } from '@/lib/premium/components/sitemap/node-edit-dialog'
 import { KeyboardShortcutsHelp } from '@/lib/premium/components/sitemap/keyboard-shortcuts-help'
 import { TemplatesModal } from '@/lib/premium/components/sitemap/templates-modal'
 import { CommentsSystem } from '@/lib/premium/components/sitemap/comments-system'
@@ -270,6 +270,9 @@ function SitemapFlow() {
   const searchParams = useSearchParams()
   const { fitView, zoomTo, getZoom, getNodes, setNodes: rfSetNodes, setEdges: rfSetEdges } = useReactFlow()
   
+  // Get websiteId from URL params
+  const websiteId = searchParams.get('websiteId')
+  
   // Use database-connected store instead of local state
   const {
     nodes: storeNodes,
@@ -508,6 +511,7 @@ function SitemapFlow() {
 
   // Inline editing callbacks
   const handleNodeLabelChange = useCallback((nodeId: string, newLabel: string) => {
+    // Update local state for immediate UI feedback
     setNodes((nodes) => 
       nodes.map((node) => {
         if (node.id === nodeId) {
@@ -523,8 +527,22 @@ function SitemapFlow() {
         return node
       })
     )
+    
+    // Update store to trigger database save
+    if (websiteId) {
+      const node = nodes.find(n => n.id === nodeId)
+      if (node) {
+        storeUpdateNode(nodeId, {
+          data: {
+            ...node.data,
+            label: newLabel
+          }
+        })
+      }
+    }
+    
     saveToHistory()
-  }, [])
+  }, [nodes, websiteId, storeUpdateNode])
 
   const handleComponentAdd = useCallback((nodeId: string, component: string, afterIndex?: number) => {
     // Check if this is a request to open the picker modal
@@ -559,6 +577,8 @@ function SitemapFlow() {
             newComponents = [...currentComponents, component]
           }
           
+          // Store will be updated after setState completes
+          
           return {
             ...node,
             data: {
@@ -570,8 +590,41 @@ function SitemapFlow() {
         return node
       })
     )
+    
+    // Defer store update to avoid updating during render
+    if (websiteId) {
+      setTimeout(() => {
+        const node = nodes.find(n => n.id === nodeId)
+        if (node) {
+          const currentComponents = node.data.components || []
+          let newComponents: string[]
+          
+          if (afterIndex !== undefined) {
+            if (afterIndex === -1) {
+              newComponents = [component, ...currentComponents]
+            } else {
+              newComponents = [
+                ...currentComponents.slice(0, afterIndex + 1),
+                component,
+                ...currentComponents.slice(afterIndex + 1)
+              ]
+            }
+          } else {
+            newComponents = [...currentComponents, component]
+          }
+          
+          storeUpdateNode(nodeId, {
+            data: {
+              ...node.data,
+              components: newComponents
+            }
+          })
+        }
+      }, 0)
+    }
+    
     saveToHistory()
-  }, [])
+  }, [websiteId, storeUpdateNode, nodes])
 
   const handleSectionSelect = useCallback((sectionName: string) => {
     if (sectionPickerNodeId) {
@@ -588,6 +641,7 @@ function SitemapFlow() {
         if (node.id === nodeId) {
           const newComponents = [...(node.data.components || [])]
           newComponents.splice(componentIndex, 1)
+          
           return {
             ...node,
             data: {
@@ -599,8 +653,27 @@ function SitemapFlow() {
         return node
       })
     )
+    
+    // Defer store update to avoid updating during render
+    if (websiteId) {
+      setTimeout(() => {
+        const node = nodes.find(n => n.id === nodeId)
+        if (node) {
+          const newComponents = [...(node.data.components || [])]
+          newComponents.splice(componentIndex, 1)
+          
+          storeUpdateNode(nodeId, {
+            data: {
+              ...node.data,
+              components: newComponents
+            }
+          })
+        }
+      }, 0)
+    }
+    
     saveToHistory()
-  }, [])
+  }, [websiteId, storeUpdateNode, nodes])
 
   const handleComponentsReorder = useCallback((nodeId: string, newComponents: string[]) => {
     setNodes((nodes) =>
@@ -617,8 +690,24 @@ function SitemapFlow() {
         return node
       })
     )
+    
+    // Defer store update to avoid updating during render
+    if (websiteId) {
+      setTimeout(() => {
+        const node = nodes.find(n => n.id === nodeId)
+        if (node) {
+          storeUpdateNode(nodeId, {
+            data: {
+              ...node.data,
+              components: newComponents
+            }
+          })
+        }
+      }, 0)
+    }
+    
     saveToHistory()
-  }, [])
+  }, [websiteId, storeUpdateNode, nodes])
   
   // Drag and drop handlers with visual feedback
   const onNodeDragStart = useCallback((event: React.MouseEvent, node: Node) => {
@@ -639,6 +728,14 @@ function SitemapFlow() {
   const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node) => {
     setIsDragging(false)
     // Node drag stopped
+    
+    // Update store with new position to trigger database save
+    if (websiteId) {
+      storeUpdateNode(node.id, {
+        position: node.position
+      })
+    }
+    
     // Auto-arrange children after parent is moved
     if (node.data.children && node.data.children.length > 0) {
       setTimeout(() => {
@@ -646,7 +743,7 @@ function SitemapFlow() {
         setNodes(layoutedNodes)
       }, 100)
     }
-  }, [nodes, edges, setNodes])
+  }, [nodes, edges, setNodes, websiteId, storeUpdateNode])
 
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {

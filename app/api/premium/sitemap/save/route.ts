@@ -48,11 +48,16 @@ const NodeDataSchema = z.object({
   weight: z.number().int().min(-1000000).max(1000000).optional(),
   contentTypeId: z.string().optional(),
   contentTypeCategory: z.enum(['page', 'component', 'folder']).optional(),
-  components: z.array(z.object({
-    id: z.string().max(100),
-    type: z.string().max(100),
-    props: SecurePropsSchema
-  })).max(100).optional(), // Limit to 100 components per page
+  components: z.array(
+    z.union([
+      z.string().max(100), // Simple string for component names
+      z.object({
+        id: z.string().max(100),
+        type: z.string().max(100),
+        props: SecurePropsSchema
+      })
+    ])
+  ).max(100).optional(), // Limit to 100 components per page
   metadata: SecureMetadataSchema
 });
 
@@ -150,11 +155,33 @@ export async function POST(request: NextRequest) {
                 
               case 'UPDATE':
                 if (!op.nodeId) throw new Error('Node ID required for update');
+                
+                console.log('UPDATE operation for node:', op.nodeId, 'Data:', JSON.stringify(op.data));
+                
+                // Update SiteStructure fields
                 result = await siteStructureService.update(op.nodeId, {
                   slug: op.data?.slug,
                   title: op.data?.title,
                   weight: op.data?.weight
                 });
+                
+                // If components were provided, update the ContentItem
+                if (op.data?.components !== undefined) {
+                  const node = await prisma.siteStructure.findUnique({
+                    where: { id: op.nodeId }
+                  });
+                  
+                  if (node?.contentItemId) {
+                    await prisma.contentItem.update({
+                      where: { id: node.contentItemId },
+                      data: {
+                        content: {
+                          components: op.data.components
+                        } as any
+                      }
+                    });
+                  }
+                }
                 break;
                 
               case 'DELETE':

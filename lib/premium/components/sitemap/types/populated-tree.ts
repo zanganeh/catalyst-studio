@@ -67,8 +67,14 @@ export function getNodeComponents(node: PopulatedTreeNode): unknown[] {
       } catch {
         return [];
       }
-    } else if (typeof content === 'object' && 'components' in content) {
-      return (content as any).components || [];
+    } else if (typeof content === 'object' && content !== null) {
+      // Check if components exists directly or nested
+      if ('components' in content) {
+        return (content as any).components || [];
+      } else if (Array.isArray(content)) {
+        // If content is directly an array, it might be the components
+        return content;
+      }
     }
   }
   return [];
