@@ -5,20 +5,55 @@ import { siteStructureService } from '@/lib/services/site-structure/site-structu
 import { pageOrchestrator } from '@/lib/services/site-structure/page-orchestrator';
 import { z } from 'zod';
 
-// Input validation schemas
+// Input validation schemas with enhanced security
+const MAX_METADATA_SIZE = 10000; // 10KB limit for metadata
+const MAX_PROPS_SIZE = 5000; // 5KB limit for component props
+const MAX_JSON_DEPTH = 5; // Maximum nesting depth
+
+// Helper function to check JSON depth
+function checkJSONDepth(obj: any, depth = 0): boolean {
+  if (depth > MAX_JSON_DEPTH) return false;
+  if (typeof obj !== 'object' || obj === null) return true;
+  
+  for (const value of Object.values(obj)) {
+    if (!checkJSONDepth(value, depth + 1)) return false;
+  }
+  return true;
+}
+
+// Secure metadata schema with size and depth validation
+const SecureMetadataSchema = z.record(z.unknown()).optional().refine(
+  (data) => {
+    if (!data) return true;
+    const jsonStr = JSON.stringify(data);
+    return jsonStr.length <= MAX_METADATA_SIZE && checkJSONDepth(data);
+  },
+  { message: `Metadata exceeds size limit (${MAX_METADATA_SIZE} bytes) or depth limit (${MAX_JSON_DEPTH})` }
+);
+
+// Secure props schema for components
+const SecurePropsSchema = z.record(z.unknown()).optional().refine(
+  (data) => {
+    if (!data) return true;
+    const jsonStr = JSON.stringify(data);
+    return jsonStr.length <= MAX_PROPS_SIZE && checkJSONDepth(data);
+  },
+  { message: `Props exceed size limit (${MAX_PROPS_SIZE} bytes) or depth limit (${MAX_JSON_DEPTH})` }
+);
+
 const NodeDataSchema = z.object({
   title: z.string().min(1).max(255).optional(),
   slug: z.string().regex(/^[a-z0-9-]+$/i).max(255).optional(),
   parentId: z.string().nullable().optional(),
-  weight: z.number().int().optional(),
+  weight: z.number().int().min(-1000000).max(1000000).optional(),
   contentTypeId: z.string().optional(),
   contentTypeCategory: z.enum(['page', 'component', 'folder']).optional(),
   components: z.array(z.object({
-    id: z.string(),
-    type: z.string(),
-    props: z.record(z.unknown()).optional()
-  })).optional(),
-  metadata: z.record(z.unknown()).optional()
+    id: z.string().max(100),
+    type: z.string().max(100),
+    props: SecurePropsSchema
+  })).max(100).optional(), // Limit to 100 components per page
+  metadata: SecureMetadataSchema
 });
 
 const OperationSchema = z.object({
@@ -29,8 +64,8 @@ const OperationSchema = z.object({
 });
 
 const SaveRequestSchema = z.object({
-  websiteId: z.string(),
-  operations: z.array(OperationSchema)
+  websiteId: z.string().min(1).max(100), // Basic validation for websiteId format
+  operations: z.array(OperationSchema).min(1).max(50) // Limit batch size to prevent DoS
 });
 
 // Error type mapping for Prisma errors
@@ -72,17 +107,33 @@ export async function POST(request: NextRequest) {
             switch (op.type) {
               case 'CREATE':
                 if (!op.data) throw new Error('Data required for create operation');
+                
+                // Validate contentTypeId if provided
+                if (op.data.contentTypeId) {
+                  const contentTypeExists = await prisma.contentType.findUnique({
+                    where: { id: op.data.contentTypeId }
+                  });
+                  if (!contentTypeExists) {
+                    throw new Error('Invalid content type specified');
+                  }
+                }
+                
                 // For pages with content, use pageOrchestrator for atomic creation
                 if (op.data.contentTypeCategory === 'page' && op.data.components) {
+                  const contentTypeId = op.data.contentTypeId || await getDefaultContentTypeId(websiteId, 'page');
+                  if (!contentTypeId) {
+                    throw new Error('No valid content type available for page creation');
+                  }
+                  
                   result = await pageOrchestrator.createPage({
                     title: op.data.title || 'Untitled',
-                    contentTypeId: op.data.contentTypeId || await getDefaultContentTypeId(websiteId, 'page'),
-                    parentId: op.data.parentId || null,
+                    contentTypeId,
+                    parentId: op.data.parentId === undefined ? null : op.data.parentId,
                     slug: op.data.slug || 'untitled',
                     content: {
                       components: op.data.components || []
                     } as any, // pageOrchestrator expects specific format
-                    metadata: op.data.metadata as any
+                    metadata: (op.data.metadata || {}) as any
                   }, websiteId);
                 } else {
                   // For folders or simple nodes, use siteStructureService
@@ -130,12 +181,30 @@ export async function POST(request: NextRequest) {
               result
             });
           } catch (opError) {
-            // Log individual operation error but continue processing
+            // Log full error for debugging but sanitize for client
             console.error(`Operation ${op.type} failed:`, opError);
+            
+            // Sanitize error message for client response
+            let clientError = 'Operation failed';
+            if (opError instanceof Error) {
+              // Only expose safe error messages
+              if (opError.message.includes('Invalid content type')) {
+                clientError = 'Invalid content type';
+              } else if (opError.message.includes('Node ID required')) {
+                clientError = opError.message;
+              } else if (opError.message.includes('Data required')) {
+                clientError = opError.message;
+              } else if (opError.message.includes('not found')) {
+                clientError = 'Resource not found';
+              } else if (opError.message.includes('duplicate')) {
+                clientError = 'Duplicate resource';
+              }
+            }
+            
             operationResults.push({
               success: false,
               operation: op.type,
-              error: opError instanceof Error ? opError.message : 'Unknown error'
+              error: clientError
             });
           }
         }
@@ -145,7 +214,7 @@ export async function POST(request: NextRequest) {
       {
         isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
         maxWait: 5000,
-        timeout: 30000
+        timeout: 10000 // Reduced from 30s to 10s to prevent DoS
       }
     );
     

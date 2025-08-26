@@ -13,9 +13,10 @@ export async function GET(
   try {
     const { websiteId } = await params;
     
-    if (!websiteId) {
+    // Validate websiteId format
+    if (!websiteId || websiteId.length > 100 || websiteId.length < 1) {
       return NextResponse.json(
-        { error: 'Website ID is required' },
+        { error: 'Invalid website ID format' },
         { status: 400 }
       );
     }
