@@ -5,6 +5,7 @@ import { saveManager, SaveStatus } from '../components/sitemap/save-manager';
 import { transformFromReactFlow } from '../components/sitemap/transforms/from-react-flow';
 import { SitemapNode, SitemapEdge, CreateNodeData } from '../components/sitemap/types';
 import { ContentTypeCategory } from '@/lib/generated/prisma';
+import { undoManager } from '../components/sitemap/undo-manager';
 
 interface SitemapState {
   // Data
@@ -18,9 +19,10 @@ interface SitemapState {
   isLoading: boolean;
   errorState: { message: string; retry?: () => void } | null;
   
-  // History for undo/redo (added later)
-  history: Array<{ nodes: SitemapNode[]; edges: SitemapEdge[] }>;
-  historyIndex: number;
+  // Undo/Redo state
+  canUndo: boolean;
+  canRedo: boolean;
+  isUndoRedoInProgress: boolean;
   previousNodes: SitemapNode[];
   previousEdges: SitemapEdge[];
   
@@ -45,11 +47,9 @@ interface SitemapState {
   setError: (error: { message: string; retry?: () => void } | null) => void;
   
   // History management
-  pushHistory: () => void;
+  captureState: () => void;
   undo: () => void;
   redo: () => void;
-  canUndo: () => boolean;
-  canRedo: () => boolean;
   
   // Optimistic updates
   optimisticUpdate: <T>(
@@ -57,6 +57,11 @@ interface SitemapState {
     rollback: () => void
   ) => Promise<T>;
 }
+
+// Initialize undoManager with state change callback
+undoManager.onStateChange = (canUndo: boolean, canRedo: boolean) => {
+  useSitemapStore.setState({ canUndo, canRedo });
+};
 
 export const useSitemapStore = create<SitemapState>()(
   immer((set, get) => ({
@@ -68,8 +73,9 @@ export const useSitemapStore = create<SitemapState>()(
     saveStatus: 'idle',
     isLoading: false,
     errorState: null,
-    history: [],
-    historyIndex: -1,
+    canUndo: false,
+    canRedo: false,
+    isUndoRedoInProgress: false,
     previousNodes: [],
     previousEdges: [],
     
@@ -95,10 +101,10 @@ export const useSitemapStore = create<SitemapState>()(
           state.previousNodes = data.nodes || [];
           state.previousEdges = data.edges || [];
           state.isLoading = false;
-          // Initialize history with loaded state
-          state.history = [{ nodes: data.nodes || [], edges: data.edges || [] }];
-          state.historyIndex = 0;
         });
+        
+        // Initialize undoManager with loaded state
+        undoManager.initialize(data.nodes || [], data.edges || []);
         
         // Initialize save manager
         saveManager.initialize(websiteId, {
@@ -151,21 +157,27 @@ export const useSitemapStore = create<SitemapState>()(
       });
       
       const state = get();
-      const operations = transformFromReactFlow(
-        state.nodes, 
-        state.edges, 
-        state.previousNodes, 
-        state.previousEdges
-      );
       
-      // Update previous state for next diff
-      set((s) => {
-        s.previousNodes = [...state.nodes];
-        s.previousEdges = [...state.edges];
-      });
+      // Capture state for undo/redo
+      state.captureState();
       
-      state.pushHistory();
-      saveManager.addOperations(operations);
+      // Only save if not during undo/redo
+      if (!state.isUndoRedoInProgress) {
+        const operations = transformFromReactFlow(
+          state.nodes, 
+          state.edges, 
+          state.previousNodes, 
+          state.previousEdges
+        );
+        
+        // Update previous state for next diff
+        set((s) => {
+          s.previousNodes = [...state.nodes];
+          s.previousEdges = [...state.edges];
+        });
+        
+        saveManager.addOperations(operations);
+      }
     },
     
     // Update a node
@@ -178,21 +190,27 @@ export const useSitemapStore = create<SitemapState>()(
       });
       
       const state = get();
-      const operations = transformFromReactFlow(
-        state.nodes, 
-        state.edges, 
-        state.previousNodes, 
-        state.previousEdges
-      );
       
-      // Update previous state for next diff
-      set((s) => {
-        s.previousNodes = [...state.nodes];
-        s.previousEdges = [...state.edges];
-      });
+      // Capture state for undo/redo
+      state.captureState();
       
-      state.pushHistory();
-      saveManager.addOperations(operations);
+      // Only save if not during undo/redo
+      if (!state.isUndoRedoInProgress) {
+        const operations = transformFromReactFlow(
+          state.nodes, 
+          state.edges, 
+          state.previousNodes, 
+          state.previousEdges
+        );
+        
+        // Update previous state for next diff
+        set((s) => {
+          s.previousNodes = [...state.nodes];
+          s.previousEdges = [...state.edges];
+        });
+        
+        saveManager.addOperations(operations);
+      }
     },
     
     // Delete nodes
@@ -210,14 +228,18 @@ export const useSitemapStore = create<SitemapState>()(
         state.selectedNodes = state.selectedNodes.filter(id => !nodeIds.includes(id));
       });
       
-      get().pushHistory();
+      // Capture state for undo/redo
+      get().captureState();
       
-      // Generate delete operations
-      const operations = nodeIds.map(nodeId => ({
-        type: 'DELETE' as const,
-        nodeId
-      }));
-      saveManager.addOperations(operations);
+      // Only save if not during undo/redo
+      if (!get().isUndoRedoInProgress) {
+        // Generate delete operations
+        const operations = nodeIds.map(nodeId => ({
+          type: 'DELETE' as const,
+          nodeId
+        }));
+        saveManager.addOperations(operations);
+      }
     },
     
     // Move a node to a new parent
@@ -237,14 +259,18 @@ export const useSitemapStore = create<SitemapState>()(
         }
       });
       
-      get().pushHistory();
+      // Capture state for undo/redo
+      get().captureState();
       
-      // Generate move operation
-      saveManager.addOperation({
-        type: 'MOVE',
-        nodeId,
-        newParentId: newParentId === null ? undefined : newParentId
-      });
+      // Only save if not during undo/redo
+      if (!get().isUndoRedoInProgress) {
+        // Generate move operation
+        saveManager.addOperation({
+          type: 'MOVE',
+          nodeId,
+          newParentId: newParentId === null ? undefined : newParentId
+        });
+      }
     },
     
     // Selection management
@@ -319,55 +345,53 @@ export const useSitemapStore = create<SitemapState>()(
       state.errorState = error;
     }),
     
-    // History management
-    pushHistory: () => {
-      const currentState = {
-        nodes: [...get().nodes],
-        edges: [...get().edges]
-      };
-      
-      set((state) => {
-        // Remove any history after current index
-        state.history = state.history.slice(0, state.historyIndex + 1);
-        
-        // Add new state
-        state.history.push(currentState);
-        state.historyIndex++;
-        
-        // Limit history to 50 states
-        if (state.history.length > 50) {
-          state.history.shift();
-          state.historyIndex--;
-        }
-      });
+    // History management with UndoManager
+    captureState: () => {
+      const { nodes, edges } = get();
+      undoManager.pushState(nodes, edges);
     },
     
     undo: () => {
-      const { history, historyIndex } = get();
-      if (historyIndex > 0) {
-        const previousState = history[historyIndex - 1];
+      set((state) => {
+        state.isUndoRedoInProgress = true;
+      });
+      
+      const historyState = undoManager.undo();
+      if (historyState) {
         set((state) => {
-          state.nodes = [...previousState.nodes];
-          state.edges = [...previousState.edges];
-          state.historyIndex--;
+          state.nodes = historyState.nodes;
+          state.edges = historyState.edges;
+          // Update previousNodes/edges for proper diff calculation
+          state.previousNodes = [...historyState.nodes];
+          state.previousEdges = [...historyState.edges];
         });
       }
+      
+      set((state) => {
+        state.isUndoRedoInProgress = false;
+      });
     },
     
     redo: () => {
-      const { history, historyIndex } = get();
-      if (historyIndex < history.length - 1) {
-        const nextState = history[historyIndex + 1];
+      set((state) => {
+        state.isUndoRedoInProgress = true;
+      });
+      
+      const historyState = undoManager.redo();
+      if (historyState) {
         set((state) => {
-          state.nodes = [...nextState.nodes];
-          state.edges = [...nextState.edges];
-          state.historyIndex++;
+          state.nodes = historyState.nodes;
+          state.edges = historyState.edges;
+          // Update previousNodes/edges for proper diff calculation
+          state.previousNodes = [...historyState.nodes];
+          state.previousEdges = [...historyState.edges];
         });
       }
+      
+      set((state) => {
+        state.isUndoRedoInProgress = false;
+      });
     },
-    
-    canUndo: () => get().historyIndex > 0,
-    canRedo: () => get().historyIndex < get().history.length - 1,
     
     // Optimistic updates
     optimisticUpdate: async (action, rollback) => {

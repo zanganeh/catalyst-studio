@@ -2,9 +2,12 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Toaster } from 'sonner'
 import { useSitemapStore } from '@/lib/premium/stores/sitemap-store'
 import { useAutoSave } from '@/lib/premium/hooks/use-auto-save'
+import { useUndoRedoShortcuts } from '@/lib/premium/hooks/use-undo-redo-shortcuts'
 import { SaveStatusIndicator } from '@/lib/premium/components/sitemap/save-status-indicator'
+import { UndoRedoButtons } from '@/lib/premium/components/sitemap/undo-redo-buttons'
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -297,6 +300,9 @@ function SitemapFlow() {
   
   // Enable auto-save
   useAutoSave()
+  
+  // Enable keyboard shortcuts for undo/redo
+  useUndoRedoShortcuts()
   
   // Transform store nodes to match ProfessionalNodeData format
   const transformedStoreNodes = useMemo(() => {
@@ -1424,18 +1430,7 @@ function SitemapFlow() {
         setSelectedNodes([])
       }
       
-      // Ctrl/Cmd + Z for undo
-      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault()
-        handleUndo()
-      }
-      
-      // Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y for redo
-      if (((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') || 
-          ((e.ctrlKey || e.metaKey) && e.key === 'y')) {
-        e.preventDefault()
-        handleRedo()
-      }
+      // Undo/Redo now handled by useUndoRedoShortcuts hook
       
       // N for new node
       if (e.key === 'n' && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
@@ -1621,6 +1616,9 @@ function SitemapFlow() {
 
   return (
     <>
+      {/* Toast notifications */}
+      <Toaster position="bottom-center" richColors />
+      
       {/* Virtual Canvas for performance metrics */}
       {nodes.length > 50 && (
         <VirtualCanvas
@@ -1784,6 +1782,9 @@ function SitemapFlow() {
             >
               <Printer className="h-4 w-4" />
             </Button>
+            
+            {/* Undo/Redo Buttons */}
+            <UndoRedoButtons className="ml-2" showToasts={true} />
             
             {/* Save Status Indicator */}
             <div className="ml-auto">
