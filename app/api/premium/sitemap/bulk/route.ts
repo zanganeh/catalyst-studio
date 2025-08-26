@@ -19,7 +19,7 @@ const BulkUpdateSchema = z.object({
     data: z.object({
       status: z.string().optional(),
       weight: z.number().optional(),
-      metadata: z.any().optional()
+      metadata: z.record(z.unknown()).optional()
     })
   })).min(1)
 });
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
                     where: { id: node.contentItemId },
                     data: {
                       status: update.data.status,
-                      metadata: update.data.metadata
+                      metadata: update.data.metadata as any
                     }
                   });
                 }

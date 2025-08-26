@@ -6,10 +6,25 @@ import { pageOrchestrator } from '@/lib/services/site-structure/page-orchestrato
 import { z } from 'zod';
 
 // Input validation schemas
+const NodeDataSchema = z.object({
+  title: z.string().min(1).max(255).optional(),
+  slug: z.string().regex(/^[a-z0-9-]+$/i).max(255).optional(),
+  parentId: z.string().nullable().optional(),
+  weight: z.number().int().optional(),
+  contentTypeId: z.string().optional(),
+  contentTypeCategory: z.enum(['page', 'component', 'folder']).optional(),
+  components: z.array(z.object({
+    id: z.string(),
+    type: z.string(),
+    props: z.record(z.unknown()).optional()
+  })).optional(),
+  metadata: z.record(z.unknown()).optional()
+});
+
 const OperationSchema = z.object({
   type: z.enum(['CREATE', 'UPDATE', 'DELETE', 'MOVE']),
   nodeId: z.string().optional(),
-  data: z.any().optional(),
+  data: NodeDataSchema.optional(),
   newParentId: z.string().nullable().optional()
 });
 
@@ -56,25 +71,26 @@ export async function POST(request: NextRequest) {
             
             switch (op.type) {
               case 'CREATE':
+                if (!op.data) throw new Error('Data required for create operation');
                 // For pages with content, use pageOrchestrator for atomic creation
-                if (op.data?.contentTypeCategory === 'page' && op.data?.components) {
+                if (op.data.contentTypeCategory === 'page' && op.data.components) {
                   result = await pageOrchestrator.createPage({
-                    title: op.data.title,
+                    title: op.data.title || 'Untitled',
                     contentTypeId: op.data.contentTypeId || await getDefaultContentTypeId(websiteId, 'page'),
-                    parentId: op.data.parentId,
-                    slug: op.data.slug,
+                    parentId: op.data.parentId || null,
+                    slug: op.data.slug || 'untitled',
                     content: {
                       components: op.data.components || []
-                    },
-                    metadata: op.data.metadata
+                    } as any, // pageOrchestrator expects specific format
+                    metadata: op.data.metadata as any
                   }, websiteId);
                 } else {
                   // For folders or simple nodes, use siteStructureService
                   result = await siteStructureService.create({
                     websiteId,
-                    parentId: op.data.parentId,
-                    slug: op.data.slug,
-                    title: op.data.title,
+                    parentId: op.data.parentId || null,
+                    slug: op.data.slug || 'untitled',
+                    title: op.data.title || 'Untitled',
                     contentItemId: null, // Folders have no content
                     weight: op.data.weight || 0
                   });
