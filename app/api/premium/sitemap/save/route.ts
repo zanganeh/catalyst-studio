@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
                   result = await pageOrchestrator.createPage({
                     title: op.data.title || 'Untitled',
                     contentTypeId,
-                    parentId: op.data.parentId === undefined ? null : op.data.parentId,
+                    parentId: op.data.parentId === null ? undefined : op.data.parentId,
                     slug: op.data.slug || 'untitled',
                     content: {
                       components: op.data.components || []

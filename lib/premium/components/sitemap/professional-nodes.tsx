@@ -595,7 +595,7 @@ export const ProfessionalFolderNode = memo(({ id, data, selected }: NodeProps<Pr
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                data.onToggleCollapse(id)
+                data.onToggleCollapse?.(id)
               }}
               className="p-1 rounded hover:bg-white/10 opacity-60 hover:opacity-100"
             >

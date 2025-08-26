@@ -1,4 +1,4 @@
-import { PrismaClient, SiteStructure } from '@prisma/client';
+import { PrismaClient, SiteStructure } from '@/lib/generated/prisma';
 import { prisma } from '@/lib/prisma';
 
 export interface IPathManager {

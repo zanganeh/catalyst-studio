@@ -1,4 +1,4 @@
-import { PrismaClient, SiteStructure, Prisma } from '@prisma/client';
+import { PrismaClient, SiteStructure, Prisma } from '@/lib/generated/prisma';
 import { prisma } from '@/lib/prisma';
 
 export interface ISiteStructureRepository {

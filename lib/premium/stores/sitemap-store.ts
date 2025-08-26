@@ -4,6 +4,7 @@ import { Node, Edge, NodeChange, EdgeChange, Connection } from 'reactflow';
 import { saveManager, SaveStatus } from '../components/sitemap/save-manager';
 import { transformFromReactFlow } from '../components/sitemap/transforms/from-react-flow';
 import { SitemapNode, SitemapEdge, CreateNodeData } from '../components/sitemap/types';
+import { ContentTypeCategory } from '@/lib/generated/prisma';
 
 interface SitemapState {
   // Data
@@ -121,17 +122,18 @@ export const useSitemapStore = create<SitemapState>()(
     
     // Add a new node
     addNode: (parentId, data) => {
+      const nodeType = 'page'; // Default type for new nodes
       const newNode: SitemapNode = {
         id: `node-${Date.now()}`, // Temporary ID, will be replaced by server
-        type: data.type || 'page',
+        type: nodeType,
         position: { x: 0, y: 0 },
         data: {
           label: data.title || 'New Page',
           slug: data.slug || 'new-page',
           components: [],
           childCount: 0,
-          hasContent: data.type === 'page',
-          contentTypeCategory: data.type
+          hasContent: true, // Pages have content
+          contentTypeCategory: 'page' as ContentTypeCategory
         }
       };
       
@@ -241,7 +243,7 @@ export const useSitemapStore = create<SitemapState>()(
       saveManager.addOperation({
         type: 'MOVE',
         nodeId,
-        newParentId
+        newParentId: newParentId === null ? undefined : newParentId
       });
     },
     
@@ -294,8 +296,8 @@ export const useSitemapStore = create<SitemapState>()(
         // Add new connection
         state.edges.push({
           id: `${connection.source}-${connection.target}`,
-          source: connection.source,
-          target: connection.target,
+          source: connection.source || '',
+          target: connection.target || '',
           type: 'smoothstep'
         });
       });
@@ -304,7 +306,7 @@ export const useSitemapStore = create<SitemapState>()(
       saveManager.addOperation({
         type: 'MOVE',
         nodeId: connection.target || '',
-        newParentId: connection.source || null
+        newParentId: connection.source === null ? undefined : connection.source
       });
     },
     

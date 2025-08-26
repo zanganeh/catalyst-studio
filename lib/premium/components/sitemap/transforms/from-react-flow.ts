@@ -90,7 +90,7 @@ export function transformFromReactFlow(
         operations.push({
           type: 'MOVE',
           nodeId: nodeId,
-          newParentId: parentId
+          newParentId: parentId === null ? undefined : parentId
         });
       }
       

@@ -48,6 +48,9 @@ next-env.d.ts
 *.db-journal
 prisma/dev.db
 
+# PR review files
+pr_diff.txt
+
 # local settings
 .claude/settings.local.json
 .claude/commands/**
