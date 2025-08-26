@@ -5,14 +5,13 @@
 ### Where to Place Files
 
 #### Premium Features (Private Only)
-**ALWAYS place under `lib/premium/`:**
+**ALWAYS place under `lib/premium/` or `app/premium/`:**
 - Premium components → `lib/premium/components/`
-- Premium demos → `lib/premium/demo-app/`
+- Premium demos → `app/premium/demo/`
 - Premium hooks → `lib/premium/hooks/`
 - Premium utilities → `lib/premium/*.ts`
 
 **NEVER place premium features in:**
-- ❌ `app/` (except under `lib/premium/demo-app/`)
 - ❌ `components/` (except under `lib/premium/components/`)
 - ❌ `hooks/` (except under `lib/premium/hooks/`)
 
@@ -67,14 +66,17 @@ import { cn } from '@/lib/utils'
 
 #### Creating a Premium Feature
 ```bash
-# ALWAYS create under lib/premium/
+# Premium components go under lib/premium/components/
 mkdir -p lib/premium/components/new-feature
 touch lib/premium/components/new-feature/index.tsx
 
+# Premium demos go under app/premium/demo/
+mkdir -p app/premium/demo/new-demo
+touch app/premium/demo/new-demo/page.tsx
+
 # NEVER create premium features here:
 # ❌ components/premium/...
-# ❌ app/premium/...
-# ❌ app/demo/...
+# ❌ app/demo/... (without premium prefix)
 ```
 
 #### Creating a Common Feature
@@ -101,21 +103,21 @@ premium → catalyst-studio-premium (private)
 
 ### Common Mistakes to Avoid
 
-1. **DON'T** create premium features outside `lib/premium/`
+1. **DON'T** create premium components outside `lib/premium/components/`
 2. **DON'T** import premium components in common code
 3. **DON'T** push directly to origin (public) when working on premium
 4. **DON'T** mix premium and common code in the same file
-5. **DON'T** create `app/premium-demo/` - use `lib/premium/demo-app/`
+5. **DON'T** create premium demos outside `app/premium/demo/`
 
 ### Quick Reference
 
 | Feature Type | Location | Push Command |
 |-------------|----------|--------------|
 | Premium Component | `lib/premium/components/` | `git push premium main` |
-| Premium Demo | `lib/premium/demo-app/` | `git push premium main` |
+| Premium Demo | `app/premium/demo/` | `git push premium main` |
 | Common UI | `components/ui/` | `git push premium main` |
 | Bug Fix | Any common location | `git push premium main` |
-| Core Feature | `app/`, `lib/` | `git push premium main` |
+| Core Feature | `app/` (non-premium), `lib/` | `git push premium main` |
 
 ### Verification Checklist
 
@@ -152,20 +154,21 @@ git push premium main
 
 #### Adding a New Demo (Premium)
 ```bash
-# Create under lib/premium/demo-app
-mkdir -p lib/premium/demo-app/new-demo
-touch lib/premium/demo-app/new-demo/page.tsx
+# Create under app/premium/demo
+mkdir -p app/premium/demo/new-demo
+touch app/premium/demo/new-demo/page.tsx
 
 # Commit and push
-git add lib/premium/demo-app/new-demo/
+git add app/premium/demo/new-demo/
 git commit -m "feat: add new premium demo"
 git push premium main
 ```
 
 ## Summary
 
-**One Simple Rule**: 
-- Premium → `lib/premium/` only
+**Simple Rules**: 
+- Premium components & hooks → `lib/premium/`
+- Premium demos → `app/premium/demo/`
 - Common → Standard locations
-- Always push to `premium` remote
+- Always push to `premium` remote (or `origin` if that's the only remote)
 - Let GitHub Actions handle public sync

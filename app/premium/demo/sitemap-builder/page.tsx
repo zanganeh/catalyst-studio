@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useSitemapStore } from '@/lib/premium/stores/sitemap-store'
+import { useAutoSave } from '@/lib/premium/hooks/use-auto-save'
+import { SaveStatusIndicator } from '@/lib/premium/components/sitemap/save-status-indicator'
 import ReactFlow, {
   MiniMap,
   Controls,
@@ -21,9 +24,9 @@ import 'reactflow/dist/style.css'
 import './sitemap-print.css'
 
 import { DemoLayoutFullWidth } from '@/lib/premium/components/layouts/demo-layout-fullwidth'
-import { ImportModal } from '@/components/studio/sitemap/import-modal'
+import { ImportModal } from '@/lib/premium/components/sitemap/import-modal'
 import { professionalNodeTypes, ProfessionalNodeData } from '@/lib/premium/components/sitemap/professional-nodes'
-import { NodeEditDialog } from '@/components/studio/sitemap/node-edit-dialog'
+import { NodeEditDialog } from '@/lib/premium/components/sitemap/node-edit-dialog'
 import { KeyboardShortcutsHelp } from '@/lib/premium/components/sitemap/keyboard-shortcuts-help'
 import { TemplatesModal } from '@/lib/premium/components/sitemap/templates-modal'
 import { CommentsSystem } from '@/lib/premium/components/sitemap/comments-system'
@@ -59,7 +62,7 @@ import {
   Maximize2, ZoomIn, Move, Layout,
   Eye, EyeOff, Sparkles, HelpCircle,
   Share2, Clock, Brain, Package, Search, Filter,
-  Check, Link2, Printer
+  Check, Link2, Printer, Layers, FolderPlus
 } from 'lucide-react'
 
 const initialNodes: Node<ProfessionalNodeData>[] = [
@@ -267,6 +270,51 @@ function SitemapFlow() {
   const searchParams = useSearchParams()
   const { fitView, zoomTo, getZoom, getNodes, setNodes: rfSetNodes, setEdges: rfSetEdges } = useReactFlow()
   
+  // Get websiteId from URL params
+  const websiteId = searchParams.get('websiteId')
+  
+  // Use database-connected store instead of local state
+  const {
+    nodes: storeNodes,
+    edges: storeEdges,
+    isLoading,
+    saveStatus,
+    errorState,
+    loadStructure,
+    addNode: storeAddNode,
+    updateNode: storeUpdateNode,
+    deleteNodes: storeDeleteNodes,
+    moveNode: storeMoveNode,
+    undo: storeUndo,
+    redo: storeRedo,
+    canUndo,
+    canRedo,
+    setSaveStatus,
+    onNodesChange: storeOnNodesChange,
+    onEdgesChange: storeOnEdgesChange,
+    onConnect: storeOnConnect
+  } = useSitemapStore()
+  
+  // Enable auto-save
+  useAutoSave()
+  
+  // Transform store nodes to match ProfessionalNodeData format
+  const transformedStoreNodes = useMemo(() => {
+    return storeNodes.map(node => ({
+      ...node,
+      data: {
+        ...node.data,
+        // Convert ComponentData[] to string[] for compatibility
+        components: Array.isArray(node.data.components) 
+          ? node.data.components.map(c => 
+              typeof c === 'string' ? c : c.type
+            )
+          : []
+      }
+    }))
+  }, [storeNodes])
+
+  // Use initial mock data - will be replaced when store loads
   const [nodes, setNodes, onNodesChange] = useNodesState<ProfessionalNodeData>(initialNodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
   const [importModalOpen, setImportModalOpen] = useState(false)
@@ -322,36 +370,52 @@ function SitemapFlow() {
     enableProgressiveLoading: nodes.length > 100
   })
 
-  // Apply auto-layout on initial mount to prevent overlapping
+  // Load sitemap from database on mount
   useEffect(() => {
-    // Run auto-layout on initial nodes to ensure proper spacing
-    const layoutedNodes = applyAutoLayout(initialNodes, initialEdges)
-    
-    // Find home node and center the viewport on it
-    const homeNode = layoutedNodes.find(n => n.id === 'home')
-    if (homeNode) {
-      // Adjust all nodes to center home horizontally
-      const viewportWidth = window.innerWidth || 1500
-      const centerX = viewportWidth / 2
-      const homeOffsetX = centerX - homeNode.position.x - 160 // 160 is half of node width
-      
-      const centeredNodes = layoutedNodes.map(node => ({
-        ...node,
-        position: {
-          ...node.position,
-          x: node.position.x + homeOffsetX
-        }
-      }))
-      setNodes(centeredNodes)
+    const websiteId = searchParams.get('websiteId')
+    if (websiteId) {
+      // Load from database
+      loadStructure(websiteId)
     } else {
-      setNodes(layoutedNodes)
-    }
+      // Use mock data if no websiteId
+      const layoutedNodes = applyAutoLayout(initialNodes, initialEdges)
     
-    // Give React Flow time to render before fitting view
-    setTimeout(() => {
-      fitView({ padding: 0.2, duration: 800 })
-    }, 200)
-  }, [fitView, setNodes])
+      // Find home node and center the viewport on it
+      const homeNode = layoutedNodes.find(n => n.id === 'home')
+      if (homeNode) {
+        // Adjust all nodes to center home horizontally
+        const viewportWidth = window.innerWidth || 1500
+        const centerX = viewportWidth / 2
+        const homeOffsetX = centerX - homeNode.position.x - 160 // 160 is half of node width
+        
+        const centeredNodes = layoutedNodes.map(node => ({
+          ...node,
+          position: {
+            ...node.position,
+            x: node.position.x + homeOffsetX
+          }
+        }))
+        setNodes(centeredNodes)
+      } else {
+        setNodes(layoutedNodes)
+      }
+      
+      // Give React Flow time to render before fitting view
+      setTimeout(() => {
+        fitView({ padding: 0.2, duration: 800 })
+      }, 200)
+    }
+  }, [fitView, setNodes, loadStructure, searchParams])
+  
+  // Apply layout when store nodes are loaded
+  useEffect(() => {
+    if (transformedStoreNodes.length > 0 && !isLoading) {
+      const layoutedNodes = applyAutoLayout(transformedStoreNodes, storeEdges)
+      setNodes(layoutedNodes)
+      setEdges(storeEdges)
+      setTimeout(() => fitView({ padding: 0.2, duration: 800 }), 200)
+    }
+  }, [transformedStoreNodes, storeEdges, isLoading, setNodes, setEdges, fitView])
   
   // Check if coming from import
   useEffect(() => {
@@ -447,6 +511,7 @@ function SitemapFlow() {
 
   // Inline editing callbacks
   const handleNodeLabelChange = useCallback((nodeId: string, newLabel: string) => {
+    // Update local state for immediate UI feedback
     setNodes((nodes) => 
       nodes.map((node) => {
         if (node.id === nodeId) {
@@ -462,8 +527,22 @@ function SitemapFlow() {
         return node
       })
     )
+    
+    // Update store to trigger database save
+    if (websiteId) {
+      const node = nodes.find(n => n.id === nodeId)
+      if (node) {
+        storeUpdateNode(nodeId, {
+          data: {
+            ...node.data,
+            label: newLabel
+          }
+        })
+      }
+    }
+    
     saveToHistory()
-  }, [])
+  }, [nodes, websiteId, storeUpdateNode])
 
   const handleComponentAdd = useCallback((nodeId: string, component: string, afterIndex?: number) => {
     // Check if this is a request to open the picker modal
@@ -498,6 +577,8 @@ function SitemapFlow() {
             newComponents = [...currentComponents, component]
           }
           
+          // Store will be updated after setState completes
+          
           return {
             ...node,
             data: {
@@ -509,8 +590,41 @@ function SitemapFlow() {
         return node
       })
     )
+    
+    // Defer store update to avoid updating during render
+    if (websiteId) {
+      setTimeout(() => {
+        const node = nodes.find(n => n.id === nodeId)
+        if (node) {
+          const currentComponents = node.data.components || []
+          let newComponents: string[]
+          
+          if (afterIndex !== undefined) {
+            if (afterIndex === -1) {
+              newComponents = [component, ...currentComponents]
+            } else {
+              newComponents = [
+                ...currentComponents.slice(0, afterIndex + 1),
+                component,
+                ...currentComponents.slice(afterIndex + 1)
+              ]
+            }
+          } else {
+            newComponents = [...currentComponents, component]
+          }
+          
+          storeUpdateNode(nodeId, {
+            data: {
+              ...node.data,
+              components: newComponents
+            }
+          })
+        }
+      }, 0)
+    }
+    
     saveToHistory()
-  }, [])
+  }, [websiteId, storeUpdateNode, nodes])
 
   const handleSectionSelect = useCallback((sectionName: string) => {
     if (sectionPickerNodeId) {
@@ -527,6 +641,7 @@ function SitemapFlow() {
         if (node.id === nodeId) {
           const newComponents = [...(node.data.components || [])]
           newComponents.splice(componentIndex, 1)
+          
           return {
             ...node,
             data: {
@@ -538,8 +653,27 @@ function SitemapFlow() {
         return node
       })
     )
+    
+    // Defer store update to avoid updating during render
+    if (websiteId) {
+      setTimeout(() => {
+        const node = nodes.find(n => n.id === nodeId)
+        if (node) {
+          const newComponents = [...(node.data.components || [])]
+          newComponents.splice(componentIndex, 1)
+          
+          storeUpdateNode(nodeId, {
+            data: {
+              ...node.data,
+              components: newComponents
+            }
+          })
+        }
+      }, 0)
+    }
+    
     saveToHistory()
-  }, [])
+  }, [websiteId, storeUpdateNode, nodes])
 
   const handleComponentsReorder = useCallback((nodeId: string, newComponents: string[]) => {
     setNodes((nodes) =>
@@ -556,8 +690,24 @@ function SitemapFlow() {
         return node
       })
     )
+    
+    // Defer store update to avoid updating during render
+    if (websiteId) {
+      setTimeout(() => {
+        const node = nodes.find(n => n.id === nodeId)
+        if (node) {
+          storeUpdateNode(nodeId, {
+            data: {
+              ...node.data,
+              components: newComponents
+            }
+          })
+        }
+      }, 0)
+    }
+    
     saveToHistory()
-  }, [])
+  }, [websiteId, storeUpdateNode, nodes])
   
   // Drag and drop handlers with visual feedback
   const onNodeDragStart = useCallback((event: React.MouseEvent, node: Node) => {
@@ -578,6 +728,14 @@ function SitemapFlow() {
   const onNodeDragStop = useCallback((event: React.MouseEvent, node: Node) => {
     setIsDragging(false)
     // Node drag stopped
+    
+    // Update store with new position to trigger database save
+    if (websiteId) {
+      storeUpdateNode(node.id, {
+        position: node.position
+      })
+    }
+    
     // Auto-arrange children after parent is moved
     if (node.data.children && node.data.children.length > 0) {
       setTimeout(() => {
@@ -585,7 +743,7 @@ function SitemapFlow() {
         setNodes(layoutedNodes)
       }, 100)
     }
-  }, [nodes, edges, setNodes])
+  }, [nodes, edges, setNodes, websiteId, storeUpdateNode])
 
   const onNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
@@ -687,19 +845,13 @@ function SitemapFlow() {
   }, [nodes, edges, setNodes, fitView])
 
   const handleAddNode = useCallback(() => {
-    const newNode: Node = {
-      id: `node-${Date.now()}`,
-      type: 'page',
-      position: { x: 400, y: 400 },
-      data: {
-        label: 'New Page',
-        url: '/new-page',
-        components: [],
-        expanded: false
-      }
-    }
-    setNodes((nds) => [...nds, newNode])
-  }, [setNodes])
+    // Use store's add node with database persistence
+    storeAddNode(null, {
+      title: 'New Page',
+      slug: 'new-page',
+      contentTypeId: 'default-page-type' // TODO: Get actual content type ID
+    })
+  }, [storeAddNode])
 
   // Enhanced Undo/Redo functionality with debouncing - moved here to fix initialization error
   const saveToHistory = useCallback(() => {
@@ -815,12 +967,10 @@ function SitemapFlow() {
   const handleDeleteNode = useCallback((nodeId?: string) => {
     const nodesToDelete = nodeId ? [nodeId] : selectedNodes.map(n => n.id)
     
-    setNodes((nds) => nds.filter(n => !nodesToDelete.includes(n.id)))
-    setEdges((eds) => eds.filter(e => 
-      !nodesToDelete.includes(e.source) && !nodesToDelete.includes(e.target)
-    ))
+    // Use store's delete with database persistence
+    storeDeleteNodes(nodesToDelete)
     setSelectedNodes([])
-  }, [selectedNodes, setNodes, setEdges])
+  }, [selectedNodes, storeDeleteNodes])
   
   const handleEditNode = useCallback((nodeId: string) => {
     const node = nodes.find(n => n.id === nodeId)
@@ -831,10 +981,9 @@ function SitemapFlow() {
   }, [nodes])
   
   const handleSaveNodeEdit = useCallback((nodeId: string, updatedData: any) => {
-    setNodes((nds) => nds.map(n => 
-      n.id === nodeId ? { ...n, data: updatedData } : n
-    ))
-  }, [setNodes])
+    // Use store's update with database persistence
+    storeUpdateNode(nodeId, { data: updatedData })
+  }, [storeUpdateNode])
   
   const handleAddChild = useCallback((parentId: string, type: 'page' | 'folder') => {
     const parentNode = nodes.find(n => n.id === parentId)
@@ -1060,24 +1209,8 @@ function SitemapFlow() {
     }, 1000)
   }, [])
   
-  // Auto-save functionality
-  useEffect(() => {
-    if (!autoSaveEnabled) return
-    
-    const saveTimer = setTimeout(() => {
-      if (nodes.length > 0 && !isSaving) {
-        setIsSaving(true)
-        // Simulate save operation
-        setTimeout(() => {
-          setLastSaveTime(new Date())
-          setIsSaving(false)
-          sessionStorage.setItem('sitemapAutoSave', JSON.stringify({ nodes, edges }))
-        }, 500)
-      }
-    }, 3000) // Auto-save after 3 seconds of inactivity
-    
-    return () => clearTimeout(saveTimer)
-  }, [nodes, edges, autoSaveEnabled, isSaving])
+  // Sync React Flow changes to store
+  // Store manages its own state, no manual sync needed
   
   // Filter nodes based on search, status, and advanced filters
   const filteredNodes = useMemo(() => {
@@ -1142,22 +1275,16 @@ function SitemapFlow() {
   }, [advancedFilters])
   
   const handleUndo = useCallback(() => {
-    if (historyIndex > 0) {
-      const prevState = history[historyIndex - 1]
-      setNodes(prevState.nodes)
-      setEdges(prevState.edges)
-      setHistoryIndex(historyIndex - 1)
+    if (canUndo()) {
+      storeUndo()
     }
-  }, [history, historyIndex, setNodes, setEdges])
+  }, [canUndo, storeUndo])
   
   const handleRedo = useCallback(() => {
-    if (historyIndex < history.length - 1) {
-      const nextState = history[historyIndex + 1]
-      setNodes(nextState.nodes)
-      setEdges(nextState.edges)
-      setHistoryIndex(historyIndex + 1)
+    if (canRedo()) {
+      storeRedo()
     }
-  }, [history, historyIndex, setNodes, setEdges])
+  }, [canRedo, storeRedo])
   
   // Focus on branch
   const handleFocusBranch = useCallback((nodeId: string) => {
@@ -1562,7 +1689,6 @@ function SitemapFlow() {
         deleteKeyCode="Delete"
       >
         <Background 
-          variant="dots" 
           gap={20} 
           size={1.5} 
           color="rgba(255, 255, 255, 0.03)" 
@@ -1659,19 +1785,9 @@ function SitemapFlow() {
               <Printer className="h-4 w-4" />
             </Button>
             
-            {/* Auto-save Indicator */}
-            <div className="flex items-center gap-2 ml-auto">
-              {isSaving ? (
-                <div className="flex items-center gap-2 text-yellow-400 text-xs">
-                  <div className="animate-spin h-3 w-3 border-2 border-yellow-400 border-t-transparent rounded-full" />
-                  <span>Saving...</span>
-                </div>
-              ) : lastSaveTime ? (
-                <div className="flex items-center gap-2 text-green-400 text-xs">
-                  <Check className="h-3 w-3" />
-                  <span>Saved {new Date(lastSaveTime).toLocaleTimeString()}</span>
-                </div>
-              ) : null}
+            {/* Save Status Indicator */}
+            <div className="ml-auto">
+              <SaveStatusIndicator />
             </div>
           </div>
           
@@ -2173,10 +2289,15 @@ function SitemapFlow() {
           id: editingNode.id,
           label: editingNode.data.label,
           url: editingNode.data.url,
-          components: editingNode.data.components,
+          sections: editingNode.data.components, // NodeEditDialog expects 'sections'
           description: editingNode.data.description,
           type: editingNode.type || 'page',
-          metadata: editingNode.data.metadata
+          metadata: editingNode.data.metadata ? {
+            status: editingNode.data.metadata.status === 'review' || editingNode.data.metadata.status === 'scheduled' 
+              ? 'draft' 
+              : editingNode.data.metadata.status as any,
+            pageType: editingNode.data.metadata.pageType
+          } : undefined
         } : null}
         onSave={handleSaveNodeEdit}
       />
@@ -2266,10 +2387,10 @@ function SitemapFlow() {
           setNodes((nds) => [...nds, node])
           saveToHistory()
         }}
-        onAddComponent={(nodeId, component) => {
+        onAddSection={(nodeId, section) => {
           setNodes((nds) => nds.map(n => 
             n.id === nodeId 
-              ? { ...n, data: { ...n.data, components: [...(n.data.components || []), component] } }
+              ? { ...n, data: { ...n.data, components: [...(n.data.components || []), section] } }
               : n
           ))
           saveToHistory()
@@ -2284,19 +2405,19 @@ function SitemapFlow() {
       <GlobalSectionsLibrary
         isOpen={globalSectionsOpen}
         onClose={() => setGlobalSectionsOpen(false)}
-        onAddComponent={(component) => {
-          // Add component to selected node or create new node
+        onAddSection={(section) => {
+          // Add section to selected node or create new node
           if (selectedNodes.length > 0) {
             const nodeId = selectedNodes[0].id
             setNodes((nds) => nds.map(n => 
               n.id === nodeId 
-                ? { ...n, data: { ...n.data, components: [...(n.data.components || []), component.name] } }
+                ? { ...n, data: { ...n.data, components: [...(n.data.components || []), section.name] } }
                 : n
             ))
           }
           saveToHistory()
         }}
-        currentComponents={selectedNodes[0]?.data.components || []}
+        currentSections={selectedNodes[0]?.data.components || []}
       />
     </>
   )

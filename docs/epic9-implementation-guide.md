@@ -58,14 +58,17 @@ Before starting development, ensure you have:
   │   ├── save-manager.ts            # Save management
   │   ├── undo-manager.ts            # Undo/redo functionality
   │   └── layout/                    # Layout algorithms
+  ├── components/globals/             # Premium global components (hero, cta, etc.)
   ├── stores/                        # Zustand stores
   │   └── sitemap-store.ts
   └── hooks/                         # Custom hooks
       └── use-auto-save.ts
 
 /app/premium/                        # Premium app routes
-  ├── demo/sitemap-builder/          # Existing demo page
-  └── api/sitemap/                   # Premium API endpoints (NEW pattern)
+  └── demo/sitemap-builder/          # Existing demo page
+
+/app/api/premium/                    # Premium API endpoints (Next.js App Router)
+  └── sitemap/
       ├── [websiteId]/
       │   └── route.ts              # GET /api/premium/sitemap/[websiteId]
       ├── save/
@@ -74,13 +77,15 @@ Before starting development, ensure you have:
           └── route.ts              # POST /api/premium/sitemap/bulk
 
 ❌ FORBIDDEN Locations (will leak to open-source):
-/components/                         # Common components - DO NOT USE
-/lib/ (root)                        # Common libraries - DO NOT USE  
-/app/api/                           # Common API routes - DO NOT USE
+/components/                         # Root components - DO NOT USE
+/lib/ (root)                        # Root libraries - DO NOT USE  
+/app/api/ (non-premium)             # Non-premium API routes - DO NOT USE
+/app/ (non-premium)                 # Non-premium app routes - DO NOT USE
 ```
 
 ### Why This Matters
-- The premium repository syncs to public, but `/lib/premium/` and `/app/premium/` are git-ignored
+- The premium repository syncs to public, but `/lib/premium/` and `/app/premium/` folders are completely removed
+- Note: `/app/api/premium/` is safe because it's under `/app/premium/` path
 - Any code outside premium directories will be exposed in the open-source version
 - This feature is a paid feature and must not be accessible in the free version
 
@@ -119,7 +124,7 @@ enum ContentTypeCategory {
 ### Component Architecture
 
 ```
-/components/globals/         # Global components directory
+/lib/premium/components/globals/    # Premium global components directory
   /hero/
     ├── index.tsx           # React component
     ├── schema.ts           # Props definition
@@ -159,14 +164,14 @@ class SiteStructureService {
 
 #### 1.2 Component Registration System
 ```typescript
-// lib/components/registry.ts
+// lib/premium/components/registry.ts
 import { globSync } from 'glob'
 
 export function discoverComponents() {
-  const componentPaths = globSync('./components/globals/*/index.tsx')
+  const componentPaths = globSync('./lib/premium/components/globals/*/index.tsx')
   
   return componentPaths.map(path => {
-    const name = path.split('/')[3]
+    const name = path.split('/')[5]  // Updated index for correct path
     return {
       name,
       component: () => import(path),
@@ -187,7 +192,7 @@ module.exports = {
 
 #### 1.3 Auto-Layout Algorithm
 ```typescript
-// lib/sitemap/layout-engine.ts
+// lib/premium/components/sitemap/layout-engine.ts
 import dagre from 'dagre'
 
 export function calculateLayout(nodes: Node[], edges: Edge[]) {
@@ -280,7 +285,7 @@ function transformToReactFlow(siteStructure: TreeNode): Node[] {
 
 #### 2.2 Save Functionality
 ```typescript
-// lib/sitemap/save-manager.ts
+// lib/premium/components/sitemap/save-manager.ts
 export class SaveManager {
   private pendingChanges: Change[] = []
   private saveTimeout: NodeJS.Timeout
@@ -319,10 +324,10 @@ export class SaveManager {
 **IMPORTANT: File Path vs URL Endpoint Distinction**
 - **File Path**: Where you create the file in the codebase
 - **URL Endpoint**: What you call in fetch() requests
-- Next.js App Router maps `/app/premium/api/...` files to `/api/premium/...` URLs
+- Next.js App Router creates API routes under `/app/api/` directory
 
 ```typescript
-// FILE PATH: app/premium/api/sitemap/[websiteId]/route.ts
+// FILE PATH: app/api/premium/sitemap/[websiteId]/route.ts
 // URL ENDPOINT: /api/premium/sitemap/[websiteId]
 export async function GET(request: Request, { params }) {
   const { websiteId } = params
@@ -331,7 +336,7 @@ export async function GET(request: Request, { params }) {
   return NextResponse.json(tree)
 }
 
-// FILE PATH: app/premium/api/sitemap/save/route.ts  
+// FILE PATH: app/api/premium/sitemap/save/route.ts  
 // URL ENDPOINT: /api/premium/sitemap/save
 export async function POST(request: Request) {
   const { changes } = await request.json()
@@ -364,7 +369,7 @@ export async function POST(request: Request) {
 
 #### 3.1 Undo/Redo Implementation
 ```typescript
-// lib/sitemap/undo-manager.ts
+// lib/premium/components/sitemap/undo-manager.ts
 class UndoManager {
   private history: State[] = []
   private currentIndex = -1
@@ -433,7 +438,7 @@ function useSitemapUndo() {
 
 #### 3.2 Bulk Operations
 ```typescript
-// FILE PATH: app/premium/api/sitemap/bulk/route.ts
+// FILE PATH: app/api/premium/sitemap/bulk/route.ts
 // URL ENDPOINT: /api/premium/sitemap/bulk
 export async function POST(request: Request) {
   const { operation, ids, data } = await request.json()
@@ -523,15 +528,15 @@ export default async function DynamicPage({ params }) {
 **Option A: Build-time Discovery (Recommended)**
 ```javascript
 // build-scripts/generate-components.js
-const components = glob.sync('./components/globals/*/index.tsx')
-fs.writeFileSync('components.generated.ts', generateRegistry(components))
+const components = glob.sync('./lib/premium/components/globals/*/index.tsx')
+fs.writeFileSync('lib/premium/components/components.generated.ts', generateRegistry(components))
 ```
 **Pros**: No runtime overhead, tree-shakeable  
 **Cons**: Requires build step
 
 **Option B: Runtime Discovery**
 ```javascript
-const context = require.context('./components/globals', true, /index\.tsx$/)
+const context = require.context('./lib/premium/components/globals', true, /index\.tsx$/)
 ```
 **Pros**: No build configuration  
 **Cons**: Includes all components in bundle
@@ -539,7 +544,7 @@ const context = require.context('./components/globals', true, /index\.tsx$/)
 ### 4.2 State Management Strategy
 
 ```typescript
-// stores/sitemap-store.ts
+// lib/premium/stores/sitemap-store.ts
 import { create } from 'zustand'
 
 interface SitemapStore {
@@ -691,18 +696,20 @@ describe('Sitemap Integration', () => {
 /app/premium/demo/sitemap-builder/page.tsx    # Main UI to modify
 
 # API Endpoints (File Paths)
-/app/premium/api/sitemap/[websiteId]/route.ts # GET sitemap endpoint
-/app/premium/api/sitemap/save/route.ts        # POST save endpoint
-/app/premium/api/sitemap/bulk/route.ts        # POST bulk operations
+/app/api/premium/sitemap/[websiteId]/route.ts # GET sitemap endpoint
+/app/api/premium/sitemap/save/route.ts        # POST save endpoint
+/app/api/premium/sitemap/bulk/route.ts        # POST bulk operations
 
 # Premium Libraries
 /lib/premium/components/sitemap/              # Sitemap utilities
 /lib/premium/stores/sitemap-store.ts          # State management
 /lib/premium/hooks/use-auto-save.ts           # Auto-save hook
 
+# Premium Components
+/lib/premium/components/globals/              # Premium global components
+
 # Existing Services (Common/Shared)
-/lib/services/site-structure/                 # Backend services
-/components/globals/                          # Component library
+/lib/services/site-structure/                 # Backend services (Epic 8, shared)
 ```
 
 ### Key Dependencies
@@ -743,25 +750,25 @@ npm test
 
 ### Premium Sitemap Endpoints
 
-**Note**: These are URL endpoints. The actual files are located in `/app/premium/api/sitemap/`
+**Note**: These are URL endpoints. The actual files are located in `/app/api/premium/sitemap/` (Next.js App Router pattern)
 
 #### GET /api/premium/sitemap/[websiteId]
-- **File Location**: `/app/premium/api/sitemap/[websiteId]/route.ts`
+- **File Location**: `/app/api/premium/sitemap/[websiteId]/route.ts`
 - **URL Endpoint**: `/api/premium/sitemap/[websiteId]`
 - **Description**: Returns complete sitemap tree structure (PREMIUM ONLY)
 
 #### POST /api/premium/sitemap/save
-- **File Location**: `/app/premium/api/sitemap/save/route.ts`
+- **File Location**: `/app/api/premium/sitemap/save/route.ts`
 - **URL Endpoint**: `/api/premium/sitemap/save`
 - **Description**: Saves changes to sitemap (PREMIUM ONLY)
 
 #### POST /api/premium/sitemap/bulk
-- **File Location**: `/app/premium/api/sitemap/bulk/route.ts`
+- **File Location**: `/app/api/premium/sitemap/bulk/route.ts`
 - **URL Endpoint**: `/api/premium/sitemap/bulk`
 - **Description**: Performs bulk operations (PREMIUM ONLY)
 
 #### POST /api/premium/sitemap/[nodeId]/components
-- **File Location**: `/app/premium/api/sitemap/[nodeId]/components/route.ts`
+- **File Location**: `/app/api/premium/sitemap/[nodeId]/components/route.ts`
 - **URL Endpoint**: `/api/premium/sitemap/[nodeId]/components`
 - **Description**: Updates components for a node (PREMIUM ONLY)
 

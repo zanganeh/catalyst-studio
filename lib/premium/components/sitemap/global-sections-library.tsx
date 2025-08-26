@@ -316,10 +316,10 @@ export function GlobalSectionsLibrary({
                             <h4 className="font-medium text-sm flex items-center gap-2">
                               {section.name}
                               {section.isGlobal && (
-                                <Globe className="h-3 w-3 text-blue-400" title="Global section" />
+                                <Globe className="h-3 w-3 text-blue-400" />
                               )}
                               {section.isLocked && (
-                                <Lock className="h-3 w-3 text-gray-400" title="System section" />
+                                <Lock className="h-3 w-3 text-gray-400" />
                               )}
                             </h4>
                             <p className="text-xs text-gray-500">{section.category}</p>

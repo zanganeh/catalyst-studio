@@ -1,4 +1,4 @@
-import { PrismaClient, SiteStructure, Prisma } from '@prisma/client';
+import { PrismaClient, SiteStructure, Prisma } from '@/lib/generated/prisma';
 import { prisma } from '@/lib/prisma';
 import { 
   CircularReferenceError, 
@@ -195,8 +195,16 @@ export class SiteStructureService implements ISiteStructureService {
         throw new NodeNotFoundError(id);
       }
       
-      // Filter out title field as it's not in the database
+      // Filter out title field as it's not in the SiteStructure database
       const { title, ...dbUpdates } = updates;
+      
+      // Update title in ContentItem if provided and node has content
+      if (title && node.contentItemId) {
+        await tx.contentItem.update({
+          where: { id: node.contentItemId },
+          data: { title }
+        });
+      }
       
       // If slug changed, recalculate paths
       if (updates.slug && updates.slug !== node.slug) {

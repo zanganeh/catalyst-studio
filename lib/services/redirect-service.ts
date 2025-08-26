@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { Redirect } from '@prisma/client';
+import { Redirect } from '@/lib/generated/prisma';
 import { ErrorCode, StandardResponse } from '@/lib/services/types';
 
 export interface CreateRedirectInput {

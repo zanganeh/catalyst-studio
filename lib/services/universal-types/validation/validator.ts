@@ -43,7 +43,7 @@ export interface DuplicateCheckResult {
 
 export interface ContentTypeDefinition {
   name: string;
-  category: 'page' | 'component';
+  category: 'page' | 'component' | 'folder';
   fields: Array<{
     name: string;
     type: string;

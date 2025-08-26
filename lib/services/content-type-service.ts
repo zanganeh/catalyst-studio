@@ -87,7 +87,7 @@ async function validateContentTypeData(
   relationships: CreateContentTypeRequest['relationships'] | undefined,
   websiteId: string | undefined,
   existingName?: string, // For update operations, to check if name is changing
-  category?: 'page' | 'component' // New category parameter
+  category?: 'page' | 'component' | 'folder' // New category parameter
 ): Promise<void> {
   // Validate content type name
   const nameValidation = validateContentTypeName(name);

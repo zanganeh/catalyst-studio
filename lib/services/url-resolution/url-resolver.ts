@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { SiteStructure, ContentItem } from '@prisma/client';
+import { SiteStructure, ContentItem } from '@/lib/generated/prisma';
 import { ErrorCode, StandardResponse } from '@/lib/services/types';
 
 export interface ResolvedPage {

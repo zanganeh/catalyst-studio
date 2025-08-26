@@ -22,7 +22,7 @@ const globalSections: SectionData[] = [
 ]
 
 // Categories with their sections - Complete list from screenshots
-const sectionCategories = {
+const sectionCategories: Record<string, Array<{id: string; name: string; description?: string}>> = {
   'Blank Section': [],
   'Navbar': [],
   'Footer': [],

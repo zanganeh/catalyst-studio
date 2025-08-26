@@ -212,7 +212,7 @@ ALTER TYPE "ContentTypeCategory" ADD VALUE 'folder';
   - Cache subscription status for 5 minutes
 
 - **NFR-AUTH-002**: API Protection
-  - API routes under `/app/premium/api/` naturally protected
+  - API routes under `/app/api/premium/` protected through premium isolation
   - Premium folder excluded from public repository
   - Session authentication required for all endpoints
   - Rate limiting: 100 requests per minute per user
@@ -1105,8 +1105,8 @@ story → epic → main (never story → main)
 
 #### API Endpoint Specifications
 
-**Base Path**: `/app/premium/api/sitemap/` 
-**Security**: Premium isolation through folder structure
+**Base Path**: `/app/api/premium/sitemap/` 
+**Security**: Premium isolation through folder structure (safe because `/app/api/premium/` is under `/app/premium/` path)
 
 ##### 1. GET Sitemap Data
 **Endpoint**: `GET /[websiteId]`
@@ -1273,24 +1273,24 @@ story → epic → main (never story → main)
 
 #### Sitemap Endpoints
 ```yaml
-GET /app/premium/api/sitemap/{websiteId}
+GET /api/premium/sitemap/{websiteId}
   Description: Retrieve complete sitemap tree
   Response: Hierarchical JSON structure
   Auth: Session required
 
-POST /app/premium/api/sitemap/save
+POST /api/premium/sitemap/save
   Description: Save incremental changes
   Body: Array of change operations
   Response: Success with operation results
   Auth: Session required
 
-POST /app/premium/api/sitemap/bulk
+POST /api/premium/sitemap/bulk
   Description: Execute bulk operations
   Body: Operation type, target IDs, data
   Response: Per-item success/failure
   Auth: Session required
 
-POST /app/premium/api/sitemap/{nodeId}/components
+POST /api/premium/sitemap/{nodeId}/components
   Description: Update page components
   Body: Component array with order
   Response: Updated configuration
@@ -1482,10 +1482,11 @@ All Epic 9 code MUST use these paths:
 /app/premium/demo/sitemap-builder/     # Sitemap UI page
 
 ✅ API Routes (Premium Isolation):
-/app/premium/api/sitemap/               # API routes in premium folder
-Note: Next.js App Router supports API routes anywhere under /app/
-      Using /app/premium/api/ maintains premium isolation
-      route.ts files create API endpoints in any directory
+/app/api/premium/sitemap/               # API routes must be under /app/api/ in Next.js
+Note: Next.js App Router requires API routes under /app/api/ directory
+      Using /app/api/premium/ maintains premium isolation because
+      the entire /app/premium/ path (which includes /app/api/premium/) 
+      is removed during sync to public repository
 Security: Premium paths naturally protected from public repository
 
 ❌ NEVER Use These Paths (Will Leak to Open Source):
