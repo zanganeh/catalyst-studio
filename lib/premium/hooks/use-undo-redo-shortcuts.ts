@@ -5,12 +5,10 @@ import { useSitemapStore } from '../stores/sitemap-store';
  * Hook to handle keyboard shortcuts for undo/redo functionality
  */
 export function useUndoRedoShortcuts() {
-  const { undo, redo, canUndo, canRedo } = useSitemapStore((state) => ({
-    undo: state.undo,
-    redo: state.redo,
-    canUndo: state.canUndo,
-    canRedo: state.canRedo
-  }));
+  const undo = useSitemapStore((state) => state.undo);
+  const redo = useSitemapStore((state) => state.redo);
+  const canUndo = useSitemapStore((state) => state.canUndo);
+  const canRedo = useSitemapStore((state) => state.canRedo);
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

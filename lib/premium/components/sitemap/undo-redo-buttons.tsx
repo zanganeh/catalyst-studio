@@ -18,12 +18,10 @@ interface UndoRedoButtonsProps {
 }
 
 export function UndoRedoButtons({ className, showToasts = false }: UndoRedoButtonsProps) {
-  const { undo, redo, canUndo, canRedo } = useSitemapStore((state) => ({
-    undo: state.undo,
-    redo: state.redo,
-    canUndo: state.canUndo,
-    canRedo: state.canRedo
-  }));
+  const undo = useSitemapStore((state) => state.undo);
+  const redo = useSitemapStore((state) => state.redo);
+  const canUndo = useSitemapStore((state) => state.canUndo);
+  const canRedo = useSitemapStore((state) => state.canRedo);
   
   // Detect platform for keyboard shortcut display
   const isMac = typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0;
